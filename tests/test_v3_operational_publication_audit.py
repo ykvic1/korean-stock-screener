@@ -1,4 +1,5 @@
 """Catch publication drift that an internally valid score JSON cannot catch."""
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -119,6 +120,40 @@ class OperationalPublicationAuditTests(unittest.TestCase):
         result = audit(self.docs)
         self.assertFalse(result['checks']['zero_volume_display_retained'])
         self.assertFalse(result['publication_coherent'])
+
+    def test_regular_close_attachment_tracks_snapshot_and_rejects_identity_drift(self):
+        raw = (self.docs / FILES[0]).read_bytes()
+        market = json.loads(raw)
+        stock = next(row for row in market['stocks']
+                     if isinstance(row.get('price'), (int, float)) and row['price'] > 0)
+        day = market['date']
+        quote = {'name': stock['name'], 'market': stock['market'],
+                 'analysis_close': stock['price'], 'close': stock['price']}
+        report = {
+            'schema': 'v3-current-corroborated-regular-closes-1',
+            'source': 'DATED_PUBLIC_FDR_CLOSE_CORROBORATED_WITH_KRX',
+            'asof': day, 'source_market_sha256': sha256(raw).hexdigest(),
+            'public_cache_sha256': 'b' * 64,
+            'official_source_sha256': {'KOSPI': 'c' * 64, 'KOSDAQ': 'd' * 64},
+            'historical_ohlcv_regular_session_verified': False, 'score_recalculated': False,
+            'requested_count': len(market['stocks']), 'matched_count': 1,
+            'states': {'matched': 1, 'public_close_unavailable': len(market['stocks']) - 1},
+            'rows': {stock['code']: quote},
+        }
+        path = self.docs / 'v3-regular-close-prices.json'
+        path.write_text(json.dumps({**report, 'asof': '2020-01-01'}), encoding='utf-8')
+        self.assertEqual(audit(self.docs)['pages']['regular_close']['status'],
+                         'awaiting_current_market_day')
+        path.write_text(json.dumps({**report, 'source_market_sha256': 'a' * 64}), encoding='utf-8')
+        self.assertEqual(audit(self.docs)['pages']['regular_close']['status'],
+                         'awaiting_current_market_snapshot')
+        path.write_text(json.dumps(report), encoding='utf-8')
+        result = audit(self.docs)
+        self.assertTrue(result['publication_coherent'])
+        self.assertEqual(result['pages']['regular_close']['linked'], 1)
+        quote['name'] = 'Different issuer'
+        path.write_text(json.dumps(report), encoding='utf-8')
+        self.assertFalse(audit(self.docs)['publication_coherent'])
 
     def test_score_rank_drift_is_rejected_by_python_and_pages(self):
         def change(d):
