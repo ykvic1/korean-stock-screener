@@ -6,12 +6,14 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from v3_industry_earnings_gap_audit import (
     SCHEMA,CATEGORIES,missing_reason,verified_operating_income_pair_without_revenue,
     build,missing_csv,industry_breadth_csv,main,IndustryGapError,
+    complete_saved_gap_source_ready,
 )
-from v3_dart_industry_earnings_sample import build as sample_build,source_join_ready
+from v3_dart_industry_earnings_sample import build as sample_build
 
 DOCS=Path(__file__).resolve().parents[1]/"docs"
 
@@ -22,14 +24,6 @@ def saved():
             "v3-dart-industry-classification.json",
             "v3-dart-bulk-history.json")
     ]
-
-
-def complete_saved_gap_source_ready(market,catalog,industry,bulk):
-    # The *sample* join may use a partial company-industry lookup, but this
-    # separate marketwide gap report requires all current listings classified.
-    # Mirror the production workflow's second gate while source dates roll.
-    return (source_join_ready(market,catalog,industry,bulk)
-            and industry.get("observed_industry_codes") == catalog["listed_total"])
 
 
 def statement(year,op=50,revenue=300,ambiguous=None,receipt=None):
@@ -48,6 +42,17 @@ def issuer(old=None,new=None,scope="CFS"):
 
 
 class IndustryEarningsMissingnessTests(unittest.TestCase):
+    def test_equal_census_totals_do_not_make_an_incomplete_identity_join_ready(self):
+        industry={"observed_industry_codes":2}
+        members={"000001":{"market":"KOSPI"},"000003":{"market":"KOSDAQ"}}
+        with (patch("v3_industry_earnings_gap_audit.source_join_ready",return_value=True),
+              patch("v3_industry_earnings_gap_audit._inputs",return_value=("2026-11-20",members)),
+              patch("v3_industry_earnings_gap_audit.prior_records") as profiles):
+            profiles.return_value={"000001":{"industry_code":"10"}}
+            self.assertFalse(complete_saved_gap_source_ready({}, {},industry,{}))
+            profiles.return_value["000003"]={"industry_code":"20"}
+            self.assertTrue(complete_saved_gap_source_ready({}, {},industry,{}))
+
     def test_exclusive_first_gap_reason_and_measured_zero_are_distinct(self):
         d="2026-10-21"
         first,last=2024,2025
