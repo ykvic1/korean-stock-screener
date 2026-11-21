@@ -201,6 +201,11 @@ jobs:
           publication_path=report_path.with_name("v30b-operational-publication.json")
           if publication_path.is_file():
               publication=json.loads(publication_path.read_text(encoding="utf8"))
+              close=publication["pages"].get("regular_close")
+              if close:
+                  lines.append("#### 화면 KRX 대조 종가")
+                  lines.append(f"- {close['status']} · 대조 기준일 {close.get('asof','—')} · "
+                               f"현재 화면 연결 {close['linked']}건")
               incident=publication["failed_refresh_evidence"]
               lines.append("#### 운영 갱신 실패 시 직전 게시본 보존")
               lines.append("- "+incident["status"]+" / 일치 파일 "
