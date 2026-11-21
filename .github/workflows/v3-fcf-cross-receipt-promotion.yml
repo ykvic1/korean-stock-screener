@@ -18,11 +18,9 @@ on:
       - v3_dart_reviewed_capex.py
       - v3_dart_reviewed_capex_statements.json
       - .github/workflows/v3-fcf-cross-receipt-promotion.yml
+  # Both comparative collectors dispatch this workflow after a changed
+  # checkpoint is persisted. Also listening for completion duplicates the run.
   workflow_dispatch:
-  workflow_run:
-    workflows: [V3 Original Prior-Year FCF Comparative Research, V3 FY2024 Original Prior-Year FCF Recovery]
-    types: [completed]
-    branches: [main]
 permissions:
   contents: read
 jobs:
@@ -33,21 +31,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: |
+      - name: Test comparative promotion changes
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: |
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_comparative_promotion.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_cashflow_enrichment.py' -v
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_2024_prior_probe.py' -v
-          python v3_dart_fcf_comparative_promotion.py --mode dry-run
+      - name: Validate saved comparative evidence
+        run: python v3_dart_fcf_comparative_promotion.py --mode dry-run
   promote:
     needs: offline
-    # Every successful bounded source batch may provide new verified facts.
-    # Always load main; never execute source-run artifacts or PR code.
-    if: >-
-      github.event_name != 'pull_request' &&
-      (github.event_name != 'workflow_run' ||
-       (github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.event != 'pull_request'))
+    # Load main for verified publication, including explicit collector dispatches.
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
