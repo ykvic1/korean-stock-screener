@@ -51,7 +51,7 @@ jobs:
           python - <<'PY'
           import json,os
           from pathlib import Path
-          from v3_dart_industry_earnings_sample import source_join_ready
+          from v3_industry_earnings_gap_audit import complete_saved_gap_source_ready
           base=Path("docs")
           def read(name):
               return json.loads((base/name).read_text(encoding="utf8"))
@@ -59,14 +59,12 @@ jobs:
           catalog=read("v22-market-catalog.json")
           industry=read("v3-dart-industry-classification.json")
           archive=read("v3-dart-bulk-history.json")
-          ready=source_join_ready(market,catalog,industry,archive)
-          complete=(industry.get("observed_industry_codes")==catalog["listed_total"])
-          ready=ready and complete
+          ready=complete_saved_gap_source_ready(market,catalog,industry,archive)
           with open(os.environ["GITHUB_OUTPUT"],"a",encoding="utf8") as fp:
               fp.write("ready="+str(ready).lower()+"\n")
           print(json.dumps({
               "ready":ready,"market_asof":catalog["date"],
-              "annual_asof":archive["asof"],"complete_current_company_codes":complete,
+              "annual_asof":archive["asof"],
               "official_industry_15_points_authorized":False,"new_provider_calls":0,
           },sort_keys=True))
           PY
