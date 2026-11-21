@@ -151,7 +151,7 @@ jobs:
         run: |
           set -euo pipefail
           site=https://ykvic1.github.io/korean-stock-screener
-          for file in v3-forward-validation-{coverage,results}.json; do
+          for file in v3-forward-validation-{coverage,results}.json v3-regular-close-prices.json; do
             if curl --fail --silent --show-error --max-time 15 \
               "$site/$file?run=$GITHUB_RUN_ID" | cmp -s "docs/$file" -; then
               continue
