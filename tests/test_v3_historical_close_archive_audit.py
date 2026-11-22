@@ -45,16 +45,18 @@ class HistoricalCloseArchiveTests(TestCase):
             "extreme_horizon_rows": 5,
             "distinct_adverse_extreme_dates": 1,
             "official_close_corroborated_extreme_dates": 1,
+            "distinct_extreme_trading_symbol_dates": 1,
+            "official_close_corroborated_extreme_symbol_dates": 1,
             "official_intraday_low_extremes_verified": False,
             "public_ohlc_bounds_are_not_independent_low_price_proof": True,
-            "by_session": {"2025-11-13": {"market": good, "pilot": good}},
-            "totals": {"market": good.copy(), "pilot": good.copy()},
+            "by_session": {"2025-11-13": {"market": good, "pilot": good, "extreme": good}},
+            "totals": {"market": good.copy(), "pilot": good.copy(), "extreme": good.copy()},
         }
         self.assertTrue(archive.close_reconciliation_complete(report))
         self.assertEqual(good["traded_public_bars"], 1)
         self.assertEqual(good["official_close_inside_public_ohlc"], 1)
 
-        for scope in ("market", "pilot"):
+        for scope in ("market", "pilot", "extreme"):
             for key in ("exact_close", "exact_listed_shares", "same_trade_status"):
                 with self.subTest(scope=scope, missing_count=key):
                     damaged = deepcopy(report)
@@ -90,6 +92,12 @@ class HistoricalCloseArchiveTests(TestCase):
         wrong = deepcopy(report)
         wrong["official_intraday_low_extremes_verified"] = True
         self.assertFalse(archive.close_reconciliation_complete(wrong))
+        wrong = deepcopy(report)
+        wrong["official_close_corroborated_extreme_symbol_dates"] = 0
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
+        wrong = deepcopy(report)
+        wrong["totals"]["extreme"]["rows"] += 1
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
 
     def test_inconsistent_public_high_low_is_not_proved_by_matching_closes(self):
         source = {"000010": ("KOSPI", "가", 100, 12, 10, 9, 11, 1)}
@@ -105,6 +113,54 @@ class HistoricalCloseArchiveTests(TestCase):
         halted = archive.compare(source, official, {"000010"})
         self.assertEqual(halted["traded_public_bars"], 0)
         self.assertEqual(halted["invalid_public_ohlc"], 0)
+
+
+    def test_other_matching_stock_on_same_date_cannot_certify_target_extreme(self):
+        # Earlier date-only logic accepted any correctly matched pilot close,
+        # even if the actual security responsible for the low was wrong.
+        original, witness = "000010", "000030"
+        template = {code: (market, name, 100, 10, 10, 9, 10, 5)
+                    for code, market, name in (
+                        ("005930", "KOSPI", "삼성전자"),
+                        ("000660", "KOSPI", "SK하이닉스"),
+                        (original, "KOSPI", "원종목"),
+                        (witness, "KOSDAQ", "비교종목"))}
+        dates = (archive.SIGNAL, archive.ENTRY, archive.END)
+        source = {session: template for session in dates}
+
+        class Storage:
+            def get_content(self, path):
+                dt = path.rsplit("/", 1)[1].removesuffix(".json.gz")
+                official = {code: [row[0], row[1], row[6], row[2], None, True]
+                            for code, row in template.items()}
+                if dt == archive.ENTRY.isoformat():
+                    official[original][2] += 1
+                payload = {"schema": DAY_SCHEMA, "date": dt, "rows": official,
+                           "source_sha256": {"KOSPI": "1" * 64, "KOSDAQ": "2" * 64}}
+                return gzip.compress(json.dumps(payload).encode()), "sha"
+
+        original_windows = [(original, archive.SIGNAL, archive.END)]
+        witness_windows = [(witness, archive.SIGNAL, archive.END)]
+        origin_paths = {original: original_windows, witness: witness_windows}
+        records = ([{"code": original, "horizon_months": str(h),
+                     "adverse_extreme_on": archive.ENTRY.isoformat()}
+                    for h in (1, 2, 3, 6, 12)] +
+                   [{"code": witness, "horizon_months": str(h),
+                     "adverse_extreme_on": archive.END.isoformat()}
+                    for h in (1, 2, 3, 6, 12)])
+        with patch.object(archive, "pilot_windows",
+                          return_value=(2, original_windows + witness_windows, origin_paths)):
+            result = archive.build(source, Storage(), extreme_rows=records)
+        self.assertEqual(result["official_sessions_missing"], [])
+        self.assertEqual(result["distinct_adverse_extreme_dates"], 2)
+        self.assertEqual(result["distinct_extreme_trading_symbol_dates"], 2)
+        self.assertEqual(result["by_session"][archive.ENTRY.isoformat()]
+                         ["pilot"]["exact_close"], 1)
+        self.assertEqual(result["by_session"][archive.ENTRY.isoformat()]
+                         ["extreme"]["close_mismatch"], 1)
+        self.assertEqual(result["official_close_corroborated_extreme_dates"], 1)
+        self.assertEqual(result["official_close_corroborated_extreme_symbol_dates"], 1)
+        self.assertFalse(archive.close_reconciliation_complete(result))
 
     def test_partial_archive_keeps_explicit_missing_date_and_changes_pilot_symbol(self):
         original, successor = "000010", "000020"
@@ -131,7 +187,9 @@ class HistoricalCloseArchiveTests(TestCase):
         extremes = [{"code": original, "horizon_months": str(h),
                      "adverse_extreme_on": archive.ENTRY.isoformat()}
                     for h in (1, 2, 3, 6, 12)]
-        with patch.object(archive, "pilot_windows", return_value=(1, windows)):
+        source_paths = {original: [(original, archive.SIGNAL, archive.ENTRY),
+                                   (successor, archive.END, archive.END)]}
+        with patch.object(archive, "pilot_windows", return_value=(1, windows, source_paths)):
             result = archive.build(signals, Storage(), extreme_rows=extremes)
         self.assertEqual(result["official_sessions_missing"], [archive.ENTRY.isoformat()])
         self.assertEqual(result["market_sessions_expected"], 3)
@@ -143,5 +201,7 @@ class HistoricalCloseArchiveTests(TestCase):
         self.assertEqual(result["extreme_horizon_rows"], 5)
         self.assertEqual(result["distinct_adverse_extreme_dates"], 1)
         self.assertEqual(result["official_close_corroborated_extreme_dates"], 0)
+        self.assertEqual(result["distinct_extreme_trading_symbol_dates"], 1)
+        self.assertEqual(result["official_close_corroborated_extreme_symbol_dates"], 0)
         self.assertFalse(result["official_intraday_low_extremes_verified"])
         self.assertFalse(archive.close_reconciliation_complete(result))
