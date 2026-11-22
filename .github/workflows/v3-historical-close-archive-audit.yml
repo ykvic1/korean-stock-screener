@@ -5,6 +5,11 @@ on:
     branches: [main]
     paths:
       - v3_historical_close_archive_audit.py
+      - v3_historical_official_holder_terminal.py
+      - ops/v3-performance-price-replay-20251113.csv
+      - ops/v3-performance-share-adjustments-20251113.csv
+      - ops/v3-performance-delisting-settlement-20251113.csv
+      - tests/test_v3_historical_official_holder_terminal.py
       - v3_historical_official_share_event_anchors.py
       - ops/v3-performance-reviewed-share-actions-20251113.csv
       - v3_historical_downside_official_ohlc_evidence.py
@@ -88,6 +93,10 @@ jobs:
           jq -e '.newly_verified_first_touch_security_days == 11 and .unique_new_official_first_touch_dates == 10 and .all_reported_first_touch_security_days_with_exact_ohlc == 14 and .new_provider_calls_in_readonly_replay == 0 and .first_touch_is_earliest_trade_proven == false and .pre_touch_complete_adjusted_path_verified == false and .regular_only_volume_verified == false and .historical_point_in_time_scores_certified == false and .performance_validated == false and .v30b_release_ready == false' "$result" >/dev/null
           jq . "$result" >> "$GITHUB_STEP_SUMMARY"
           jq -c . "$result"
+      - name: Fail closed on official 17-issuer holder quote and ratio discrepancies (offline)
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_historical_official_holder_terminal.py' -v
       - name: Compare closes, listed shares and observable trade status
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
