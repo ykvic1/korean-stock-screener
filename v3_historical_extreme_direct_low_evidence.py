@@ -21,6 +21,7 @@ from v3_historical_pilot_official_prices import (
     BATCHES, downside_extreme_trading_symbols, exact_traded_extreme_symbols,
 )
 from v3_historical_pilot_daily_replay import SOURCE_DIGESTS
+from v3_historical_market_coverage import ledger_rows
 
 ROOT = Path(__file__).resolve().parent
 EVIDENCE = ROOT / "ops/v3-historical-extreme-direct-low-20261122.json"
@@ -32,6 +33,15 @@ SOURCE_RUNS = {"downside_followup": 45012847985, **{
     f"downside_tail_{i}": 45012986989 for i in range(1, 6)}}
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 
+
+PROVENANCE = {
+    "downside_followup": (45012847985, 137178742762, 14751145338),
+    "downside_tail_1": (45012986989, 137179161532, 14750418044),
+    "downside_tail_2": (45012986989, 137179161483, 14750407008),
+    "downside_tail_3": (45012986989, 137179161264, 14750312357),
+    "downside_tail_4": (45012986989, 137179161382, 14750367214),
+    "downside_tail_5": (45012986989, 137179161438, 14750911068),
+}
 
 class DirectLowEvidenceError(ValueError):
     """Bounded static failure reason codes only."""
@@ -51,6 +61,13 @@ def build(report: dict, baseline: dict) -> dict:
             "invalid_frozen_extreme_date_partition")
     require(type(report) is dict and report.get("schema") == SCHEMA,
             "invalid_direct_low_evidence_schema")
+    require(report.get("baseline_report_path")
+                == "ops/v3-historical-turnover-corroboration-20261122.json"
+            and report.get("baseline_report_blob_sha")
+                == "5a18a10e79c1a7983c66f3392e17291e0b22a83a"
+            and report.get("source_scope")
+                == "official_marketwide_ohlc_and_direct_27_new_extreme_dates_only",
+            "untrusted_prior_marketwide_corroboration")
     require(report.get("historical_adjusted_path_certified") is False
             and report.get("point_in_time_scores_verified") is False
             and report.get("regular_only_volume_verified") is False
@@ -70,9 +87,8 @@ def build(report: dict, baseline: dict) -> dict:
         run_id, job_id, artifact_id = (
             evidence.get("run_id"), evidence.get("job_id"),
             evidence.get("artifact_id"))
-        require(type(run_id) is int and run_id == SOURCE_RUNS[name]
-                and type(job_id) is int and job_id > 0
-                and type(artifact_id) is int and artifact_id > 0,
+        require((run_id, job_id, artifact_id) == PROVENANCE[name],
+
                 "invalid_direct_low_job_provenance")
         result = evidence.get("result")
         require(type(result) is dict and result.get("schema") == REPORT_SCHEMA
@@ -139,6 +155,13 @@ def build(report: dict, baseline: dict) -> dict:
                 "incomplete_official_extreme_symbol_batch")
         actual_symbols += sum_symbols
     require(set(compared) == new_date_keys, "missing_direct_low_extreme_date")
+    rows = ledger_rows(ROOT, "downside-horizons")
+    require(len(rows) == 85 and sum(
+        row["adverse_extreme_on"] in compared for row in rows) == 44,
+        "direct_low_extreme_roster_coverage_regressed")
+    require(actual_symbols == 33 and total_market == 74846
+            and total_traded == 71828 and total_zero == 3018,
+            "official_extreme_low_aggregate_regressed")
     return {
         "schema": "v3-historical-extreme-direct-low-coverage-v1",
         "saved_historical_marketwide_dates": len(historical_days),
