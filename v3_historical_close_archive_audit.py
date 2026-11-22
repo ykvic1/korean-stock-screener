@@ -116,8 +116,6 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     # Full 245-session production audit only: independent issuer/holder terminal
     # quote checks share the same official private archive reads below.
     use_holder_terminal = share_event_rows is None and extreme_rows is None
-    holder_plan, holder_total, holder_cash = (
-        terminal_plan(root) if use_holder_terminal else ({}, 0, 0))
     use_frozen_share_roster = share_event_rows is None
     share_event_rows = (ledger_rows(root, "reviewed-share-actions")
                         if use_frozen_share_roster else share_event_rows)
@@ -125,6 +123,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
             and (not use_frozen_share_roster or len(share_event_rows) == 96),
             "reviewed_share_event_roster_changed")
     share_plan, share_event_count = plan_events(share_event_rows, sessions)
+    # Preserve the preexisting share-roster failure boundary before consulting
+    # the newly added holder-value evidence. Synthetic tests opt out below.
+    holder_plan, holder_total, holder_cash = (
+        terminal_plan(root) if use_holder_terminal else ({}, 0, 0))
     source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
