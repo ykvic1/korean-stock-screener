@@ -20,6 +20,10 @@ from v3_historical_official_holder_terminal import (
     observe as observe_holder_terminal, summarize as summarize_holder_terminal,
     terminal_plan, valid_summary as valid_holder_terminal,
 )
+from v3_historical_official_holder_daily_path import (
+    plan as daily_holder_plan, observe as observe_holder_daily,
+    summarize as summarize_holder_daily, valid_summary as valid_holder_daily,
+)
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -127,6 +131,9 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     # the newly added holder-value evidence. Synthetic tests opt out below.
     holder_plan, holder_total, holder_cash = (
         terminal_plan(root) if use_holder_terminal else ({}, 0, 0))
+    # Uses exactly the same dates and private archive reads as the preexisting
+    # marketwide close audit, without retrieving an additional OHLC source.
+    holder_daily = daily_holder_plan(sessions, root) if use_holder_terminal else None
     source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
@@ -171,6 +178,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
                 public, official, share_plan.get(session, ())),
             "__holder_terminal_observations": observe_holder_terminal(
                 public, official, holder_plan.get(session, ())),
+            "__holder_daily_observations": (
+                observe_holder_daily(
+                    public, official, session, holder_daily["by_day"].get(session, ()))
+                if holder_daily is not None else []),
         }
 
     results = {}
@@ -182,13 +193,18 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     by_session = {key: result for key, result in results.items() if result is not None}
     share_observations = []
     holder_observations = []
+    holder_daily_observations = []
     for item in by_session.values():
         share_observations.extend(item.pop("__share_event_observations", ()))
         holder_observations.extend(item.pop("__holder_terminal_observations", ()))
+        holder_daily_observations.extend(item.pop("__holder_daily_observations", ()))
     shares_report = share_event_summary(share_event_count, share_observations)
     holder_report = (summarize_holder_terminal(
         holder_total, holder_cash, holder_observations)
         if use_holder_terminal else None)
+    holder_daily_report = (
+        summarize_holder_daily(holder_daily, holder_daily_observations)
+        if holder_daily is not None else None)
     totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot", "extreme")}
     for result in by_session.values():
         for key, total in totals.items():
@@ -219,6 +235,7 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
         "public_ohlc_bounds_are_not_independent_low_price_proof": True,
         "reviewed_share_event_anchors": shares_report,
         "holder_terminal_official_close": holder_report,
+        "holder_daily_official_close_path": holder_daily_report,
         "schema": SCHEMA,
         "from": SIGNAL.isoformat(),
         "through": END.isoformat(),
@@ -259,7 +276,8 @@ def close_reconciliation_complete(report):
             or (expected == 245 and (
                 not valid_holder_terminal(report.get("holder_terminal_official_close"))
                 or not report["holder_terminal_official_close"][
-                    "all_quoted_horizons_have_exact_holder_close"]))
+                    "all_quoted_horizons_have_exact_holder_close"]
+                or not valid_holder_daily(report.get("holder_daily_official_close_path"))))
             or report.get("new_market_api_calls") != 0):
         return False
 
