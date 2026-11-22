@@ -30,5 +30,11 @@
   "full_adjusted_path_verified": false,
   "historical_point_in_time_scores_certified": false,
   "performance_validated": false,
-  "v30b_release_ready": false
+  "v30b_release_ready": false,
+  "source_git_blob_sha1": {
+    "ops/v3-performance-downside-reference-20251113.csv": "7620c925d74cb2bfab1a27618d1b2466bdbc7e6b",
+    "ops/v3-performance-delisting-trade-observations-20251113.csv": "f053689493c663d688c1e130888d7d632ca65294",
+    "ops/v3-performance-delisting-settlement-20251113.csv": "18bdc29c29689f44434a59fb25a3e0d91cf604c1",
+    "ops/v3-performance-downside-horizons-20251113.csv": "bbcc63379bf1ffb3f9518de3b8cd2e1ca749af9a"
+  }
 }
