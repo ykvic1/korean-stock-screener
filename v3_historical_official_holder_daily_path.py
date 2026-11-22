@@ -22,6 +22,18 @@ from v3_historical_official_holder_terminal import _amount, require
 
 SCHEMA = "v3-historical-official-holder-daily-close-path-v1"
 HORIZONS = frozenset(("1", "2", "3", "6", "12"))
+# Pinned result from the independent 245-day authenticated KRX archive:
+# https://github.com/ykvic1/korean-stock-screener/actions/runs/45084083883
+# If even a single historical quote or entitlement day changes, preserve the
+# failure, investigate the official receipt, and publish a new explicit proof.
+FROZEN_COUNTS = {
+    "daily_original_holder_rows_planned": 2232,
+    "daily_successor_holder_rows_planned": 1229,
+    "daily_official_holder_observations": 3461,
+    "daily_official_close_with_corporate_units": 3395,
+    "horizon_traded_close_observations_replayed": 7221,
+    "horizon_unpriced_eligible_sessions": 724,
+}
 SYMBOL = re.compile(r"[0-9A-Z]{6}\Z")
 VALID_OBSERVATIONS = (
     "official_close_and_holder_units_match",
@@ -308,5 +320,10 @@ def valid_summary(result):
                 "performance_validated", "v30b_release_ready"))):
         return False
     if any(outcomes[key] for key in BAD):
+        return False
+    if (outcomes["untraded_in_both"] != 66
+            or outcomes["missing_in_both"] != 0
+            or any(result.get(key) != expected
+                   for key, expected in FROZEN_COUNTS.items())):
         return False
     return True
