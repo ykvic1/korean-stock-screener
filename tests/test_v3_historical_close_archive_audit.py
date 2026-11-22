@@ -42,10 +42,17 @@ class HistoricalCloseArchiveTests(TestCase):
             "official_sessions_compared": 1,
             "official_sessions_missing": [],
             "new_market_api_calls": 0,
+            "extreme_horizon_rows": 5,
+            "distinct_adverse_extreme_dates": 1,
+            "official_close_corroborated_extreme_dates": 1,
+            "official_intraday_low_extremes_verified": False,
+            "public_ohlc_bounds_are_not_independent_low_price_proof": True,
             "by_session": {"2025-11-13": {"market": good, "pilot": good}},
             "totals": {"market": good.copy(), "pilot": good.copy()},
         }
         self.assertTrue(archive.close_reconciliation_complete(report))
+        self.assertEqual(good["traded_public_bars"], 1)
+        self.assertEqual(good["official_close_inside_public_ohlc"], 1)
 
         for scope in ("market", "pilot"):
             for key in ("exact_close", "exact_listed_shares", "same_trade_status"):
@@ -77,6 +84,28 @@ class HistoricalCloseArchiveTests(TestCase):
         wrong["by_session"] = {}
         self.assertFalse(archive.close_reconciliation_complete(wrong))
 
+        wrong = deepcopy(report)
+        wrong["official_close_corroborated_extreme_dates"] = 0
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
+        wrong = deepcopy(report)
+        wrong["official_intraday_low_extremes_verified"] = True
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
+
+    def test_inconsistent_public_high_low_is_not_proved_by_matching_closes(self):
+        source = {"000010": ("KOSPI", "가", 100, 12, 10, 9, 11, 1)}
+        official = {"000010": ["KOSPI", "가", 11, 100, None, True]}
+        counts = archive.compare(source, official, {"000010"})
+        self.assertEqual(counts["exact_close"], 1)
+        self.assertEqual(counts["invalid_public_ohlc"], 1)
+        self.assertEqual(counts["official_close_inside_public_ohlc"], 0)
+
+        # A halt does not manufacture a high/low check.
+        source["000010"] = ("KOSPI", "가", 100, None, None, None, 11, 0)
+        official["000010"][-1] = False
+        halted = archive.compare(source, official, {"000010"})
+        self.assertEqual(halted["traded_public_bars"], 0)
+        self.assertEqual(halted["invalid_public_ohlc"], 0)
+
     def test_partial_archive_keeps_explicit_missing_date_and_changes_pilot_symbol(self):
         original, successor = "000010", "000020"
         template = {code: (market, name, 100, 10, 10, 10, 10, 5) for code, market, name in (
@@ -99,8 +128,11 @@ class HistoricalCloseArchiveTests(TestCase):
 
         windows = [(original, archive.SIGNAL, archive.ENTRY),
                    (successor, archive.END, archive.END)]
+        extremes = [{"code": original, "horizon_months": str(h),
+                     "adverse_extreme_on": archive.ENTRY.isoformat()}
+                    for h in (1, 2, 3, 6, 12)]
         with patch.object(archive, "pilot_windows", return_value=(1, windows)):
-            result = archive.build(signals, Storage())
+            result = archive.build(signals, Storage(), extreme_rows=extremes)
         self.assertEqual(result["official_sessions_missing"], [archive.ENTRY.isoformat()])
         self.assertEqual(result["market_sessions_expected"], 3)
         self.assertEqual(result["official_sessions_compared"], 2)
@@ -108,4 +140,8 @@ class HistoricalCloseArchiveTests(TestCase):
         self.assertEqual(result["totals"]["pilot"]["close_mismatch"], 1)
         self.assertEqual(result["totals"]["pilot"]["exact_close"], 1)
         self.assertFalse(result["performance_validated"])
+        self.assertEqual(result["extreme_horizon_rows"], 5)
+        self.assertEqual(result["distinct_adverse_extreme_dates"], 1)
+        self.assertEqual(result["official_close_corroborated_extreme_dates"], 0)
+        self.assertFalse(result["official_intraday_low_extremes_verified"])
         self.assertFalse(archive.close_reconciliation_complete(result))
