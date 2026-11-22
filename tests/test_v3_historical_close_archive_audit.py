@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import v3_historical_close_archive_audit as archive
 from v3_regular_close_indicators import DAY_SCHEMA
+from v3_historical_official_share_event_anchors import summarize as summarize_share_events
 
 
 class HistoricalCloseArchiveTests(TestCase):
@@ -42,6 +43,7 @@ class HistoricalCloseArchiveTests(TestCase):
             "official_sessions_compared": 1,
             "official_sessions_missing": [],
             "new_market_api_calls": 0,
+            "reviewed_share_event_anchors": summarize_share_events(0, []),
             "extreme_horizon_rows": 5,
             "distinct_adverse_extreme_dates": 1,
             "official_close_corroborated_extreme_dates": 1,
@@ -98,6 +100,9 @@ class HistoricalCloseArchiveTests(TestCase):
         wrong = deepcopy(report)
         wrong["totals"]["extreme"]["rows"] += 1
         self.assertFalse(archive.close_reconciliation_complete(wrong))
+        wrong = deepcopy(report)
+        wrong["reviewed_share_event_anchors"]["new_krx_provider_calls"] = 1
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
 
     def test_inconsistent_public_high_low_is_not_proved_by_matching_closes(self):
         source = {"000010": ("KOSPI", "가", 100, 12, 10, 9, 11, 1)}
@@ -150,7 +155,8 @@ class HistoricalCloseArchiveTests(TestCase):
                     for h in (1, 2, 3, 6, 12)])
         with patch.object(archive, "pilot_windows",
                           return_value=(2, original_windows + witness_windows, origin_paths)):
-            result = archive.build(source, Storage(), extreme_rows=records)
+            result = archive.build(source, Storage(), extreme_rows=records,
+                                   share_event_rows=[])
         self.assertEqual(result["official_sessions_missing"], [])
         self.assertEqual(result["distinct_adverse_extreme_dates"], 2)
         self.assertEqual(result["distinct_extreme_trading_symbol_dates"], 2)
@@ -161,6 +167,15 @@ class HistoricalCloseArchiveTests(TestCase):
         self.assertEqual(result["official_close_corroborated_extreme_dates"], 1)
         self.assertEqual(result["official_close_corroborated_extreme_symbol_dates"], 1)
         self.assertFalse(archive.close_reconciliation_complete(result))
+
+
+    def test_empty_frozen_share_notice_roster_never_silently_succeeds(self):
+        traded = {code: ("KOSPI", "Test", 100, 10, 10, 10, 10, 1)
+                  for code in archive.CALENDAR_CODES}
+        panels = {day: traded for day in (archive.SIGNAL, archive.ENTRY, archive.END)}
+        with patch.object(archive, "ledger_rows", return_value=[]):
+            with self.assertRaisesRegex(ValueError, "reviewed_share_event_roster_changed"):
+                archive.build(panels, object())
 
     def test_partial_archive_keeps_explicit_missing_date_and_changes_pilot_symbol(self):
         original, successor = "000010", "000020"
@@ -190,7 +205,8 @@ class HistoricalCloseArchiveTests(TestCase):
         source_paths = {original: [(original, archive.SIGNAL, archive.ENTRY),
                                    (successor, archive.END, archive.END)]}
         with patch.object(archive, "pilot_windows", return_value=(1, windows, source_paths)):
-            result = archive.build(signals, Storage(), extreme_rows=extremes)
+            result = archive.build(signals, Storage(), extreme_rows=extremes,
+                                   share_event_rows=[])
         self.assertEqual(result["official_sessions_missing"], [archive.ENTRY.isoformat()])
         self.assertEqual(result["market_sessions_expected"], 3)
         self.assertEqual(result["official_sessions_compared"], 2)

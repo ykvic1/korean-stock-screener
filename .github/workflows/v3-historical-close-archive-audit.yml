@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_historical_close_archive_audit.py
+      - v3_historical_official_share_event_anchors.py
+      - ops/v3-performance-reviewed-share-actions-20251113.csv
       - v3_historical_downside_official_ohlc_evidence.py
       - ops/v3-historical-turnover-corroboration-20261117.json
       - ops/v3-performance-downside-horizons-20251113.csv
