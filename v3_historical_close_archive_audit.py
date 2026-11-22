@@ -13,6 +13,9 @@ from v3_historical_market_coverage import (
     END, ENTRY, ROOT, SIGNAL, day, ledger_rows, read_panels, require, traded,
 )
 from v3_historical_performance_pilot_audit import PilotAuditError
+from v3_historical_official_share_event_anchors import (
+    observation_rows, plan_events, summarize as share_event_summary, valid_summary,
+)
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -99,13 +102,19 @@ def compare(public, official, codes):
     return {"rows": sum(states.values()), **states, **equity, **status, **bounds}
 
 
-def build(panels, storage, root=ROOT, *, extreme_rows=None):
+def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=None):
     sessions = sorted(session for session in panels if SIGNAL <= session <= END)
     require(sessions and sessions[0] == SIGNAL and sessions[-1] == END
             and len(sessions) > 1 and sessions[1] == ENTRY
             and all(traded(panels[session].get(code))
                     for session in sessions for code in CALENDAR_CODES),
             "invalid_historical_close_source_sessions")
+    share_event_rows = (ledger_rows(root, "reviewed-share-actions")
+                        if share_event_rows is None else share_event_rows)
+    require(len(share_event_rows) == 96 if root == ROOT and share_event_rows
+            else type(share_event_rows) is list,
+            "reviewed_share_event_roster_changed")
+    share_plan, share_event_count = plan_events(share_event_rows, sessions)
     source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
@@ -144,6 +153,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
             "market": compare(public, official, public.keys() | official.keys()),
             "pilot": compare(public, official, pilot_codes),
             "extreme": compare(public, official, extreme_codes_by_day.get(session, ())),
+            # PRIVATE per-issuer observations are aggregated, then deleted
+            # before any JSON output or GitHub Action artifact is created.
+            "__share_event_observations": observation_rows(
+                public, official, share_plan.get(session, ())),
         }
 
     results = {}
@@ -153,6 +166,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
             results.update(readers.map(check, sessions[offset:offset + ARCHIVE_READERS]))
     missing = [key for key, result in results.items() if result is None]
     by_session = {key: result for key, result in results.items() if result is not None}
+    share_observations = []
+    for item in by_session.values():
+        share_observations.extend(item.pop("__share_event_observations", ()))
+    shares_report = share_event_summary(share_event_count, share_observations)
     totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot", "extreme")}
     for result in by_session.values():
         for key, total in totals.items():
@@ -181,6 +198,7 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
         "official_close_corroborated_extreme_symbol_dates": corroborated_symbols,
         "official_intraday_low_extremes_verified": False,
         "public_ohlc_bounds_are_not_independent_low_price_proof": True,
+        "reviewed_share_event_anchors": shares_report,
         "schema": SCHEMA,
         "from": SIGNAL.isoformat(),
         "through": END.isoformat(),
@@ -215,6 +233,7 @@ def close_reconciliation_complete(report):
             or report.get("official_sessions_missing") != []
             or type(sessions) is not dict or len(sessions) != expected
             or type(totals) is not dict
+            or not valid_summary(report.get("reviewed_share_event_anchors"))
             or report.get("new_market_api_calls") != 0):
         return False
 
