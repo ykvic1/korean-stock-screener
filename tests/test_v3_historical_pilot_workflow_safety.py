@@ -16,6 +16,7 @@ class HistoricalOfficialWorkflowSafetyTest(unittest.TestCase):
         text = WORKFLOW.read_text(encoding="utf-8")
         self.assertIn("\non:\n  workflow_dispatch:\n", text)
         self.assertNotIn("\n  push:\n", text)
+        self.assertNotIn("github.event_name == 'push'", text)
         self.assertNotIn("\n  schedule:\n", text)
         self.assertIn("downside_followup", text)
         self.assertIn("downside_tail", text)
