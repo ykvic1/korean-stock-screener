@@ -1,11 +1,8 @@
 name: V3.0b Historical Pilot Official KRX Price Comparison
 
+# Historical KRX sessions are one-time evidence, not a recurring collector.
+# Code updates must not re-query already verified sessions automatically.
 on:
-  push:
-    branches: [main]
-    paths:
-      - v3_historical_pilot_official_prices.py
-      - .github/workflows/v3-historical-pilot-official-prices.yml
   workflow_dispatch:
     inputs:
       scope:
@@ -30,7 +27,7 @@ jobs:
       max-parallel: 1
       matrix:
         batch: >-
-          ${{ fromJSON((github.event_name == 'push' || inputs.scope == 'reference_touches')
+          ${{ fromJSON((inputs.scope == 'reference_touches')
           && '["reference_touches"]'
           || inputs.scope == 'downside_tail' && '["downside_tail_1","downside_tail_2","downside_tail_3","downside_tail_4","downside_tail_5"]'
           || inputs.scope == 'downside_followup' && '["downside_followup"]'
