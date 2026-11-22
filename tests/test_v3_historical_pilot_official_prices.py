@@ -17,6 +17,46 @@ from v3_historical_pilot_official_prices import compare_market
 
 
 class HistoricalOfficialPricesTest(unittest.TestCase):
+    def test_batch_validation_blocks_repeated_dates_before_provider_access(self):
+        first = prices.BATCHES['anchor'][0]
+        second = prices.BATCHES['anchor'][1]
+        prices.validate_unique_official_batches({'one': (first,), 'two': (second,)})
+        for invalid in (
+            {'one': (first,), 'two': (first,)},
+            {'one': (first, first)},
+            {'one': tuple(prices.BATCHES['anchor']) + (second,)},
+            {'empty': ()},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                prices.validate_unique_official_batches(invalid)
+
+    def test_official_batches_never_repeat_a_session_across_scopes(self):
+        # Each official market-wide date costs authenticated calls. A session
+        # already checked by a prior batch must not enter another batch.
+        seen = {}
+        for batch, sessions in prices.BATCHES.items():
+            self.assertLessEqual(len(sessions), 5, batch)
+            self.assertEqual(len(sessions), len(set(sessions)), batch)
+            for session in sessions:
+                self.assertNotIn(session, seen, (session, seen.get(session), batch))
+                seen[session] = batch
+
+    def test_remaining_downside_extremes_are_covered_once_by_existing_batches(self):
+        historical = ('anchor', 'remaining', 'downside_priority')
+        checked = {day.isoformat() for name in historical for day in prices.BATCHES[name]}
+        with (prices.ROOT / 'ops/v3-performance-downside-horizons-20251113.csv').open(
+                encoding='utf-8', newline='') as stream:
+            rows = list(csv.DictReader(stream))
+        remaining = {row['adverse_extreme_on'] for row in rows
+                     if row['adverse_extreme_on'] and row['adverse_extreme_on'] not in checked}
+        planned = [day.isoformat() for name, dates in prices.BATCHES.items()
+                   if name == 'downside_followup' or name.startswith('downside_tail_')
+                   for day in dates]
+        self.assertEqual(len(planned), len(set(planned)))
+        self.assertEqual(set(planned), remaining)
+        self.assertEqual(len(remaining), 27)
+        self.assertEqual(sum(row['adverse_extreme_on'] in remaining for row in rows), 44)
+
     def test_followup_targets_most_frequent_remaining_adverse_extremes(self):
         followup = prices.BATCHES['downside_followup']
         checked = {session.isoformat() for name in ('anchor', 'remaining', 'downside_priority')

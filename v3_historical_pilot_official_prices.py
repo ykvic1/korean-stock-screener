@@ -42,6 +42,16 @@ BATCHES = {
     # First observed reference-line touches outside the downside-extreme batches.
     'reference_touches': tuple(map(day, ('2026-03-27', '2026-10-08', '2026-10-29'))),
 }
+def validate_unique_official_batches(batches):
+    """Fail before authenticated requests if a historical date would be rechecked."""
+    seen = set()
+    for name, sessions in batches.items():
+        require(1 <= len(sessions) <= 5, 'invalid_official_batch_size')
+        require(len(set(sessions)) == len(sessions), 'duplicate_official_batch_session')
+        require(not (set(sessions) & seen), 'repeated_official_session_across_batches')
+        seen.update(sessions)
+
+
 STRICT_PRICE_BATCHES = {name for name in BATCHES if name.startswith('downside_')} | {'reference_touches'}
 PRICE_FIELDS = ('open', 'high', 'low', 'close')
 
@@ -252,6 +262,7 @@ def main():
     parser.add_argument('sources', nargs=3, type=Path)
     parser.add_argument('--batch', choices=BATCHES, required=True)
     args = parser.parse_args()
+    validate_unique_official_batches(BATCHES)
     key = os.environ.get('KRX_API_KEY', '')
     if not key.strip():
         raise SystemExit('official_krx_key_unavailable')
