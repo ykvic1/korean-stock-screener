@@ -18,10 +18,10 @@ from v3_historical_pilot_daily_replay import SOURCE_DIGESTS
 from v3_historical_pilot_official_prices import BATCHES
 
 ROOT = Path(__file__).resolve().parent
-EVIDENCE = ROOT / "ops/v3-historical-turnover-corroboration-20261117.json"
+EVIDENCE = ROOT / "ops/v3-historical-turnover-corroboration-20261122.json"
 EXTREMES = ROOT / "ops/v3-performance-downside-horizons-20251113.csv"
 SCHEMA = "v3-historical-downside-official-ohlc-evidence-v1"
-SOURCE_SCHEMA = "v3-historical-turnover-corroboration-20261117-v1"
+SOURCE_SCHEMA = "v3-historical-turnover-corroboration-20261122-v1"
 HORIZONS = ("1", "2", "3", "6", "12")
 SHA = re.compile(r"[a-f0-9]{64}\Z")
 
@@ -76,6 +76,17 @@ def evidence_sessions(report):
             and report["source_scope"].get("point_in_time_scores_verified") is False
             and report["source_scope"].get("performance_validated") is False,
             "historical_official_coverage_overclaimed")
+    provenance = report.get("saved_official_batch_provenance")
+    require(type(provenance) is dict
+            and provenance.get("prior_report_path")
+                == "ops/v3-historical-turnover-corroboration-20261117.json"
+            and provenance.get("prior_report_blob_sha")
+                == "179f41a611100a18bb506f38200db8dfaf87c2dd"
+            and provenance.get("additional_run_id") == 44611945936
+            and provenance.get("additional_job_id") == 135870570056
+            and provenance.get("additional_artifact_id") == 14573850543
+            and provenance.get("no_additional_provider_calls_in_this_consolidation") is True,
+            "untrusted_historical_official_batch_provenance")
     batches = report.get("batches")
     require(type(batches) is list and len(batches) >= 1,
             "missing_historical_official_batches")
@@ -115,6 +126,12 @@ def evidence_sessions(report):
             scope_total += count
             candle_total += exact
             zero_total += untraded
+    require(seen_names == {"anchor", "remaining", "downside_priority"}
+            and len(selected) == 14
+            and next((batch for batch in batches
+                      if batch["batch"] == "downside_priority"), {}).get("job_id")
+                == provenance["additional_job_id"],
+            "incomplete_pinned_official_ohlc_14_session_extension")
     summary = report.get("summary")
     require(type(summary) is dict
             and summary.get("sessions") == len(selected)
@@ -183,6 +200,8 @@ def build(report, rows):
         "not_documented_in_this_saved_ohlc_report_dates": sorted(all_days - covered_days),
         "by_horizon": per_horizon,
         "new_provider_calls": 0,
+        "additional_pinned_source_run_id": 44611945936,
+        "saved_ohlc_evidence_extended_without_new_api_calls": True,
         "target_issuer_extreme_low_directly_authenticated": False,
         "intraday_extreme_entire_holding_path_verified": False,
         "historical_adjusted_prices_verified": False,
