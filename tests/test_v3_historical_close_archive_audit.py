@@ -168,6 +168,15 @@ class HistoricalCloseArchiveTests(TestCase):
         self.assertEqual(result["official_close_corroborated_extreme_symbol_dates"], 1)
         self.assertFalse(archive.close_reconciliation_complete(result))
 
+
+    def test_empty_frozen_share_notice_roster_never_silently_succeeds(self):
+        traded = {code: ("KOSPI", "Test", 100, 10, 10, 10, 10, 1)
+                  for code in archive.CALENDAR_CODES}
+        panels = {day: traded for day in (archive.SIGNAL, archive.ENTRY, archive.END)}
+        with patch.object(archive, "ledger_rows", return_value=[]):
+            with self.assertRaisesRegex(ValueError, "reviewed_share_event_roster_changed"):
+                archive.build(panels, object())
+
     def test_partial_archive_keeps_explicit_missing_date_and_changes_pilot_symbol(self):
         original, successor = "000010", "000020"
         template = {code: (market, name, 100, 10, 10, 10, 10, 5) for code, market, name in (
