@@ -16,6 +16,10 @@ from v3_historical_performance_pilot_audit import PilotAuditError
 from v3_historical_official_share_event_anchors import (
     observation_rows, plan_events, summarize as share_event_summary, valid_summary,
 )
+from v3_historical_official_holder_terminal import (
+    observe as observe_holder_terminal, summarize as summarize_holder_terminal,
+    terminal_plan, valid_summary as valid_holder_terminal,
+)
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -109,6 +113,9 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
             and all(traded(panels[session].get(code))
                     for session in sessions for code in CALENDAR_CODES),
             "invalid_historical_close_source_sessions")
+    # Full 245-session production audit only: independent issuer/holder terminal
+    # quote checks share the same official private archive reads below.
+    use_holder_terminal = share_event_rows is None and extreme_rows is None
     use_frozen_share_roster = share_event_rows is None
     share_event_rows = (ledger_rows(root, "reviewed-share-actions")
                         if use_frozen_share_roster else share_event_rows)
@@ -116,6 +123,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
             and (not use_frozen_share_roster or len(share_event_rows) == 96),
             "reviewed_share_event_roster_changed")
     share_plan, share_event_count = plan_events(share_event_rows, sessions)
+    # Preserve the preexisting share-roster failure boundary before consulting
+    # the newly added holder-value evidence. Synthetic tests opt out below.
+    holder_plan, holder_total, holder_cash = (
+        terminal_plan(root) if use_holder_terminal else ({}, 0, 0))
     source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
@@ -158,6 +169,8 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
             # before any JSON output or GitHub Action artifact is created.
             "__share_event_observations": observation_rows(
                 public, official, share_plan.get(session, ())),
+            "__holder_terminal_observations": observe_holder_terminal(
+                public, official, holder_plan.get(session, ())),
         }
 
     results = {}
@@ -168,9 +181,14 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     missing = [key for key, result in results.items() if result is None]
     by_session = {key: result for key, result in results.items() if result is not None}
     share_observations = []
+    holder_observations = []
     for item in by_session.values():
         share_observations.extend(item.pop("__share_event_observations", ()))
+        holder_observations.extend(item.pop("__holder_terminal_observations", ()))
     shares_report = share_event_summary(share_event_count, share_observations)
+    holder_report = (summarize_holder_terminal(
+        holder_total, holder_cash, holder_observations)
+        if use_holder_terminal else None)
     totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot", "extreme")}
     for result in by_session.values():
         for key, total in totals.items():
@@ -200,6 +218,7 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
         "official_intraday_low_extremes_verified": False,
         "public_ohlc_bounds_are_not_independent_low_price_proof": True,
         "reviewed_share_event_anchors": shares_report,
+        "holder_terminal_official_close": holder_report,
         "schema": SCHEMA,
         "from": SIGNAL.isoformat(),
         "through": END.isoformat(),
@@ -237,6 +256,10 @@ def close_reconciliation_complete(report):
             or not valid_summary(report.get("reviewed_share_event_anchors"))
             or (expected == 245
                 and report["reviewed_share_event_anchors"]["reviewed_events"] != 96)
+            or (expected == 245 and (
+                not valid_holder_terminal(report.get("holder_terminal_official_close"))
+                or not report["holder_terminal_official_close"][
+                    "all_quoted_horizons_have_exact_holder_close"]))
             or report.get("new_market_api_calls") != 0):
         return False
 
