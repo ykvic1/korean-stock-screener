@@ -1,11 +1,8 @@
 name: V3.0b Historical Pilot Official KRX Price Comparison
 
+# Historical KRX sessions are one-time evidence, not a recurring collector.
+# Code updates must not re-query already verified sessions automatically.
 on:
-  push:
-    branches: [main]
-    paths:
-      - v3_historical_pilot_official_prices.py
-      - .github/workflows/v3-historical-pilot-official-prices.yml
   workflow_dispatch:
     inputs:
       scope:
