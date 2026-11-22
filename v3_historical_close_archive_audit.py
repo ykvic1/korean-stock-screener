@@ -134,6 +134,59 @@ def build(panels, storage, root=ROOT):
     }
 
 
+
+# Full matching is a publication precondition, not adjusted-price certification.
+# A completed archive read must not be mistaken for a successful audit when
+# even one date/issuer has an inconsistent close, identity, share count or
+# trading status.
+def close_reconciliation_complete(report):
+    if type(report) is not dict:
+        return False
+    expected = report.get("market_sessions_expected")
+    sessions = report.get("by_session")
+    totals = report.get("totals")
+    if (type(expected) is not int or expected < 1
+            or report.get("official_sessions_compared") != expected
+            or report.get("official_sessions_missing") != []
+            or type(sessions) is not dict or len(sessions) != expected
+            or type(totals) is not dict
+            or report.get("new_market_api_calls") != 0):
+        return False
+
+    fieldnames = (("rows",) + COMPARISON_STATES
+                  + ("exact_listed_shares", "mismatch_listed_shares",
+                     "public_shares_unavailable", "same_trade_status",
+                     "trade_status_mismatch", "trade_status_unavailable"))
+    for scope in ("market", "pilot"):
+        aggregate = totals.get(scope)
+        entries = [aggregate]
+        for session in sessions.values():
+            if type(session) is not dict:
+                return False
+            entries.append(session.get(scope))
+        for counts in entries:
+            if (type(counts) is not dict
+                    or any(type(counts.get(key)) is not int or counts[key] < 0
+                           for key in fieldnames)):
+                return False
+            rows = counts["rows"]
+            if (sum(counts[key] for key in COMPARISON_STATES) != rows
+                    or counts["exact_close"] != rows
+                    or counts["exact_listed_shares"] != rows
+                    or counts["same_trade_status"] != rows
+                    or counts["exact_listed_shares"] + counts["mismatch_listed_shares"]
+                       + counts["public_shares_unavailable"] != rows
+                    or counts["same_trade_status"] + counts["trade_status_mismatch"]
+                       + counts["trade_status_unavailable"] != rows):
+                return False
+        if (scope == "market" and aggregate["rows"] <= 0
+                or scope == "pilot" and aggregate["rows"] <= 0
+                or any(sum(part[key] for part in entries[1:]) != aggregate[key]
+                       for key in fieldnames)):
+            return False
+    return True
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sources", nargs=3, type=Path)
@@ -153,6 +206,8 @@ def main():
     print(json.dumps(result, sort_keys=True))
     if result["official_sessions_missing"]:
         raise SystemExit("incomplete_private_regular_close_window")
+    if not close_reconciliation_complete(result):
+        raise SystemExit("historical_private_archive_reconciliation_mismatch")
 
 
 if __name__ == "__main__":

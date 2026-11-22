@@ -1,5 +1,6 @@
 import gzip
 import json
+from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import patch
 
@@ -30,6 +31,51 @@ class HistoricalCloseArchiveTests(TestCase):
         for key in ("exact_listed_shares", "mismatch_listed_shares", "public_shares_unavailable",
                     "same_trade_status", "trade_status_mismatch", "trade_status_unavailable"):
             self.assertEqual(counts[key], 1, key)
+
+
+    def test_successful_archive_must_match_all_saved_market_and_pilot_dimensions(self):
+        public = {"000010": ("KOSPI", "가", 100, 10, 12, 9, 11, 10)}
+        saved = {"000010": ["KOSPI", "가", 11, 100, None, True]}
+        good = archive.compare(public, saved, {"000010"})
+        report = {
+            "market_sessions_expected": 1,
+            "official_sessions_compared": 1,
+            "official_sessions_missing": [],
+            "new_market_api_calls": 0,
+            "by_session": {"2025-11-13": {"market": good, "pilot": good}},
+            "totals": {"market": good.copy(), "pilot": good.copy()},
+        }
+        self.assertTrue(archive.close_reconciliation_complete(report))
+
+        for scope in ("market", "pilot"):
+            for key in ("exact_close", "exact_listed_shares", "same_trade_status"):
+                with self.subTest(scope=scope, missing_count=key):
+                    damaged = deepcopy(report)
+                    damaged["by_session"]["2025-11-13"][scope][key] = 0
+                    self.assertFalse(archive.close_reconciliation_complete(damaged))
+
+            for key in ("identity_mismatch", "close_mismatch", "mismatch_listed_shares",
+                        "trade_status_mismatch", "public_row_missing"):
+                with self.subTest(scope=scope, unexpected=key):
+                    damaged = deepcopy(report)
+                    damaged["totals"][scope][key] += 1
+                    self.assertFalse(archive.close_reconciliation_complete(damaged))
+
+        for field, value in (("official_sessions_compared", 0),
+                             ("official_sessions_missing", ["2025-11-13"]),
+                             ("new_market_api_calls", 1)):
+            with self.subTest(incomplete=field):
+                damaged = deepcopy(report)
+                damaged[field] = value
+                self.assertFalse(archive.close_reconciliation_complete(damaged))
+
+        wrong = deepcopy(report)
+        wrong["totals"]["market"]["rows"] += 1
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
+
+        wrong = deepcopy(report)
+        wrong["by_session"] = {}
+        self.assertFalse(archive.close_reconciliation_complete(wrong))
 
     def test_partial_archive_keeps_explicit_missing_date_and_changes_pilot_symbol(self):
         original, successor = "000010", "000020"
@@ -62,3 +108,4 @@ class HistoricalCloseArchiveTests(TestCase):
         self.assertEqual(result["totals"]["pilot"]["close_mismatch"], 1)
         self.assertEqual(result["totals"]["pilot"]["exact_close"], 1)
         self.assertFalse(result["performance_validated"])
+        self.assertFalse(archive.close_reconciliation_complete(result))
