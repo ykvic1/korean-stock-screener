@@ -5,6 +5,7 @@ from datetime import date, datetime, timezone
 from hashlib import sha256
 import gzip
 import json
+import math
 import os
 from pathlib import Path
 from statistics import median
@@ -231,6 +232,55 @@ def outcome_identity(score_day, months, cohort, inputs):
     }
 
 
+def publishable_top20(top):
+    """Reject damaged saved aggregates before they can bypass replay or break Pages."""
+    if not isinstance(top, dict):
+        return False
+    try:
+        coverage = top['terminal_return_coverage']
+        entry_counts = top['entry_status_counts']
+        settlements = top['delisting_settlements']
+        liquidation = top['liquidation_exit_proxies']
+        comparison = top['same_market_rank_comparison']
+        unresolved = top['unresolved_counts']
+        if not all(isinstance(part, dict) for part in (
+                coverage, entry_counts, settlements, liquidation, comparison, unresolved)):
+            return False
+        selected = top['selected_count']
+        opened = entry_counts['official_open_observed']
+        valued = coverage['valued_count']
+        unvalued = coverage['unvalued_confirmed_openings_count']
+        negative = coverage['negative_return_count']
+        price_paths = top['observed_price_path_count']
+        liquidated = liquidation['observed_count']
+        if (any(type(n) is not int or n < 0 for n in (
+                selected, opened, valued, unvalued, negative, price_paths, liquidated))
+                or not (negative <= valued <= opened <= selected)
+                or valued + unvalued != opened or price_paths > valued
+                or liquidated > opened
+                or any(type(n) is not int or n < 0 for n in unresolved.values())):
+            return False
+        if coverage['loss_rate_bounds_pct'] != loss_rate_bounds(
+                negative, unvalued, opened):
+            return False
+        for value in (top['median_mae_pct'],
+                      settlements['median_terminal_return_including_settlements_pct'],
+                      comparison['observed_mean_return_spread_pct_points']):
+            if value is not None and (
+                    type(value) not in (int, float) or not math.isfinite(value)):
+                return False
+        bounds = comparison['loss_rate_spread_bounds_pct_points']
+        if bounds is not None and (
+                type(bounds) is not list or len(bounds) != 2
+                or any(type(value) not in (int, float) or not math.isfinite(value)
+                       for value in bounds)):
+            return False
+        return_gap_counts(top)
+        return True
+    except (KeyError, ValueError, TypeError, AttributeError):
+        return False
+
+
 def load_current_outcome(path, identity):
     """Reuse the report only when both replay and publication can use it."""
     try:
@@ -240,7 +290,7 @@ def load_current_outcome(path, identity):
     if (not isinstance(outcome, dict) or outcome.get('performance_validated') is not False
             or any(outcome.get(key) != value for key, value in identity.items())
             or not isinstance(outcome.get('groups'), dict)
-            or not isinstance(outcome['groups'].get('top20'), dict)):
+            or not publishable_top20(outcome['groups'].get('top20'))):
         return None
     return outcome
 
