@@ -90,7 +90,11 @@ def exact_traded_extreme_symbols(scope):
     return (type(scope) is dict and scope.get('scope', 0) > 0
             and scope['exact_ohlc'] == scope['positive_trade_on_both'] == scope['scope']
             and scope['listed_share_mismatch'] == scope['listed_shares_unavailable'] == 0
-            and scope['different_price_by_field']['low'] == 0)
+            and type(scope.get('different_price_by_field')) is dict
+            and set(scope['different_price_by_field']) == {'open', 'high', 'low', 'close'}
+            and all(type(scope['different_price_by_field'][field]) is int
+                    and scope['different_price_by_field'][field] == 0
+                    for field in ('open', 'high', 'low', 'close')))
 
 
 def validate_unique_official_batches(batches):
