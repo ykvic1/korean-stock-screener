@@ -221,8 +221,13 @@ class ForwardHorizonReplayTests(unittest.TestCase):
 
                 outcome_path = root / OUT / score_day / '1m.json'
                 valid = json.loads(outcome_path.read_bytes())
+                missing_nested = json.loads(json.dumps(valid))
+                del missing_nested['groups']['top20']['terminal_return_coverage']['valued_count']
+                nonfinite_nested = json.loads(json.dumps(valid))
+                nonfinite_nested['groups']['top20']['median_mae_pct'] = float('nan')
                 for invalid in (json.dumps({**valid, 'target_date': '2026-12-15'}),
-                                json.dumps({**valid, 'performance_validated': True}), '{'):
+                                json.dumps({**valid, 'performance_validated': True}),
+                                json.dumps(missing_nested), json.dumps(nonfinite_nested), '{'):
                     with self.subTest(invalid=invalid[:60]):
                         outcome_path.write_text(invalid, encoding='utf-8')
                         self.assertEqual(pages_results(root, readiness, now)['horizons'], {})
