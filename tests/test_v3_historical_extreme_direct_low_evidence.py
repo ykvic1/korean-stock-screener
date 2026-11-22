@@ -41,6 +41,17 @@ class DirectExtremeLowEvidenceTests(TestCase):
             with self.subTest(field=key), self.assertRaises(audit.DirectLowEvidenceError):
                 audit.build(report, self.baseline)
 
+    def test_replayed_valid_official_digest_from_another_day_fails(self):
+        report = deepcopy(self.report)
+        batch = report["batches"][0]["result"]
+        first, second = batch["requested_sessions"][:2]
+        original = batch["sessions"][first]["official_source_sha256"]["KOSPI"]
+        batch["sessions"][second]["official_source_sha256"]["KOSPI"] = original
+        with self.assertRaisesRegex(
+                audit.DirectLowEvidenceError,
+                "replayed_official_market_response_across_dates"):
+            audit.build(report, self.baseline)
+
     def test_missing_or_replayed_evidence_fails_closed(self):
         mutants = []
         removed = deepcopy(self.report)
