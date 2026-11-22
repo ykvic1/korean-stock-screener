@@ -131,7 +131,7 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
             for row in prices.ledger_rows(prices.ROOT, 'downside-horizons')
         }
         self.assertEqual(set(targets), expected_dates)
-        self.assertEqual(sum(len(codes) for codes in targets.values()), 35)
+        self.assertEqual(sum(len(codes) for codes in targets.values()), 53)
         self.assertEqual(sum(
             prices.day(row['adverse_extreme_on']) in targets
             for row in prices.ledger_rows(prices.ROOT, 'downside-horizons')), 85)
