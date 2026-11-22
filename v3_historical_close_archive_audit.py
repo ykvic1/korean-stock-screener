@@ -109,10 +109,11 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
             and all(traded(panels[session].get(code))
                     for session in sessions for code in CALENDAR_CODES),
             "invalid_historical_close_source_sessions")
+    use_frozen_share_roster = share_event_rows is None
     share_event_rows = (ledger_rows(root, "reviewed-share-actions")
-                        if share_event_rows is None else share_event_rows)
-    require(len(share_event_rows) == 96 if root == ROOT and share_event_rows
-            else type(share_event_rows) is list,
+                        if use_frozen_share_roster else share_event_rows)
+    require(type(share_event_rows) is list
+            and (not use_frozen_share_roster or len(share_event_rows) == 96),
             "reviewed_share_event_roster_changed")
     share_plan, share_event_count = plan_events(share_event_rows, sessions)
     source_count, windows, origin_paths = pilot_windows(root)
@@ -234,6 +235,8 @@ def close_reconciliation_complete(report):
             or type(sessions) is not dict or len(sessions) != expected
             or type(totals) is not dict
             or not valid_summary(report.get("reviewed_share_event_anchors"))
+            or (expected == 245
+                and report["reviewed_share_event_anchors"]["reviewed_events"] != 96)
             or report.get("new_market_api_calls") != 0):
         return False
 
