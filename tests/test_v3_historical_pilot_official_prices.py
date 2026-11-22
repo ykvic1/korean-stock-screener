@@ -120,6 +120,58 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
         self.assertIn('reference_touches', prices.STRICT_PRICE_BATCHES)
         prices.validate_dates(planned)
 
+
+    def test_frozen_adverse_extremes_resolve_to_actual_traded_symbols(self):
+        targets = prices.downside_extreme_trading_symbols()
+        self.assertEqual(len(targets), 35)
+        self.assertEqual(sum(bool(codes) for codes in targets.values()), 35)
+        self.assertTrue(all(len(code) == 6 for codes in targets.values() for code in codes))
+        expected_dates = {
+            prices.day(row['adverse_extreme_on'])
+            for row in prices.ledger_rows(prices.ROOT, 'downside-horizons')
+        }
+        self.assertEqual(set(targets), expected_dates)
+        self.assertEqual(sum(len(codes) for codes in targets.values()), 53)
+        self.assertEqual(sum(
+            prices.day(row['adverse_extreme_on']) in targets
+            for row in prices.ledger_rows(prices.ROOT, 'downside-horizons')), 85)
+
+    def test_specific_extreme_low_requires_exact_traded_security_and_shares(self):
+        public = {'000001': ('KOSDAQ', 'Private Issuer', 100, 10, 13, 8, 12, 20)}
+        official = {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 8, 12, 100)}
+        direct = prices.compare_market(public, official, {'000001'})
+        self.assertTrue(prices.exact_traded_extreme_symbols(direct))
+        for variant in (
+            {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 9, 12, 100)},
+            {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 8, 12, 101)},
+            {'000002': official['000001']},
+            {'000001': ('KOSDAQ', 'Private Issuer', 'no_reported_volume', None, None, None, None, 100)},
+        ):
+            with self.subTest(variant=variant):
+                self.assertFalse(prices.exact_traded_extreme_symbols(
+                    prices.compare_market(public, variant, {'000001'})))
+
+    def test_extreme_issuer_low_is_aggregated_without_disclosing_codes(self):
+        panel = {'000001': ('KOSDAQ', 'Private Issuer', 100, 10, 13, 8, 12, 20)}
+        raw = {'000001': ('KOSDAQ', {
+            'ISU_NM': 'Private Issuer', 'ACC_TRDVOL': '20',
+            'ACC_TRDVAL': '240', 'LIST_SHRS': '100',
+            'TDD_OPNPRC': '10', 'TDD_HGPRC': '13',
+            'TDD_LWPRC': '8', 'TDD_CLSPRC': '12'})}
+        with patch.dict(prices.BATCHES, {'one': (prices.SIGNAL,)}), \
+             patch.object(prices, 'read_official_openings', return_value=(raw, {})):
+            report = prices.audit(
+                {prices.SIGNAL: panel}, set(), object(), 'one',
+                extreme_symbols={prices.SIGNAL: {'000001'}})
+        self.assertTrue(report['actual_extreme_trading_symbol_ohlc_matched'])
+        self.assertEqual(report['actual_extreme_symbol_days_in_batch'], 1)
+        self.assertEqual(report['actual_extreme_symbol_days_exact_ohlc'], 1)
+        self.assertEqual(report['actual_extreme_target_sessions_expected'], 1)
+        self.assertEqual(report['actual_extreme_target_sessions_compared'], 1)
+        self.assertFalse(report['extreme_issuer_identity_pit_certified'])
+        self.assertNotIn('000001', json.dumps(report))
+        self.assertNotIn('Private Issuer', json.dumps(report))
+
     def test_market_match_requires_actual_zero_volume_in_both_sources(self):
         public = {'a': ('KOSDAQ', 'Issuer', 200, 10, 13, 8, 12, 20),
                   'b': ('KOSDAQ', 'Halted', 100, None, None, None, None, 0.0)}

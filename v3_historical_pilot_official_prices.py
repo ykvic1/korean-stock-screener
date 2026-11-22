@@ -42,6 +42,57 @@ BATCHES = {
     # First observed reference-line touches outside the downside-extreme batches.
     'reference_touches': tuple(map(day, ('2026-03-27', '2026-10-08', '2026-10-29'))),
 }
+def downside_extreme_trading_symbols(root=ROOT):
+    """Map frozen extrema to their actual original or successor ticker in memory.
+
+    Never publish ticker identities; this mapping is only for the next
+    authenticated five-session KRX comparison. It is a candidate identity
+    mapping, not independently certified PIT issuer history.
+    """
+    extremes = ledger_rows(root, 'downside-horizons')
+    trades = ledger_rows(root, 'delisting-trade-observations')
+    settlements = ledger_rows(root, 'delisting-settlement')
+    last = {row['code']: row for row in trades}
+    successor = {row['code']: row for row in settlements}
+    require(len(extremes) == 85 and len({(r['code'], r['horizon_months'])
+              for r in extremes}) == 85 and len({r['code'] for r in extremes}) == 17,
+            'invalid_frozen_downside_extreme_roster')
+    all_dates = {d for dates in BATCHES.values() for d in dates}
+    targets = {}
+    for row in extremes:
+        code = row['code']
+        session = day(row['adverse_extreme_on'])
+        last_trade = last.get(code)
+        settlement = successor.get(code)
+        require(last_trade is not None and settlement is not None
+                and session in all_dates, 'unresolved_frozen_downside_extreme_target')
+        if session <= day(last_trade['last_positive_volume_candidate']):
+            traded_code = code
+        else:
+            traded_code = settlement.get('successor_code')
+            start = settlement.get('settlement_or_share_availability_on')
+            require(type(traded_code) is str and len(traded_code) == 6
+                    and type(start) is str and start
+                    and session >= day(start),
+                    'unresolved_frozen_downside_extreme_successor')
+        require(type(traded_code) is str and len(traded_code) == 6
+                and traded_code.isascii() and traded_code.isalnum()
+                and traded_code == traded_code.upper(),
+                'untrusted_frozen_downside_extreme_security')
+        targets.setdefault(session, set()).add(traded_code)
+    require(len(targets) == 35 and all(targets.values()),
+            'incomplete_frozen_downside_extreme_dates')
+    return targets
+
+
+def exact_traded_extreme_symbols(scope):
+    """An official LOW match requires that each specific security actually traded."""
+    return (type(scope) is dict and scope.get('scope', 0) > 0
+            and scope['exact_ohlc'] == scope['positive_trade_on_both'] == scope['scope']
+            and scope['listed_share_mismatch'] == scope['listed_shares_unavailable'] == 0
+            and scope['different_price_by_field']['low'] == 0)
+
+
 def validate_unique_official_batches(batches):
     """Fail before authenticated requests if a historical date would be rechecked."""
     seen = set()
@@ -197,13 +248,17 @@ def exact_market_prices(comparison):
             and comparison['listed_share_mismatch'] == comparison['listed_shares_unavailable'] == 0)
 
 
-def audit(panels, delisted, client, batch, *, turnover_panels=None):
+def audit(panels, delisted, client, batch, *, turnover_panels=None, extreme_symbols=None):
     sessions = BATCHES[batch]
     validate_dates([d.isoformat() for d in sessions])
     anchor = panels[SIGNAL]
     require(delisted <= anchor.keys(), 'delisted_security_outside_pilot_anchor')
     results = {}
     errors = {}
+    if extreme_symbols is not None:
+        require(type(extreme_symbols) is dict and
+                all(type(values) is set and values for values in extreme_symbols.values()),
+                'invalid_extreme_issuer_target_mapping')
     for session in sessions:
         public = panels[session]
         try:
@@ -227,6 +282,9 @@ def audit(panels, delisted, client, batch, *, turnover_panels=None):
             'present_pilot_anchor_issuers': compare_market(public, official, anchor_listed),
             'pilot_anchor_absent_from_both': len(anchor.keys() - anchor_listed),
             'later_delisted_pilot_issuers': compare_market(public, official, delisted),
+            'actual_extreme_trading_symbols': (
+                compare_market(public, official, extreme_symbols[session])
+                if extreme_symbols is not None and session in extreme_symbols else None),
         }
     turnover = [item['turnover'] for item in results.values()]
     turnover_complete = (
@@ -237,7 +295,27 @@ def audit(panels, delisted, client, batch, *, turnover_panels=None):
     turnover_matched = (turnover_complete and all(
         all(field['matched'] == item['scope'] for field in item['fields'].values())
         for item in turnover))
+    actual_extremes = [
+        item['actual_extreme_trading_symbols']
+        for item in results.values()
+        if item['actual_extreme_trading_symbols'] is not None]
+    target_sessions_due = sum(
+        session in extreme_symbols for session in sessions
+    ) if extreme_symbols is not None else 0
+    target_complete = (
+        extreme_symbols is not None
+        and len(results) == len(sessions)
+        and len(actual_extremes) == target_sessions_due > 0
+        and all(exact_traded_extreme_symbols(item) for item in actual_extremes))
     return {
+        'actual_extreme_trading_symbol_ohlc_matched': target_complete,
+        'actual_extreme_symbol_days_in_batch': sum(
+            item['scope'] for item in actual_extremes),
+        'actual_extreme_symbol_days_exact_ohlc': sum(
+            item['exact_ohlc'] for item in actual_extremes),
+        'actual_extreme_target_sessions_expected': target_sessions_due,
+        'actual_extreme_target_sessions_compared': len(actual_extremes),
+        'extreme_issuer_identity_pit_certified': False,
         'market_wide_ohlc_and_membership_matched': len(results) == len(sessions) and all(
             exact_market_prices(item['market_wide']) for item in results.values()),
         'turnover_numeric_comparison_complete': turnover_complete,
@@ -270,10 +348,14 @@ def main():
     delisted = {row['code'] for row in ledger_rows(ROOT, 'delistings')
                 if row['anchor_membership'] == 'present'}
     turnover = read_turnover_panels(args.sources, BATCHES[args.batch])
-    result = audit(panels, delisted, KRXClient(key), args.batch, turnover_panels=turnover)
+    extreme_symbols = downside_extreme_trading_symbols(ROOT)
+    result = audit(panels, delisted, KRXClient(key), args.batch,
+                   turnover_panels=turnover, extreme_symbols=extreme_symbols)
     print(json.dumps(result, sort_keys=True))
     if (result['failed_sessions'] or not result['turnover_all_values_matched']
-            or (args.batch in STRICT_PRICE_BATCHES and not result['market_wide_ohlc_and_membership_matched'])):
+            or (args.batch in STRICT_PRICE_BATCHES and not result['market_wide_ohlc_and_membership_matched'])
+            or (args.batch.startswith('downside_')
+                and not result['actual_extreme_trading_symbol_ohlc_matched'])):
         raise SystemExit(1)
 
 
