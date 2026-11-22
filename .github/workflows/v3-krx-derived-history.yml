@@ -9,10 +9,10 @@ on:
       - v3_krx_derived_backfill.py
       - v3_krx_derived_5day.py
       - .github/workflows/v3-krx-derived-history.yml
-  schedule:
-    # Continuous bounded replay, one resumable job every six hours.
-    # Avoid 12 overlapping long-running jobs and GitHub queue cancellation.
-    - cron: '11 0,6,12,18 * * *'
+  # Frozen 2016-10-17..2026-10-16 derived history is complete (490/490,
+  # zero cohorts remaining). Do not spend Actions minutes rechecking the
+  # exact same closed period every six hours. Manual re-audit remains enabled.
+  # Live daily KRX price/volume scoring is a separate workflow.
   workflow_dispatch:
     inputs:
       max_windows:
