@@ -6,7 +6,6 @@ counts, or licensed closes. This is *not* an adjusted-price path certification.
 """
 from bisect import bisect_left
 from collections import Counter
-from fractions import Fraction
 import re
 
 from v3_forward_share_actions import normalized_name
@@ -86,8 +85,8 @@ def compare_anchor(public, official, event):
 
 def observation_rows(public, official, session_events):
     """PRIVATE ephemeral tuples removed before publication."""
-    return [(number, stage, compare_anchor(public, official, event))
-            for event in session_events for number, stage, *_ in (event,)]
+    return [(event[0], event[1], compare_anchor(public, official, event))
+            for event in session_events]
 
 
 def summarize(event_count, observations):
