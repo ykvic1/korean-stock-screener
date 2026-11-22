@@ -82,6 +82,20 @@ class ReferenceTouchOfficialLowEvidenceTests(TestCase):
             with self.subTest(case=case):
                 self.assert_fail_closed(changed)
 
+    def test_same_day_kospi_digest_cannot_be_reused_for_kosdaq(self):
+        from unittest.mock import patch
+        original_unpack = audit._unpack
+        def altered_unpack(group):
+            report = original_unpack(group)
+            if group["group"] == 0:
+                report = deepcopy(report)
+                day = report["requested_sessions"][0]
+                digests = report["sessions"][day]["official_source_sha256"]
+                digests["KOSDAQ"] = digests["KOSPI"]
+            return report
+        with patch.object(audit, "_unpack", side_effect=altered_unpack):
+            self.assert_fail_closed(self.saved)
+
     def test_official_archive_watch_requires_readonly_frozen_touch_validation(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     ".github/workflows/v3-historical-close-archive-audit.yml")
