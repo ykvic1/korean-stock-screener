@@ -218,6 +218,33 @@ def window_inputs(root, now, cohorts, windows):
         }
 
 
+def outcome_identity(score_day, months, cohort, inputs):
+    horizon = cohort['horizons'][str(months)]
+    return {
+        'schema': SCHEMA, 'score_asof': score_day, 'months': months,
+        'entry_session': cohort['entry_session_candidate'],
+        'target_date': horizon['target_date'],
+        'entry_session_sample': cohort['entry_session_sample'],
+        'holding_window_sample': horizon.get('holding_window_sample'),
+        'evaluation_session_candidate': horizon['target_session_candidate'],
+        'session_count': len(inputs['days']), 'inputs_sha256': inputs['digest'],
+    }
+
+
+def load_current_outcome(path, identity):
+    """Reuse the report only when both replay and publication can use it."""
+    try:
+        outcome = json.loads(path.read_bytes())
+    except (FileNotFoundError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if (not isinstance(outcome, dict) or outcome.get('performance_validated') is not False
+            or any(outcome.get(key) != value for key, value in identity.items())
+            or not isinstance(outcome.get('groups'), dict)
+            or not isinstance(outcome['groups'].get('top20'), dict)):
+        return None
+    return outcome
+
+
 def replay_next(root, now, get_storage, *, readiness=None):
     """Replay one changed mature window per run, with no archive access while waiting."""
     if readiness is None:
@@ -225,12 +252,11 @@ def replay_next(root, now, get_storage, *, readiness=None):
     cohorts = readiness['cohorts']
     for (score_day, months), inputs in window_inputs(root, now, cohorts, ready_windows(cohorts)):
         cohort = cohorts[score_day]
-        horizon = cohort['horizons'][str(months)]
         days, sources = inputs['days'], inputs['sources']
-        entry_day, target = days[0], days[-1]
-        digest = inputs['digest']
+        entry_day = days[0]
+        identity = outcome_identity(score_day, months, cohort, inputs)
         target_path = root / OUT / score_day / f'{months}m.json'
-        if target_path.exists() and json.loads(target_path.read_bytes()).get('inputs_sha256') == digest:
+        if load_current_outcome(target_path, identity) is not None:
             continue
         raw = (root / ARCHIVE / f'{score_day}.json').read_bytes()
         if sha256(raw).hexdigest() != cohort['score_observation_sha256']:
@@ -263,12 +289,7 @@ def replay_next(root, now, get_storage, *, readiness=None):
                 raise ValueError('horizon_frozen_market_unavailable')
             _, cases = compare_closes(observation, market, signal)
         report = {
-            'schema': SCHEMA, 'score_asof': score_day, 'months': months,
-            'entry_session': entry_day, 'target_date': horizon['target_date'],
-            'entry_session_sample': cohort['entry_session_sample'],
-            'holding_window_sample': horizon.get('holding_window_sample'),
-            'evaluation_session_candidate': target, 'session_count': len(days),
-            'inputs_sha256': digest,
+            **identity,
             'groups': aggregate_paths(observation, evidence['rows'], days, panels,
                                       inputs['notices'], signal=signal, cases=cases,
                                       dividends=inputs['dividends'],
@@ -319,21 +340,9 @@ def pages_results(root, readiness, now):
     selected = ready_windows(cohorts, selected_only=True)
     for (score_day, months), inputs in window_inputs(root, now, cohorts, selected):
         cohort = cohorts[score_day]
-        horizon = cohort['horizons'][str(months)]
-        sample = cohort['entry_session_sample']
-        window = horizon['holding_window_sample']
         path = root / OUT / score_day / f'{months}m.json'
-        if not path.is_file():
-            continue
-        outcome = json.loads(path.read_bytes())
-        if (outcome.get('schema') != SCHEMA or outcome.get('performance_validated') is not False
-                or outcome.get('inputs_sha256') != inputs['digest']
-                or outcome.get('score_asof') != score_day or outcome.get('months') != months
-                or outcome.get('entry_session') != cohort['entry_session_candidate']
-                or outcome.get('target_date') != horizon['target_date']
-                or outcome.get('evaluation_session_candidate') != horizon['target_session_candidate']
-                or outcome.get('entry_session_sample') != sample
-                or outcome.get('holding_window_sample') != window):
+        outcome = load_current_outcome(path, outcome_identity(score_day, months, cohort, inputs))
+        if outcome is None:
             continue
         top = outcome['groups']['top20']
         coverage = top['terminal_return_coverage']
