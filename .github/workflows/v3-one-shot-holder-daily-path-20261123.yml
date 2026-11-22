@@ -1,0 +1,59 @@
+name: V3 One-Time Official KRX Daily Holder Path 20261123
+
+# Branch-only verification. Never merge this one-shot workflow to main.
+on:
+  push:
+    branches: [v30b-official-holder-daily-path-20261123]
+    paths:
+      - .github/workflows/v3-one-shot-holder-daily-path-20261123.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v30b-one-shot-holder-daily-path-20261123
+  cancel-in-progress: false
+
+jobs:
+  historical-daily-holder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install 'requests>=2.31,<3' 'pyarrow>=20,<27' 'pandas>=2,<3'
+      - name: Test deterministic daily path and disclosure limits
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_historical_official_holder_daily_path.py' -v
+      - name: Download unchanged pinned public price inputs
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o pilot-2025.parquet
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o pilot-2026.parquet
+          curl -fsSL --max-time 30 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o pilot-2026-11-13.csv
+      - name: Use pinned 245 private official closes and validate 85 holder horizons
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/holder-daily-provenance.json"
+          python v3_historical_close_archive_audit.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
+          jq -e '.official_sessions_compared == 245 and .holder_daily_official_close_path.daily_close_and_holder_schedule_matched == true and .holder_daily_official_close_path.frozen_horizon_observation_counts_reproduced == 85 and .holder_daily_official_close_path.frozen_horizon_intraday_extremes_bound_official_close == 85 and .holder_daily_official_close_path.close_does_not_precede_frozen_first_low_touch == 85 and .holder_daily_official_close_path.new_krx_market_api_requests == 0 and .holder_daily_official_close_path.earliest_intraday_low_touch_certified == false and .holder_daily_official_close_path.complete_adjusted_total_return_history_certified == false and .holder_daily_official_close_path.performance_validated == false and .holder_daily_official_close_path.v30b_release_ready == false' "$result" > /dev/null
+          jq -c '.holder_daily_official_close_path' "$result" > "$RUNNER_TEMP/holder-daily-aggregate.json"
+          jq . "$RUNNER_TEMP/holder-daily-aggregate.json" >> "$GITHUB_STEP_SUMMARY"
+          jq -c . "$RUNNER_TEMP/holder-daily-aggregate.json"
+      - name: Save anonymous aggregate only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: one-shot-holder-daily-aggregate
+          path: ${{ runner.temp }}/holder-daily-aggregate.json
+          if-no-files-found: ignore
+          retention-days: 90
