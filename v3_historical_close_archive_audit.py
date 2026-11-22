@@ -4,6 +4,7 @@ import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 import json
+import math
 import os
 from pathlib import Path
 
@@ -22,6 +23,7 @@ COMPARISON_STATES = (
     "public_row_missing", "official_row_missing", "both_rows_missing",
     "identity_mismatch", "public_close_unavailable", "close_mismatch", "exact_close",
 )
+OHLC_BOUNDS = ("traded_public_bars", "official_close_inside_public_ohlc", "invalid_public_ohlc")
 
 
 def pilot_windows(root):
@@ -51,6 +53,7 @@ def compare(public, official, codes):
     states = Counter(dict.fromkeys(COMPARISON_STATES, 0))
     equity = Counter(exact_listed_shares=0, mismatch_listed_shares=0, public_shares_unavailable=0)
     status = Counter(same_trade_status=0, trade_status_mismatch=0, trade_status_unavailable=0)
+    bounds = Counter(dict.fromkeys(OHLC_BOUNDS, 0))
     for code in codes:
         source = public.get(code)
         saved = official.get(code)
@@ -62,6 +65,18 @@ def compare(public, official, codes):
               or normalized_name(source[1]) != normalized_name(saved[1])):
             states["identity_mismatch"] += 1
         else:
+            # Validate only actually traded public bars, never synthesize a
+            # candle for a suspended/unpriced security. Official CLOSE within
+            # public candle is a consistency check, not official LOW proof.
+            if saved[5] is True and type(source[7]) in (int, float) and source[7] > 0:
+                bounds["traded_public_bars"] += 1
+                o, h, l, c = source[3:7]
+                valid = (all(type(x) in (int, float) and math.isfinite(x)
+                             for x in (o, h, l, c))
+                         and 0 < l <= min(o, c, saved[2])
+                         <= max(o, c, saved[2]) <= h)
+                bounds["official_close_inside_public_ohlc" if valid
+                       else "invalid_public_ohlc"] += 1
             close = source[6]
             if close is None or close <= 0:
                 states["public_close_unavailable"] += 1
@@ -78,10 +93,10 @@ def compare(public, official, codes):
             else:
                 status["same_trade_status" if (volume > 0) == saved[5]
                        else "trade_status_mismatch"] += 1
-    return {"rows": sum(states.values()), **states, **equity, **status}
+    return {"rows": sum(states.values()), **states, **equity, **status, **bounds}
 
 
-def build(panels, storage, root=ROOT):
+def build(panels, storage, root=ROOT, *, extreme_rows=None):
     sessions = sorted(session for session in panels if SIGNAL <= session <= END)
     require(sessions and sessions[0] == SIGNAL and sessions[-1] == END
             and len(sessions) > 1 and sessions[1] == ENTRY
@@ -89,6 +104,15 @@ def build(panels, storage, root=ROOT):
                     for session in sessions for code in CALENDAR_CODES),
             "invalid_historical_close_source_sessions")
     source_count, windows = pilot_windows(root)
+    extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
+                    else extreme_rows)
+    extreme_keys = {(row["code"], row["horizon_months"]) for row in extreme_rows}
+    extreme_days = {day(row["adverse_extreme_on"]) for row in extreme_rows}
+    require(len(extreme_rows) == len(extreme_keys) == source_count * 5
+            and len({code for code, _ in extreme_keys}) == source_count
+            and {h for _, h in extreme_keys} == {"1", "2", "3", "6", "12"}
+            and extreme_days <= set(sessions),
+            "invalid_historical_adverse_extreme_ledger")
 
     def check(session):
         date_key = session.isoformat()
@@ -115,7 +139,19 @@ def build(panels, storage, root=ROOT):
     for result in by_session.values():
         for key, total in totals.items():
             total.update(result[key])
+    corroborated = sum(
+        session.isoformat() in by_session
+        and by_session[session.isoformat()]["market"]["exact_close"] > 0
+        and by_session[session.isoformat()]["pilot"]["exact_close"] > 0
+        and by_session[session.isoformat()]["market"]["close_mismatch"] == 0
+        and by_session[session.isoformat()]["pilot"]["close_mismatch"] == 0
+        for session in extreme_days)
     return {
+        "extreme_horizon_rows": len(extreme_rows),
+        "distinct_adverse_extreme_dates": len(extreme_days),
+        "official_close_corroborated_extreme_dates": corroborated,
+        "official_intraday_low_extremes_verified": False,
+        "public_ohlc_bounds_are_not_independent_low_price_proof": True,
         "schema": SCHEMA,
         "from": SIGNAL.isoformat(),
         "through": END.isoformat(),
@@ -156,7 +192,8 @@ def close_reconciliation_complete(report):
     fieldnames = (("rows",) + COMPARISON_STATES
                   + ("exact_listed_shares", "mismatch_listed_shares",
                      "public_shares_unavailable", "same_trade_status",
-                     "trade_status_mismatch", "trade_status_unavailable"))
+                     "trade_status_mismatch", "trade_status_unavailable")
+                  + OHLC_BOUNDS)
     for scope in ("market", "pilot"):
         aggregate = totals.get(scope)
         entries = [aggregate]
@@ -170,6 +207,11 @@ def close_reconciliation_complete(report):
                            for key in fieldnames)):
                 return False
             rows = counts["rows"]
+            if (counts["official_close_inside_public_ohlc"] +
+                    counts["invalid_public_ohlc"] != counts["traded_public_bars"]
+                    or counts["invalid_public_ohlc"] != 0
+                    or counts["traded_public_bars"] > rows):
+                return False
             if (sum(counts[key] for key in COMPARISON_STATES) != rows
                     or counts["exact_close"] != rows
                     or counts["exact_listed_shares"] != rows
@@ -184,6 +226,15 @@ def close_reconciliation_complete(report):
                 or any(sum(part[key] for part in entries[1:]) != aggregate[key]
                        for key in fieldnames)):
             return False
+    if (type(report.get("extreme_horizon_rows")) is not int
+            or report["extreme_horizon_rows"] < 1
+            or type(report.get("distinct_adverse_extreme_dates")) is not int
+            or not 1 <= report["distinct_adverse_extreme_dates"] <= expected
+            or report.get("official_close_corroborated_extreme_dates")
+               != report["distinct_adverse_extreme_dates"]
+            or report.get("official_intraday_low_extremes_verified") is not False
+            or report.get("public_ohlc_bounds_are_not_independent_low_price_proof") is not True):
+        return False
     return True
 
 
