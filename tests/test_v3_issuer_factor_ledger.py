@@ -107,6 +107,23 @@ class IssuerFactorRetentionTests(unittest.TestCase):
         migrated=build(census("2026-11-03",[a]),[improved],old_contract)
         self.assertTrue(migrated["mixed_date_sum_permitted"])
 
+    def test_lagged_volume_source_cannot_roll_back_equal_coverage_date(self):
+        company=member("005930","A")
+        first_day="2026-11-19"
+        first_row=row(company,first_day)
+        first_row["volume_money_source_asof"]=first_day
+        first=build(census(first_day,[company]),[first_row])
+        next_day="2026-11-20"
+        lagged=row(company,next_day)
+        lagged["volume_money_source_asof"]="2026-11-18"
+        retained=build(census(next_day,[company]),[lagged],first)
+        self.assertEqual(retained["rows"][company["code"]]["factors"]["volume"]["asof"],first_day)
+        self.assertEqual(retained["rows"][company["code"]]["factors"]["volume"]["points"],6)
+        fresh=row(company,next_day)
+        fresh["volume_money_source_asof"]=next_day
+        updated=build(census(next_day,[company]),[fresh],retained)
+        self.assertEqual(updated["rows"][company["code"]]["factors"]["volume"]["asof"],next_day)
+
     def test_same_ticker_name_change_does_not_inherit_old_score(self):
         a=member("005930","Old Co")
         old=build(census("2026-10-30",[a]),[row(a,"2026-10-30")])
