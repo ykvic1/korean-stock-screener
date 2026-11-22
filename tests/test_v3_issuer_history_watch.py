@@ -133,6 +133,17 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertIn("lost_existing_component_observation",report["issues"])
         self.assertEqual(report["status"],"error")
 
+    def test_date_regression_reports_only_aggregate_factor_group(self):
+        old_day="2026-11-19"
+        old=build(catalog(old_day,[("005930","Example")]),
+                  [price_row(old_day,"005930","Example")])
+        latest=copy.deepcopy(old)
+        latest["market_asof"]="2026-11-20"
+        latest["rows"]["005930"]["factors"]["volume"]["asof"]="2026-11-18"
+        report=inspect(latest,old)
+        self.assertEqual(report["regressed_date_group_counts"],{"factor.volume":1})
+        self.assertNotIn("005930",str(report))
+
     def test_existing_key_cannot_hide_regressed_date_or_narrowed_coverage(self):
         day="2026-11-02"
         first=build(catalog(day,[("005930","A")]),

@@ -52,9 +52,17 @@ jobs:
           previous=$(git log -n 1 --skip=1 --format=%H -- "$source_file" || true)
           if [[ -n "$previous" ]]; then
             git show "$previous:$source_file" > "$RUNNER_TEMP/previous.json"
-            python v3_issuer_history_watch.py --assert-safe --prior "$RUNNER_TEMP/previous.json" > "$RUNNER_TEMP/history-watch.json"
+            if ! python v3_issuer_history_watch.py --assert-safe --prior "$RUNNER_TEMP/previous.json" > "$RUNNER_TEMP/history-watch.json"; then
+              # The watch report contains aggregate counts and fixed issue codes,
+              # never issuer identifiers, raw prices or private provider responses.
+              cat "$RUNNER_TEMP/history-watch.json"
+              exit 2
+            fi
           else
-            python v3_issuer_history_watch.py --assert-safe > "$RUNNER_TEMP/history-watch.json"
+            if ! python v3_issuer_history_watch.py --assert-safe > "$RUNNER_TEMP/history-watch.json"; then
+              cat "$RUNNER_TEMP/history-watch.json"
+              exit 2
+            fi
           fi
       - name: Explain changes vs lag without promoting scores
         if: always()

@@ -473,7 +473,8 @@ def build(catalog,current_rows,prior=None,*,parts=None,audit=None,
             old=target["factors"].get(key)
             # A new but narrower partial source must not erase a larger
             # previously observed budget. Replace on equal/better coverage.
-            if old is None or available>=old["available"]:
+            if (old is None or available>old["available"] or
+                (available==old["available"] and source_day>=old["asof"])):
                 target["factors"][key]={
                     "asof":source_day,"available":available,
                     "points":float(value),"source":"current_close_replay"}
