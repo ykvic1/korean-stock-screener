@@ -134,9 +134,9 @@ class IssuerHistoryWatchTests(unittest.TestCase):
         self.assertEqual(report["status"],"error")
 
     def test_date_regression_reports_only_aggregate_factor_group(self):
-        from v3_issuer_history_watch import inspect
-        company=member("005930","Example")
-        old=build(census("2026-11-19",[company]),[row(company,"2026-11-19")])
+        old_day="2026-11-19"
+        old=build(catalog(old_day,[("005930","Example")]),
+                  [price_row(old_day,"005930","Example")])
         latest=copy.deepcopy(old)
         latest["market_asof"]="2026-11-20"
         latest["rows"]["005930"]["factors"]["volume"]["asof"]="2026-11-18"
