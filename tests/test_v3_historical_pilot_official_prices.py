@@ -17,6 +17,19 @@ from v3_historical_pilot_official_prices import compare_market
 
 
 class HistoricalOfficialPricesTest(unittest.TestCase):
+    def test_batch_validation_blocks_repeated_dates_before_provider_access(self):
+        first = prices.BATCHES['anchor'][0]
+        second = prices.BATCHES['anchor'][1]
+        prices.validate_unique_official_batches({'one': (first,), 'two': (second,)})
+        for invalid in (
+            {'one': (first,), 'two': (first,)},
+            {'one': (first, first)},
+            {'one': tuple(prices.BATCHES['anchor']) + (second,)},
+            {'empty': ()},
+        ):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                prices.validate_unique_official_batches(invalid)
+
     def test_official_batches_never_repeat_a_session_across_scopes(self):
         # Each official market-wide date costs authenticated calls. A session
         # already checked by a prior batch must not enter another batch.
