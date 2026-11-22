@@ -1,0 +1,103 @@
+name: V3 One-Time Previously Aggregated Extreme LOW Direct Audit 20261122
+
+# One-off branch-only evidence job. Remove from the proposed main PR.
+on:
+  push:
+    branches: [v30b-prior-extreme-low-20261122]
+    paths:
+      - .github/workflows/v3-one-shot-prior-extreme-low-20261122.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: v30b-one-shot-prior-extreme-low-20261122
+  cancel-in-progress: false
+
+jobs:
+  exact-security-lows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        group: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install bounded public replay dependencies
+        run: pip install 'requests>=2.31,<3' 'pyarrow>=20,<27' 'pandas>=2,<3'
+      - name: Download SHA-pinned public market sources
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o pilot-2025.parquet
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o pilot-2026.parquet
+          curl -fsSL --max-time 30 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o pilot-2026-11-13.csv
+      - name: Compare only eight previously aggregated but not exact-security-verified extreme dates
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+          EXTREME_GROUP: ${{ matrix.group }}
+          PUBLIC_REPLAY_DIR: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          python - <<'PY' | tee "$RUNNER_TEMP/prior-extreme-low-${EXTREME_GROUP}.json"
+          import json
+          import os
+          from pathlib import Path
+          from official_probe.clients import KRXClient
+          from v3_historical_downside_official_ohlc_evidence import evidence_sessions, EVIDENCE
+          import v3_historical_pilot_official_prices as probe
+
+          key = os.environ.get("KRX_API_KEY", "")
+          if not key.strip():
+              raise SystemExit("official_krx_key_unavailable")
+          probe.validate_unique_official_batches(probe.BATCHES)
+          baseline_days, _, _, _ = evidence_sessions(json.loads(EVIDENCE.read_text()))
+          exact_targets = probe.downside_extreme_trading_symbols()
+          missing_direct = sorted(day for day in exact_targets if day.isoformat() in baseline_days)
+          if len(missing_direct) != 8:
+              raise SystemExit("unexpected_previous_extreme_date_roster")
+          group = int(os.environ["EXTREME_GROUP"])
+          if group not in (0, 1):
+              raise SystemExit("invalid_prior_direct_low_group")
+          days = missing_direct[:5] if group == 0 else missing_direct[5:]
+          if len(days) != (5 if group == 0 else 3):
+              raise SystemExit("incomplete_prior_direct_low_batch")
+          name = "prior_direct_" + str(group)
+          probe.BATCHES[name] = tuple(days)
+          root = Path(os.environ["PUBLIC_REPLAY_DIR"])
+          sources = [root / name for name in
+                     ("pilot-2025.parquet", "pilot-2026.parquet", "pilot-2026-11-13.csv")]
+          panels = probe.read_panels(sources)
+          delisted = {r["code"] for r in probe.ledger_rows(probe.ROOT, "delistings")
+                      if r["anchor_membership"] == "present"}
+          turnover = probe.read_turnover_panels(sources, days)
+          result = probe.audit(panels, delisted, KRXClient(key), name,
+                               turnover_panels=turnover, extreme_symbols=exact_targets)
+          print(json.dumps(result, sort_keys=True))
+          if (result["failed_sessions"] or
+              not result["market_wide_ohlc_and_membership_matched"] or
+              not result["turnover_all_values_matched"] or
+              not result["actual_extreme_trading_symbol_ohlc_matched"] or
+              result["actual_extreme_target_sessions_compared"] != len(days) or
+              result["actual_extreme_target_sessions_expected"] != len(days) or
+              result["requested_sessions"] != [d.isoformat() for d in days] or
+              result["adjusted_price_history_verified"] is not False or
+              result["volume_session_equivalence_verified"] is not False or
+              result["performance_validated"] is not False):
+              raise SystemExit("previous_direct_low_evidence_not_complete")
+          PY
+      - name: Retain one-time anonymous market and security LOW aggregates
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prior-extreme-low-${{ matrix.group }}
+          path: ${{ runner.temp }}/prior-extreme-low-${{ matrix.group }}.json
+          if-no-files-found: ignore
+          retention-days: 90
