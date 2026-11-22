@@ -219,6 +219,18 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertIsNone(comparison['observed_mean_return_spread_pct_points'])
                 self.assertEqual(comparison['loss_rate_spread_bounds_pct_points'], [-100, 0])
 
+                outcome_path = root / OUT / score_day / '1m.json'
+                valid = json.loads(outcome_path.read_bytes())
+                for invalid in (json.dumps({**valid, 'target_date': '2026-12-15'}),
+                                json.dumps({**valid, 'performance_validated': True}), '{'):
+                    with self.subTest(invalid=invalid[:60]):
+                        outcome_path.write_text(invalid, encoding='utf-8')
+                        self.assertEqual(pages_results(root, readiness, now)['horizons'], {})
+                        self.assertEqual(replay_next(root, now, get_storage)['status'],
+                                         'price_path_aggregated')
+                        self.assertEqual(json.loads(outcome_path.read_bytes()), valid)
+                        self.assertIn('1', pages_results(root, readiness, now)['horizons'])
+
     def test_cash_settlement_only_extends_terminal_return_denominator(self):
         days = ['2026-06-24', '2026-06-25', '2026-06-26', '2026-07-15']
         codes = ('000001', '000002', '000003')
