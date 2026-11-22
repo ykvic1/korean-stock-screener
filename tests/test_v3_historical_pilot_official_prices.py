@@ -141,6 +141,11 @@ class HistoricalOfficialPricesTest(unittest.TestCase):
         official = {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 8, 12, 100)}
         direct = prices.compare_market(public, official, {'000001'})
         self.assertTrue(prices.exact_traded_extreme_symbols(direct))
+        for field in ('open', 'high', 'low', 'close'):
+            tampered = {**direct, 'different_price_by_field': {
+                **direct['different_price_by_field'], field: 1}}
+            with self.subTest(aggregate_field=field):
+                self.assertFalse(prices.exact_traded_extreme_symbols(tampered))
         for variant in (
             {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 9, 12, 100)},
             {'000001': ('KOSDAQ', 'Private Issuer', 'traded', 10, 13, 8, 12, 101)},
