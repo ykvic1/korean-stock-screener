@@ -36,17 +36,20 @@ def pilot_windows(root):
                    if row["code"] in codes}
     require(codes == trades.keys() == settlements.keys(), "incomplete_pilot_close_roster")
     windows = []
+    origin_paths = {}
     for code in sorted(codes):
         last = day(trades[code]["last_positive_volume_candidate"])
         require(trades[code]["next_session_status"] == "traded" and ENTRY <= last <= END,
                 "invalid_pilot_close_trade_window")
         windows.append((code, SIGNAL, last))
+        origin_paths[code] = [(code, SIGNAL, last)]
         successor = settlements[code]["successor_code"]
         if successor:
             start = day(settlements[code]["settlement_or_share_availability_on"])
             require(last < start <= END, "invalid_pilot_close_successor_window")
             windows.append((successor, start, END))
-    return len(codes), windows
+            origin_paths[code].append((successor, start, END))
+    return len(codes), windows, origin_paths
 
 
 def compare(public, official, codes):
@@ -103,16 +106,30 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
             and all(traded(panels[session].get(code))
                     for session in sessions for code in CALENDAR_CODES),
             "invalid_historical_close_source_sessions")
-    source_count, windows = pilot_windows(root)
+    source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
     extreme_keys = {(row["code"], row["horizon_months"]) for row in extreme_rows}
     extreme_days = {day(row["adverse_extreme_on"]) for row in extreme_rows}
     require(len(extreme_rows) == len(extreme_keys) == source_count * 5
-            and len({code for code, _ in extreme_keys}) == source_count
+            and {code for code, _ in extreme_keys} == set(origin_paths)
             and {h for _, h in extreme_keys} == {"1", "2", "3", "6", "12"}
             and extreme_days <= set(sessions),
             "invalid_historical_adverse_extreme_ledger")
+    # Each extreme is from a specific original issuer. A merger or stock
+    # delivery can change its traded symbol; another issuer's matching
+    # official close on the same date is NOT evidence for this extreme.
+    # Only issuer/date counts leave the private validation process.
+    extreme_codes_by_day = {}
+    for row in extreme_rows:
+        origin = row["code"]
+        session = day(row["adverse_extreme_on"])
+        matches = [symbol for symbol, start, end in origin_paths[origin]
+                   if start <= session <= end]
+        require(len(matches) == 1,
+                "historical_adverse_extreme_security_unresolved")
+        extreme_codes_by_day.setdefault(session, set()).add(matches[0])
+    extreme_symbol_days = sum(len(codes) for codes in extreme_codes_by_day.values())
 
     def check(session):
         date_key = session.isoformat()
@@ -126,6 +143,7 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
             "official_source_sha256": archived["source_sha256"],
             "market": compare(public, official, public.keys() | official.keys()),
             "pilot": compare(public, official, pilot_codes),
+            "extreme": compare(public, official, extreme_codes_by_day.get(session, ())),
         }
 
     results = {}
@@ -135,21 +153,32 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None):
             results.update(readers.map(check, sessions[offset:offset + ARCHIVE_READERS]))
     missing = [key for key, result in results.items() if result is None]
     by_session = {key: result for key, result in results.items() if result is not None}
-    totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot")}
+    totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot", "extreme")}
     for result in by_session.values():
         for key, total in totals.items():
             total.update(result[key])
-    corroborated = sum(
-        session.isoformat() in by_session
-        and by_session[session.isoformat()]["market"]["exact_close"] > 0
-        and by_session[session.isoformat()]["pilot"]["exact_close"] > 0
-        and by_session[session.isoformat()]["market"]["close_mismatch"] == 0
-        and by_session[session.isoformat()]["pilot"]["close_mismatch"] == 0
-        for session in extreme_days)
+    # On each adverse-extreme date prove that ALL affected actual
+    # originating/successor trading symbols have an exact official close,
+    # share count, trade status, and a valid public candle bound.
+    proven_by_day = {}
+    for session, symbols in extreme_codes_by_day.items():
+        result = by_session.get(session.isoformat())
+        scope = result["extreme"] if result is not None else None
+        proven_by_day[session] = (
+            scope is not None
+            and all(scope[field] == len(symbols) for field in (
+                "rows", "exact_close", "exact_listed_shares",
+                "same_trade_status", "traded_public_bars",
+                "official_close_inside_public_ohlc")))
+    corroborated = sum(proven_by_day.values())
+    corroborated_symbols = sum(len(extreme_codes_by_day[date])
+                               for date, passed in proven_by_day.items() if passed)
     return {
         "extreme_horizon_rows": len(extreme_rows),
         "distinct_adverse_extreme_dates": len(extreme_days),
         "official_close_corroborated_extreme_dates": corroborated,
+        "distinct_extreme_trading_symbol_dates": extreme_symbol_days,
+        "official_close_corroborated_extreme_symbol_dates": corroborated_symbols,
         "official_intraday_low_extremes_verified": False,
         "public_ohlc_bounds_are_not_independent_low_price_proof": True,
         "schema": SCHEMA,
@@ -194,7 +223,7 @@ def close_reconciliation_complete(report):
                      "public_shares_unavailable", "same_trade_status",
                      "trade_status_mismatch", "trade_status_unavailable")
                   + OHLC_BOUNDS)
-    for scope in ("market", "pilot"):
+    for scope in ("market", "pilot", "extreme"):
         aggregate = totals.get(scope)
         entries = [aggregate]
         for session in sessions.values():
@@ -223,6 +252,7 @@ def close_reconciliation_complete(report):
                 return False
         if (scope == "market" and aggregate["rows"] <= 0
                 or scope == "pilot" and aggregate["rows"] <= 0
+                or scope == "extreme" and aggregate["rows"] <= 0
                 or any(sum(part[key] for part in entries[1:]) != aggregate[key]
                        for key in fieldnames)):
             return False
@@ -232,6 +262,11 @@ def close_reconciliation_complete(report):
             or not 1 <= report["distinct_adverse_extreme_dates"] <= expected
             or report.get("official_close_corroborated_extreme_dates")
                != report["distinct_adverse_extreme_dates"]
+            or type(report.get("distinct_extreme_trading_symbol_dates")) is not int
+            or report["distinct_extreme_trading_symbol_dates"] < 1
+            or report.get("official_close_corroborated_extreme_symbol_dates")
+               != report["distinct_extreme_trading_symbol_dates"]
+            or totals["extreme"]["rows"] != report["distinct_extreme_trading_symbol_dates"]
             or report.get("official_intraday_low_extremes_verified") is not False
             or report.get("public_ohlc_bounds_are_not_independent_low_price_proof") is not True):
         return False
