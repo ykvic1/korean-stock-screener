@@ -15,6 +15,7 @@ on:
       - v3_issuer_history_watch.py
       - v3_issuer_factor_ledger.py
       - tests/test_v3_issuer_history_watch.py
+      - docs/v3-issuer-last-observed-factors.json
       - .github/workflows/v3-issuer-history-watch.yml
   schedule:
     - cron: '41 0 * * *'
