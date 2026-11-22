@@ -202,6 +202,8 @@ def build(evidence, baseline, prior, later, root=ROOT):
                     and all(type(val) is str and HEX.fullmatch(val)
                             for val in values.values()),
                     "missing_official_touch_market_digest")
+            require(values["KOSPI"] != values["KOSDAQ"],
+                    "same_day_cross_market_digest_reused")
             if day in official_by_day:
                 require(values == official_by_day[day],
                         "existing_official_touch_day_digest_changed")
