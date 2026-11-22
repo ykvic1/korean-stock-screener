@@ -1,5 +1,6 @@
-"""Safety regression for bounded five-window V3 KRX historical replay."""
+"""Safety regression for the completed, bounded V3 KRX historical replay."""
 
+import json
 from pathlib import Path
 import re
 import unittest
@@ -14,10 +15,14 @@ class FiveDailyKrxReplayPolicyTest(unittest.TestCase):
             encoding="utf-8"
         )
         crons = re.findall(r"^\s+- cron: '([^']+)'", source, re.MULTILINE)
-        self.assertEqual(
-            crons,
-            ["11 0,6,12,18 * * *"],
-        )
+        # The fixed historical source has reached 490/490 windows. Do not
+        # recreate its scheduled collector after collection is complete.
+        progress = json.loads((ROOT / "docs/v3-krx-derived-backfill-progress.json")
+                              .read_text(encoding="utf-8"))
+        self.assertEqual(progress["five_session_cohorts_completed"], 490)
+        self.assertEqual(progress["five_session_cohorts_remaining"], 0)
+        self.assertEqual(crons, [])
+        self.assertIn("workflow_dispatch:", source)
         self.assertIn("group: v3-krx-private-derived-history", source)
         self.assertIn("cancel-in-progress: false", source)
         self.assertIn("timeout-minutes: 360", source)
@@ -29,7 +34,7 @@ class FiveDailyKrxReplayPolicyTest(unittest.TestCase):
 
         self.assertEqual(MAX_WINDOWS_PER_RUN, 16)
         self.assertEqual(MAX_SOURCE_CALLS, 160)
-        self.assertEqual(5 * MAX_SOURCE_CALLS, 800)
+        self.assertEqual(MAX_SOURCE_CALLS, 160)  # manual bounded replay, not daily cron
 
 
 if __name__ == "__main__":
