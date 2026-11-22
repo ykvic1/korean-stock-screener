@@ -1,0 +1,34 @@
+{
+  "schema": "v3-historical-first-touch-official-low-frozen-v1",
+  "saved_on_kst": "2026-11-22",
+  "audit_scope": "eleven_previously_unverified_specific_touch_security_days_only",
+  "prior_35_extreme_low_evidence_required": true,
+  "archive_content_encoding": "gzip_base64_canonical_json",
+  "official_run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/45020053953",
+  "groups": [
+    {
+      "group": 0,
+      "run_id": 45020053953,
+      "job_id": 137200734955,
+      "artifact_id": 14753193394,
+      "artifact_zip_sha256": "ed650ee8c8f388271f88000dd93ccd01e096cadc896ca9badc4929d65dfed277",
+      "canonical_report_sha256": "37d4b994d2444d04ba277add41863c96a934e02911fcf9d5628854f081d15181",
+      "data": "H4sIAAAAAAAC/+2ZS2/bRhCA/wvPFrDvh28Feil6aIsei4KY3Z2N2FKkyocS1/B/75CSbdqJEzWQHLfQSdjX7Dz3w1C3Ra66fiiHdozrsupLhK6ucJrpIGG57dodNsV1hrrHq2IDH6rNuCnbnKtYQV3Ctio7/GukE31xzdlVscUut90GmojlDuoqwYDpQcC2w8Ndsd1saxywhPTH2NOecgvDutxhV+VqcaLDd2MNXdk29U25a+txg5/aNKtAQnrs+6ptSJnfCsGEXnG+4qq4ehy45cA/DMSKHQZmxfiK6eL3q6KPa9xAcV3s5Gpd9UPbVRHqVYcZOyQLV7Mtq3t3rOr2/WrHScyjGrdLNWgEcRjJcXsn9BjHrhpuynZdx3k19NgMZe7aRycX1+TW5cJ2DHUV5+nYNhTADRn+N3btvX/apgztsJ53pCrPyg4Uy4piEm5Kcl2dptti3fY471pX7/bbyYL5t91OYWd3VwV+IJUPCvKrokoka1J5U/UbGOLhWLX3/hoowC+u9OXYwA6qGkK9v7dpy23bV0O1w0PGke5YDWvs5vWPF/eG8U8tPWTllCsvHN/77nFHH8lSkkeG/stK6P7EoXxP7jhD3DjTJ46cMNq+avBmE14K316bk0ZQWCPI5gcJfTt25DRSXWgzuezHn379/rtfqJY1ZK5i1Mi8Fo7lkLVSCZjiwTnJge7BEEWyygpUOgnOwVorBLPohY1U3iTr5x9IFCiDTGQEYQLm6G0wJhnuo/JBWG6DzQJkDJDRJaEc59YiSdVgvUzJF3ff7MHctt0k49k7lOCmn6vrq1++vcB1WyckHSgXS1oq51ScBQ9j11AldV9TNfuEPtgETSph047NsA/+VMBUHfOTez9/W0z5NtfYISMnL1Iyp/szc64vhofsn2bYIpuep/4hCZ9OUzD3ur36xXcvlXZD2lDkSuJjRck1RW5625p2uCdlGbEbKDkiDDQqroduxOdFtZMsEOZrhB7pF9LNIZHunnD1v0438VboJk79Nr41uvGT083IV6Yb/xzdJm1OTTd1HN2kMEnbbJ00WoNkUkVQWigbpUxWRqtz0sZolBPUMGXPEljFGXhSQacF3VgQEg2GDCoYMIiGG2VC1E5gBG2kVwyTjCJnJZAhB8dljimiABfcW6WbOBfdxPnopo6gG38GGfUUMupsdDv3xWekmzqWbv7Su116twvdvjXdslSe2i2ZJWdoqB/LGhx45SQjNEUdGFOoks/Oc+vNRCowjvowPfV1DBd0w4DU2jGnMGvq1KQD0ImwJhXJj5JzyUNMIJHmmbJWaxUs6EDtI6SUzKV3u9Dtf0G3+cvnhW4Xuh1HN3N6ur32l0nzWbqd/suklcfRDbXmIjNtg4porZLMRcZZ8soARpkyczpxoa0Ewp7SyWhvGAuZAUGM2QXdHM8KDfHQaesDsUvQZUQ0xb1PpFBI1CiCzU64SLS0wTlmiOwqaxMB7IVup6KblUfQzTyFzHRmAZl5eB66nfvi89FtLqov0O3+r7wL3S50OyZu3p8cbs6/auwmC15mm/MnZ5tzR/7rprNLiifkLIKY/iYD6tmINoaqVgkeWAxKOuuE5cEnrcE6b4ErKZxNQi/Y5hmCYFlJCwA+cfTRYXZEwRipSZNZCFTKCAnRy+iI6D6AlMgIplKxC9tOxjbnvsi2KSGXhJmOLAgzD8+BtrPfez6yzSX1MtlocYDuHQ7PE8h85hQtHbLxo1N3/wAzZ18WBSQAAA=="
+    },
+    {
+      "group": 1,
+      "run_id": 45020053953,
+      "job_id": 137200734777,
+      "artifact_id": 14752964248,
+      "artifact_zip_sha256": "efd332812399c344671eb32d5feca5d125fd18c091fda28a4d4245b12626c0f2",
+      "canonical_report_sha256": "088d723c3893600c1cf9bd5388af10d46815d80487494007d13fa96c4b78fe27",
+      "data": "H4sIAAAAAAAC/+2ZS2/jNhCA/4vOMcD3I7cCeyl6aIsei0IYksO1Wlly9fBuush/70hysk52k7gL2wsUvsQghxzOkx8YfSpy1fVDObRjXJdVXyJ0dYXTTAcJy23X7rApbjPUPd4UG/hYbcZN2eZcxQrqErZV2eHfI+3oi1vObootdrntNtBELHdQVwkGTI8Kth3uz4rtZlvjgCWkP8ee1pRbGNblDrsqVwc7Onw/1tCVbVPflbu2Hjf4tUWzCaSkx76v2oaM+b0QTJgV4yvmi5v9QK6EfRyYlVAPA85WzB0MhC/+uCn6uMYNFLfFTq7WVT+0XRWhXnWYsUPycDX7snoIx6puP6x2nNR8NuPToRk0gjiMFLglCD3GsauGu7Jd13GWhh6bocxd+znIxS2F9VCwHUNdxXk6tg0lcEOO/4Nd+xCftilDO6znFanKs7ED5bKinIS7kkJXp+m0WLc9zqvW1ftlOXkw/7bbKe3s/qbAj2Ty3kB+U1SJdE0mb6p+A0Pcb6uW6K+BEvyipC/HBnZQ1RDq5dymLbdtXw3VDvcVR7ZjNayxm+VfChfH+NdEj1U51coL25fYfV7RR/KU9JGj/7ETur9wKD9QOM6QN29OnDhhPLto7iYPXkreYsxJ8yesM+Tyo4a+HTuKGVkutJki9tPPv7374VfqZKFTsGgzCh8FWGWQCRciD14yZQCYkCgimqxYdt4aEYP3XsbgXORCIzU36frlR1KVVIZsuLfCCxAcrbEx6wwCpJDJehcleHAePJMJ6ByuuECvrdKMY0zF/Xe7LrdtN+l4dgsluOvn3vrme29RuG7rhGQDlWJJonKuxFnxMHYN9VH3LT2z1PPeJ2hSCZt2bIYl+VP7UnPMF+7D/Kdiqre5w5aCnIJIpZwetsyVfjDc1/40ww6K6Xnh72vw6TTlcjHt0ufev9TXDRlDeSuJjRWV1pS36V5r2uGBkmXEbqDSiDDQqLgduhGft9ROskCIrxF6pF9Id/syun/C1CvZrmQ7imz65GSz9rJk06+RbTLmxGSz4jiyWeVdlmi98MZF62IAnZVRPscQBTLuROLZyOSSJNbZLLRKxC1vfQ6EvQOyyRCkROVQoNEOo85eKg8gJVjjMhFTmeA5M0w5JzwGr3RAwRjpEtFdyXYyslnxNtn0U8JMWw4IMw/PQrZzn3s+ss0t9TbZ5gfilWxXsh2TN87tydGmL5u82YWX2ab5ydlm3HFsSyp6J6QBZnQSDI2xKkueo1HCJq1l4E56qwSRy6rELVeWAOetdAHdk1ebASHIrED6PCiEKJJBARq8EpwHgpuXFhkmeu9pk4mnmnuhbQKVnIxwZdup2Gbcm2ybK/IQMtOeA8jMw3PA7fwHn49uc1O9SbflP55Xul3pdhzd+Onppi5MN/4q3dTp6aaPo5t20kzsSl4lGRXnyEOUIJVMiezyFpSOkG0OwQE4Tn+IWcFpjlpE4w/oBgRKBdop5RNhjJ59MJEuamVSzsoJEcBmYBgFz0ArpMpMikxPR24jmivdTkY3fQTd+DPI6KeQ0Wej27kPPiPd9JF0E9fvbVe6HUu3039wU/7CdHv1i9tkzXeim4/JMhY0t6iobQlqzhlkXFt6bXEvHeEo0S3uPKDV6IETwJiShjNpc3rydrPceUTHZVIegogELeEYzSVtkuRMZQ2otdKK+YCWaRmTR8PpOShlyFe6XZRu5nvRzfxf6UbCAbr3ODwvIf3KLhLt6/GLXff/ArTqkKcBJAAA"
+    }
+  ],
+  "market_wide_numeric_equivalence_is_not_0900_1530_session_certification": true,
+  "first_touch_earliest_session_proven": false,
+  "full_adjusted_path_verified": false,
+  "historical_point_in_time_scores_certified": false,
+  "performance_validated": false,
+  "v30b_release_ready": false
+}
