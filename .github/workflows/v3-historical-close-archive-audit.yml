@@ -17,6 +17,12 @@ on:
       - v3_historical_prior_direct_low_evidence.py
       - ops/v3-historical-prior-extreme-direct-low-20261122.json
       - tests/test_v3_historical_prior_direct_low_evidence.py
+      - v3_historical_reference_touch_direct_probe.py
+      - v3_historical_reference_touch_direct_low_evidence.py
+      - ops/v3-historical-first-touch-official-low-20261122.json
+      - ops/v3-performance-downside-reference-20251113.csv
+      - tests/test_v3_historical_reference_touch_direct_probe.py
+      - tests/test_v3_historical_reference_touch_direct_low_evidence.py
       - ops/v3-performance-downside-horizons-20251113.csv
       - .github/workflows/v3-historical-close-archive-audit.yml
   workflow_dispatch:
@@ -72,6 +78,16 @@ jobs:
           jq -e '.prior_marketwide_only_dates_now_exact_security_checked == 8 and .previously_exact_security_checked_dates == 27 and .all_35_extreme_dates_direct_security_checked == 35 and .all_extreme_trading_security_date_pairs == 53 and .all_85_horizon_extreme_dates_directly_checked == 85 and .regular_only_volume_verified == false and .historical_adjusted_path_certified == false and .point_in_time_scores_verified == false and .performance_validated == false and .v30b_release_ready == false' "$result" >/dev/null
           jq . "$result" >> "$GITHUB_STEP_SUMMARY"
           jq -c . "$result"
+      - name: Validate independently pinned original and successor reference-line LOW (offline)
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_historical_reference_touch_direct_probe.py' -v
+          python -m unittest discover -s tests -p 'test_v3_historical_reference_touch_direct_low_evidence.py' -v
+          result="$RUNNER_TEMP/historical-reference-touch-direct-low-coverage.json"
+          python v3_historical_reference_touch_direct_low_evidence.py > "$result"
+          jq -e '.newly_verified_first_touch_security_days == 11 and .unique_new_official_first_touch_dates == 10 and .all_reported_first_touch_security_days_with_exact_ohlc == 14 and .new_provider_calls_in_readonly_replay == 0 and .first_touch_is_earliest_trade_proven == false and .pre_touch_complete_adjusted_path_verified == false and .regular_only_volume_verified == false and .historical_point_in_time_scores_certified == false and .performance_validated == false and .v30b_release_ready == false' "$result" >/dev/null
+          jq . "$result" >> "$GITHUB_STEP_SUMMARY"
+          jq -c . "$result"
       - name: Compare closes, listed shares and observable trade status
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -92,5 +108,6 @@ jobs:
             ${{ runner.temp }}/historical-downside-official-ohlc-coverage.json
             ${{ runner.temp }}/historical-extreme-direct-low-coverage.json
             ${{ runner.temp }}/historical-all-extreme-direct-low-coverage.json
+            ${{ runner.temp }}/historical-reference-touch-direct-low-coverage.json
           if-no-files-found: ignore
           retention-days: 90
