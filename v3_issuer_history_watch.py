@@ -67,6 +67,7 @@ def _check_continuity(old, new, maximum, day, issues, *, component=False):
 def inspect(current,previous=None):
     """Return an anonymous aggregate. No raw issuer names, values or IDs."""
     issues=[]
+    regression_groups=Counter()
     if (not isinstance(current,dict) or current.get("schema")!=SCHEMA or
         current.get("investment_score_certified") is not False or
         current.get("component_ledger_research_only") is not True or
@@ -233,15 +234,21 @@ def inspect(current,previous=None):
                             if key not in now and key in PILLARS:
                                 issues.append(issue)
                             elif key in now and key in PILLARS:
+                                before=len(issues)
                                 _check_continuity(value,now[key],PILLARS[key],day,issues)
+                                if "regressed_existing_observation_date" in issues[before:]:
+                                    regression_groups["factor."+key]+=1
                         elif (isinstance(value,dict) and
                               isinstance(now.get(key),dict)):
                             for sub in value:
                                 if sub in COMPONENTS.get(key,{}) and sub not in now[key]:
                                     issues.append(issue)
                                 elif sub in COMPONENTS.get(key,{}):
+                                    before=len(issues)
                                     _check_continuity(value[sub],now[key][sub],
                                         COMPONENTS[key][sub],day,issues,component=True)
+                                    if "regressed_existing_observation_date" in issues[before:]:
+                                        regression_groups["component."+key+"."+sub]+=1
                         elif isinstance(value,dict) and any(
                                 sub in COMPONENTS.get(key,{}) for sub in value):
                             issues.append(issue)
@@ -255,6 +262,7 @@ def inspect(current,previous=None):
         "counts":dict(sorted(counts.items())),
         "per_component_observed_issuer_counts":dict(sorted(groups.items())),
         "issues":sorted(set(issues)),
+        "regressed_date_group_counts":dict(sorted(regression_groups.items())),
     }
 
 
