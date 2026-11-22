@@ -80,6 +80,9 @@ def build(report: dict, baseline: dict) -> dict:
                 == set(NEW_BATCHES),
             "incomplete_direct_low_batch_roster")
     compared = {}
+    # Each market/session must retain its own archived official response;
+    # a valid-looking digest copied from another day is not independent proof.
+    seen_official_sources = set()
     actual_symbols = 0
     total_market = total_traded = total_zero = 0
     for evidence in batches:
@@ -118,6 +121,10 @@ def build(report: dict, baseline: dict) -> dict:
                     and all(type(x) is str and SHA.fullmatch(x)
                             for x in source.values()),
                     "missing_official_market_source_fingerprint")
+            for market, digest in source.items():
+                require(digest not in seen_official_sources,
+                        "replayed_official_market_response_across_dates")
+                seen_official_sources.add(digest)
             scope, exact, zero = verified_market_session(item.get("market_wide"))
             traded = item.get("actual_extreme_trading_symbols")
             expected = len(targets[next(d for d in targets
