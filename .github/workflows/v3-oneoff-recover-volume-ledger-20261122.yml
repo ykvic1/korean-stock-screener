@@ -1,0 +1,117 @@
+name: One-time restore of three regressed research volume observations
+
+on:
+  push:
+    branches:
+      - fix/v3-restore-3-volume-observation-dates-20261122
+    paths:
+      - .github/workflows/v3-oneoff-recover-volume-ledger-20261122.yml
+
+permissions:
+  contents: write
+
+jobs:
+  restore-pinned-observations:
+    if: github.repository == 'ykvic1/korean-stock-screener'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Read pinned prior ledger (without querying live sources)
+        run: git fetch --no-tags --depth=1 origin a2b4f97837277a2e7db9db64907815db4db089ec
+      - name: Restore exactly three volume records, audit and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from copy import deepcopy
+          import json
+          from pathlib import Path
+          import subprocess
+          import tempfile
+
+          file = Path("docs/v3-issuer-last-observed-factors.json")
+          current_text = file.read_text(encoding="utf-8")
+          previous_text = subprocess.check_output(
+              ["git", "show", "a2b4f97837277a2e7db9db64907815db4db089ec:docs/v3-issuer-last-observed-factors.json"],
+              text=True,
+          )
+          current, previous = json.loads(current_text), json.loads(previous_text)
+          if (current.get("market_asof") != "2026-11-20" or
+              previous.get("market_asof") != "2026-11-20" or
+              len(current.get("rows", {})) != 2595 or
+              len(previous.get("rows", {})) != 2595):
+              raise SystemExit("Unexpected pinned ledger identity: refuse repair")
+          wrong = []
+          for code, old in previous["rows"].items():
+              now = current["rows"].get(code)
+              if not now or now["name"] != old["name"] or now["market"] != old["market"]:
+                  continue
+              for key, original in old.get("factors", {}).items():
+                  present = now["factors"].get(key)
+                  if (present is not None and
+                      present["available"] == original["available"] and
+                      present["asof"] < original["asof"]):
+                      wrong.append((code,key))
+              for group, items in old.get("components", {}).items():
+                  for key, original in items.items():
+                      present = now.get("components",{}).get(group,{}).get(key)
+                      if (present is not None and
+                          present["available"] == original["available"] and
+                          present["asof"] < original["asof"]):
+                          raise SystemExit("Unexpected component regression: refuse repair")
+          if len(wrong) != 3 or any(
+              key != "volume" or
+              current["rows"][code]["factors"][key]["asof"] != "2026-11-18" or
+              previous["rows"][code]["factors"][key]["asof"] != "2026-11-20" or
+              current["rows"][code]["factors"][key]["available"] != 20
+              for code,key in wrong
+          ):
+              raise SystemExit("Unexpected regression set: refuse repair")
+
+          def factor_span(text,code,key):
+              rows_start=text.index('"rows":{')
+              row_start=text.index(json.dumps(code)+':{', rows_start)
+              area_start=text.index('"factors":{', row_start)
+              key_start=text.index(json.dumps(key)+':{', area_start)
+              left=text.index("{", key_start)
+              right=text.index("}", left)+1
+              return left,right,text[left:right]
+
+          replacements=[]
+          expected=deepcopy(current)
+          for code,key in wrong:
+              start,end,observed=factor_span(current_text,code,key)
+              _,_,trusted=factor_span(previous_text,code,key)
+              if (json.loads(observed) != current["rows"][code]["factors"][key] or
+                  json.loads(trusted) != previous["rows"][code]["factors"][key]):
+                  raise SystemExit("Source text not aligned with observed issuer: refuse repair")
+              replacements.append((start,end,trusted))
+              expected["rows"][code]["factors"][key]=deepcopy(previous["rows"][code]["factors"][key])
+          repaired=current_text
+          for start,end,replacement in sorted(replacements,reverse=True):
+              repaired=repaired[:start]+replacement+repaired[end:]
+          if json.loads(repaired) != expected:
+              raise SystemExit("Out-of-scope data mutation detected: refuse repair")
+          file.write_text(repaired,encoding="utf-8")
+          with tempfile.TemporaryDirectory() as tmp:
+              prior=Path(tmp)/"verified-previous.json"
+              prior.write_text(previous_text,encoding="utf-8")
+              subprocess.run(
+                  ["python","v3_issuer_history_watch.py","--assert-safe","--prior",str(prior)],
+                  check=True,stdout=subprocess.DEVNULL)
+          print("Restored three verified factor.volume records; no other issuer records changed")
+          PY
+          python -m unittest discover -s tests -p 'test_v3_issuer_history_watch.py'
+          python -m unittest discover -s tests -p 'test_v3_issuer_factor_ledger.py'
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/v3-issuer-last-observed-factors.json
+          git commit -m "fix(v3): recover 3 prior verified volume observations without changing scores"
+          git push origin HEAD:refs/heads/fix/v3-restore-3-volume-observation-dates-20261122
