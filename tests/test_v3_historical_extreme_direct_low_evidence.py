@@ -74,6 +74,27 @@ class DirectExtremeLowEvidenceTests(TestCase):
             ):
                 audit.build(mutant, self.baseline)
 
+    def test_official_archive_watch_revalidates_direct_low_without_promotion(self):
+        from pathlib import Path
+        workflow = (Path(__file__).resolve().parents[1] /
+                    ".github/workflows/v3-historical-close-archive-audit.yml")
+        content = workflow.read_text(encoding="utf-8")
+        for changed_source in (
+            "v3_historical_extreme_direct_low_evidence.py",
+            "v3_historical_pilot_official_prices.py",
+            "ops/v3-historical-turnover-corroboration-20261122.json",
+            "ops/v3-historical-extreme-direct-low-20261122.json",
+            "tests/test_v3_historical_extreme_direct_low_evidence.py",
+        ):
+            self.assertIn("- " + changed_source, content)
+        self.assertIn("python v3_historical_extreme_direct_low_evidence.py >", content)
+        self.assertIn("python -m unittest discover -s tests -p 'test_v3_historical_extreme_direct_low_evidence.py'", content)
+        self.assertIn("historical-extreme-direct-low-coverage.json", content)
+        self.assertIn(".performance_validated == false", content)
+        self.assertIn(".v30b_release_ready == false", content)
+        self.assertIn("contents: read", content)
+        self.assertNotIn("contents: write", content)
+
     def test_baseline_evidence_cannot_be_modified_to_expand_coverage(self):
         older = deepcopy(self.baseline)
         older["summary"]["rows"] += 1
