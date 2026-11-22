@@ -119,8 +119,12 @@ def terminal_plan(root=ROOT):
         quoted_units = _amount(row["units_per_entry_share"])
         quote = _amount(row["quote_or_cash_krw"])
         holder_value = _amount(row["value_per_entry_share_krw"])
+        # The historical ledger accepts either tie-breaking convention at
+        # the fifth decimal place; never round a genuine half-step mismatch
+        # into a fabricated official adjusted price.
         require(units == quoted_units and
-                (units * quote).quantize(CURRENCY, ROUND_HALF_UP) == holder_value,
+                abs(units * quote - holder_value) <= Decimal("0.00005")
+                and holder_value == holder_value.quantize(CURRENCY),
                 "corporate_action_holder_ratio_or_value_drift")
         require(row["observation_on"] and row["observed_code"]
                 and not any(x[0] == index for x in observations[on]),
@@ -154,7 +158,8 @@ def observe(public, official, expected):
             status = "official_close_differs_from_public"
         elif Decimal(o[2]) != quote:
             status = "quoted_close_differs_from_frozen_horizon"
-        elif (units * Decimal(o[2])).quantize(CURRENCY, ROUND_HALF_UP) != book:
+        elif (abs(units * Decimal(o[2]) - book) > Decimal("0.00005")
+              or book != book.quantize(CURRENCY)):
             status = "holder_value_differs_from_frozen_horizon"
         else:
             status = "exact_official_holder_close"
