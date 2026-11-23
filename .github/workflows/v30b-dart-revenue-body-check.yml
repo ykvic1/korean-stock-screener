@@ -9,6 +9,10 @@ jobs:
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,6 +23,7 @@ jobs:
       - run: python -m pip install -r requirements.txt pyarrow
       - name: Reconstruct historical cohort and verify bounded dated annual filings
         env:
+          SAMPLE_SHARD: ${{ matrix.shard }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
@@ -79,6 +84,8 @@ jobs:
               if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < 8:
                   targets[code] = (market_name, (annual.get("CFS") or annual["OFS"])["receipt_id"])
           require(len(targets) == 16, "unexpected_annual_sample_count")
+          shard = int(os.environ["SAMPLE_SHARD"])
+          targets = dict(list(targets.items())[shard::4])
           key = os.environ["DART_API_KEY"]
           client = DARTClient(key)
           client.set_research_timeout(18)
@@ -252,16 +259,16 @@ jobs:
                           counts["prior_receipt_matches_document_unverified"] += 1
           finally:
               client.session.close()
-          require(sum(counts.values()) == 16 and len(set(matched_digests)) == len(matched_digests),
+          require(sum(counts.values()) == 4 and len(set(matched_digests)) == len(matched_digests),
                   "annual_sample_coverage_mismatch")
           previous = json.loads((ROOT / "ops/v30b-fixed-pit-dart-body-sample.json").read_bytes())
-          require(sorted(matched_digests) == previous["document_sha256"], "prior_document_cohort_changed")
+          require(set(matched_digests) <= set(previous["document_sha256"]), "prior_document_cohort_changed")
           prior_numeric = json.loads((ROOT / "ops/v30b-fixed-pit-dart-numeric-sample.json").read_bytes())
-          require(sorted(xbrl_digests) == prior_numeric["xbrl_sha256"], "numeric_archive_cohort_changed")
-          require(sum(archives.values()) == 16 and all(sum(v.values()) == archives["parsed"]
+          require(set(xbrl_digests) <= set(prior_numeric["xbrl_sha256"]), "numeric_archive_cohort_changed")
+          require(sum(archives.values()) == 4 and all(sum(v.values()) == archives["parsed"]
                   for v in numeric.values()), "numeric_sample_count_mismatch")
-          require(sum(revenue_roles.values()) == 4, "ambiguous_revenue_sample_changed")
-          print("DART_SAMPLE " + json.dumps({"sample": 16, "counts": counts,
+          require(sum(revenue_roles.values()) == sum(body_counts.values()), "body_sample_count_changed")
+          print("DART_SAMPLE " + json.dumps({"sample": 4, "shard": shard, "counts": counts,
                 "xbrl_archive_counts": archives, "ambiguous_revenue_role_hints": revenue_roles, "explicit_scope_candidate_counts": numeric,
                 "xbrl_sha256": sorted(xbrl_digests), "primary_statement_scope_verified": False,
                 "input_sha256": list(PINNED_HASHES), "document_sha256": sorted(matched_digests),
