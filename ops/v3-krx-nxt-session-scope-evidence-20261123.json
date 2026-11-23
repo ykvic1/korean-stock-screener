@@ -146,5 +146,25 @@
   "provider_calls": 12,
   "krx_regular_0900_1530_volume_verified": false,
   "krx_regular_0900_1530_turnover_verified": false,
-  "v30b_release_ready": false
+  "v30b_release_ready": false,
+  "krx_public_all_issues_scope": {
+    "source_url": "https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd?screenId=MDCSTAT015",
+    "historical_ohlc_scope": "KRX_REGULAR_0900_1530_ASIA_SEOUL",
+    "volume_and_turnover_scope": "ALL_TRADES",
+    "usable_as_regular_session_volume_or_turnover_reference": false,
+    "independent_openapi_scope_proven": false
+  },
+  "next_source_candidate": {
+    "source_url": "https://openapi.krx.co.kr/contents/OPP/DATA/OPPDATA002.jsp",
+    "purchase_information_url": "https://openapi.krx.co.kr/contents/OPP/DATA/OPPDATA001.jsp",
+    "required_fields": [
+      "trade_date",
+      "market",
+      "security_id",
+      "session_or_trade_type",
+      "execution_price",
+      "execution_quantity"
+    ],
+    "sample_access_confirmed": false
+  }
 }
