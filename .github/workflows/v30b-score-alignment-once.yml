@@ -1,0 +1,35 @@
+name: V3 November 23 score alignment diagnostic
+on:
+  push:
+    branches: [v30b-score-alignment-diagnostic]
+    paths: [.github/workflows/v30b-score-alignment-once.yml]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Inspect retained upstream dates and refresh a lagging observation ledger
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for file in data v22-market-catalog v3-issuer-last-observed-factors v3-dart-bulk-history v3-operational-research-comparison; do
+            jq -c --arg file "$file" '{file:$file,date,asof,market_asof}' "docs/$file.json"
+          done
+          day=$(jq -er .date docs/v22-market-catalog.json)
+          if [[ "$day" == 2026-11-23 ]] &&
+             [[ $(jq -er .date docs/data.json) == "$day" ]] &&
+             [[ $(jq -er .market_asof docs/v3-issuer-last-observed-factors.json) < "$day" ]]; then
+            active=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3-current-observed-scorecard.yml --branch main --limit 10 --json status --jq '[.[] | select(.status != "completed")] | length')
+            if [[ "$active" == 0 ]]; then
+              gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
+              echo "observed_refresh_dispatched=true"
+            fi
+          fi
