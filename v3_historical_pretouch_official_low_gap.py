@@ -109,7 +109,9 @@ def prepare(public_panels, confirmed):
     """Select only *traded* pre-first LOW holder dates with unverified KRX LOW."""
     sessions = sorted(public_panels)
     holder = daily_holder_plan(sessions)
-    require(41 <= len(confirmed) <= 51
+    # Second independently authenticated five-date batch increases the unique
+    # official OHLC coverage from 49 to 54; never synthesize earlier LOWs.
+    require(41 <= len(confirmed) <= 61
             and all(d in public_panels for d in confirmed)
             and len(holder["reference"]) == 17, "invalid_saved_ohlc_day_calendar")
     holders = {on: {origin: (code, units)
@@ -199,7 +201,7 @@ def valid_summary(report):
     if (report.get("original_issuers") != 17
             or report.get("original_issuers_with_replayed_low_touch") != 14
             or not 41 <= report.get(
-                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 51
+                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 61
             or any(type(report.get(key)) is not int or report[key] < 0
                    for key in numeric)
             or report["pre_touch_public_traded_holder_days"] !=
@@ -220,16 +222,30 @@ def valid_summary(report):
                 "performance_validated", "v30b_release_ready"))):
         return False
     if "independently_authenticated_new_low_dates" in report:
-        if (report.get("independently_authenticated_new_low_dates") != 5
-                or report.get("independently_authenticated_new_pre_touch_holder_lows") != 47
-                or report.get("prior_official_pre_touch_lows") != 168
-                or report.get("pre_touch_public_traded_holder_days") != 752
-                or report.get("pre_touch_holder_days_on_existing_official_ohlc_dates") != 215
-                or report.get("pre_touch_holder_days_without_existing_official_ohlc_date") != 537
-                or report.get("unverified_pre_touch_holder_lows_remaining") != 537
-                or report.get("previously_authenticated_official_marketwide_ohlc_dates") != 49
-                or report.get("distinct_pre_touch_official_low_missing_dates") != 189
-                or report.get("offline_replay_new_krx_market_api_requests") != 0):
+        common = (report.get("prior_official_pre_touch_lows") == 168
+                  and report.get("pre_touch_public_traded_holder_days") == 752
+                  and report.get("offline_replay_new_krx_market_api_requests") == 0)
+        batch_count = report.get("independently_authenticated_new_low_dates")
+        if batch_count == 5:
+            consistent = (
+                report.get("independently_authenticated_new_pre_touch_holder_lows") == 47
+                and report.get("pre_touch_holder_days_on_existing_official_ohlc_dates") == 215
+                and report.get("pre_touch_holder_days_without_existing_official_ohlc_date") == 537
+                and report.get("unverified_pre_touch_holder_lows_remaining") == 537
+                and report.get("previously_authenticated_official_marketwide_ohlc_dates") == 49
+                and report.get("distinct_pre_touch_official_low_missing_dates") == 189)
+        elif batch_count == 10:
+            consistent = (
+                report.get("independently_authenticated_new_pre_touch_holder_lows") == 82
+                and report.get("second_batch_additional_original_successor_lows") == 35
+                and report.get("pre_touch_holder_days_on_existing_official_ohlc_dates") == 250
+                and report.get("pre_touch_holder_days_without_existing_official_ohlc_date") == 502
+                and report.get("unverified_pre_touch_holder_lows_remaining") == 502
+                and report.get("previously_authenticated_official_marketwide_ohlc_dates") == 54
+                and report.get("distinct_pre_touch_official_low_missing_dates") == 184)
+        else:
+            consistent = False
+        if not (common and consistent):
             return False
     return True
 

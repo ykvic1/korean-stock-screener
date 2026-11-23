@@ -34,8 +34,10 @@ from v3_historical_official_close_stop_reference import (
 )
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_historical_pretouch_official_low_gap import (
-    verified_frozen_coverage as prepare_first_low, saved_official_ohlc_dates,
     valid_summary as valid_first_low_gap,
+)
+from v3_historical_pretouch_official_low_second import (
+    SECOND_FROZEN, valid_second_evidence,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -150,8 +152,10 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     gap_schedule = legal_gap_plan(holder_daily, root) if holder_daily is not None else None
     # No official LOW in the 245-day CLOSE archive. This quantifies which
     # *separately authenticated* KRX OHLC market dates have already been saved.
-    first_low_gap = (prepare_first_low(panels, saved_official_ohlc_dates())
-                     if holder_daily is not None else None)
+    first_low_gap = (
+        valid_second_evidence(
+            panels, json.loads(SECOND_FROZEN.read_text(encoding="utf-8")))
+        if holder_daily is not None else None)
     source_count, windows, origin_paths = pilot_windows(root)
     extreme_rows = (ledger_rows(root, "downside-horizons") if extreme_rows is None
                     else extreme_rows)
