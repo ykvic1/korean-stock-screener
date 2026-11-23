@@ -176,6 +176,46 @@ def prepare(public_panels, confirmed):
     }
 
 
+def valid_summary(report):
+    """Fail closed on complete but explicitly noncertifying gap inventory."""
+    if type(report) is not dict or report.get("schema") != SCHEMA:
+        return False
+    numeric = (
+        "pre_touch_public_traded_holder_days",
+        "pre_touch_holder_days_on_existing_official_ohlc_dates",
+        "pre_touch_holder_days_without_existing_official_ohlc_date",
+        "pre_touch_untraded_holder_days",
+        "pre_touch_unpriced_entitlement_holder_days",
+        "distinct_pre_touch_official_low_missing_dates",
+        "bounded_next_issuer_low_observations",
+    )
+    planned = report.get("bounded_next_official_request_dates")
+    if (report.get("original_issuers") != 17
+            or report.get("original_issuers_with_replayed_low_touch") != 14
+            or not 41 <= report.get(
+                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 51
+            or any(type(report.get(key)) is not int or report[key] < 0
+                   for key in numeric)
+            or report["pre_touch_public_traded_holder_days"] !=
+            report["pre_touch_holder_days_on_existing_official_ohlc_dates"]
+            + report["pre_touch_holder_days_without_existing_official_ohlc_date"]
+            or report["pre_touch_holder_days_without_existing_official_ohlc_date"] <= 0
+            or report["distinct_pre_touch_official_low_missing_dates"] < 5
+            or type(planned) is not list or len(planned) != 5
+            or len(set(planned)) != 5
+            or any(type(d) is not str or len(d) != 10 for d in planned)
+            or report["bounded_next_issuer_low_observations"] < 5
+            or report.get("maximum_official_krx_api_requests_if_executed") != 10
+            or any(report.get(key) is not False for key in (
+                "first_touch_earliest_low_certified",
+                "all_prior_official_lows_covered",
+                "regular_session_volume_independently_verified",
+                "historical_pit_scores_certified",
+                "performance_validated", "v30b_release_ready"))):
+        return False
+    return True
+
+
 def check_official_session(public, raw, hashes, targets):
     """Anonymous exact-security LOW at original/successor holder ratio."""
     official = {symbol: daily_row(market, data)
