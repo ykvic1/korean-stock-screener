@@ -1,0 +1,30 @@
+{
+  "schema": "v30b-fixed-pit-financial-evidence-v1",
+  "development_cutoff": "2026-11-20",
+  "historical_signal_session": "2025-11-13",
+  "historical_scope_count": 2573,
+  "later_delisted_in_scope": 59,
+  "historical_financial_coverage": {
+    "reference_and_reviewed": 2379,
+    "individually_source_reviewed": 107,
+    "reviewed_with_all_three_financial_parts": 97,
+    "bulk_reference_without_independent_version_review": 2272,
+    "no_observed_financial_input": 194,
+    "restored_annual_source_counts": {
+      "DART_PUBLIC_VIEWER_MUTUAL_BODY_HISTORY": 8,
+      "OPENDART_LIST_AND_ORIGINAL_ZIP_PLUS_DART_PUBLIC_PRIMARY_STATEMENT": 43
+    },
+    "restored_later_value_differences": 22
+  },
+  "historical_receipt_collection": 120,
+  "source_commit": "d7cabd17dca37541a0b46fee6305e3b5357d647c",
+  "source_paths": [
+    "ops/v3-performance-operating-scope-20251113.json",
+    "ops/v3-performance-financial-factor-replay-20251113.json",
+    "ops/v3-performance-recovered-annual-statements-20251113.json",
+    "docs/v3-dart-historical-receipt-progress.json"
+  ],
+  "new_provider_calls": 0,
+  "point_in_time_scores_verified": false,
+  "v30b_release_ready": false
+}
