@@ -117,7 +117,7 @@ def prepare(public_panels, confirmed):
     for ref in touched:
         origin, first, line = ref["code"], day(ref["first_observed_touch_on"]), _amount(
             ref["reference_line_krw"])
-        require(ENTRY < first <= sessions[-1], "invalid_frozen_first_touch_date")
+        require(ENTRY <= first <= sessions[-1], "invalid_frozen_first_touch_date")
         for on in holder["days"]:
             if on >= first:
                 break
