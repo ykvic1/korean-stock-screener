@@ -1,6 +1,7 @@
 name: V3 One-Shot Second Pre-First LOW KRX 20261123
 
 # Branch-only, removed after success. Exactly five newly missing sessions.
+# Rerun after fixing mocked Path.exists in offline unit test.
 on:
   push:
     branches: [v30b-second-pre-touch-low-20261123]
