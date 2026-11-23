@@ -1,0 +1,270 @@
+name: V3 historical revenue body comparison
+on:
+  push:
+    branches: [v30b-dart-revenue-body-check]
+    paths: [.github/workflows/v30b-dart-revenue-body-check.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt pyarrow
+      - name: Reconstruct historical cohort and verify bounded dated annual filings
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o prices.parquet
+          base=https://raw.githubusercontent.com/ykvic1/korean-stock-screener/62ec75bd9769a7e4102a56d1f323176c10156e95/docs
+          curl -fsSL --max-time 45 "$base/v3-dart-bulk-history.json" -o financial.json
+          curl -fsSL --max-time 30 "$base/v22-market-catalog.json" -o catalog.json
+          cd "$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json
+          import re
+          from xml.etree import ElementTree as ET
+          from io import BytesIO
+          from zipfile import ZipFile
+          import os
+          from collections import Counter
+          from datetime import datetime, time
+          from pathlib import Path
+          from hashlib import sha256
+
+          import pyarrow.parquet as pq
+          from v3_historical_annual_receipt_recovery import (
+              DARTClient, DART_BASE, ProbeError, PINNED_HASHES, CUTOFF, START, _mapping, _period,
+              choose_version, verify_document, require,
+          )
+          from v3_historical_financial_factor_replay import (
+              MARKETS, ROOT, SIGNAL, TAG, dated_reference, ledger_rows,
+          )
+
+          from official_probe.xbrl_compare import _instance_from_zip, _instance_facts
+          from v3_dart_xbrl_capex_pilot import _unambiguous_namespace_bindings, _safe_qname, _ifrs_full_namespace
+          from official_probe.xbrl_compare import IX, XBRLDI
+          from screener import market_snapshot
+
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          prices, finances, catalog = [tmp / name for name in ("prices.parquet", "financial.json", "catalog.json")]
+          for path, expected in zip((prices, finances, catalog), PINNED_HASHES, strict=True):
+              require(sha256(path.read_bytes()).hexdigest() == expected, "frozen_input_hash_mismatch")
+          market = pq.read_table(prices, columns=["Code", "Name", "Market", "Close", "Volume", "Amount", "Marcap"], filters=[
+              ("Date", "=", datetime.combine(SIGNAL, time.min)), ("Market", "in", list(MARKETS)),
+          ])
+          identity = {row["Code"]: (MARKETS[row["Market"]], row["Name"]) for row in market.to_pylist()}
+          selected_cohort = market_snapshot(market.to_pandas())
+          require(len(selected_cohort) == 2573 and all(identity[code] == (row["market"], row["name"])
+                  for code, row in selected_cohort.items()), "frozen_scope_mismatch")
+          cohort = [{"code": code, **row} for code, row in selected_cohort.items()]
+          current = {row["code"]: (row["market"], row["name"])
+                     for row in json.loads(catalog.read_bytes())["rows"]}
+          reference = dated_reference(json.loads(finances.read_bytes()), identity, current)
+          reviewed = set(json.loads((ROOT / "ops" /
+              f"v3-performance-recovered-annual-statements-{TAG}.json").read_bytes())["records"])
+          reviewed.update(row["code"] for row in ledger_rows(ROOT, "delisted-annual-statements"))
+          targets = {}
+          for row in sorted(cohort, key=lambda x: (-(x["market_cap_eok"] or 0), x["code"])):
+              code, market_name = row["code"], row["market"]
+              annual = reference.get(code, {}).get("years", {}).get("2024", {})
+              if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < 8:
+                  targets[code] = (market_name, (annual.get("CFS") or annual["OFS"])["receipt_id"])
+          require(len(targets) == 16, "unexpected_annual_sample_count")
+          key = os.environ["DART_API_KEY"]
+          client = DARTClient(key)
+          client.set_research_timeout(18)
+          counts = Counter()
+          matched_digests = []
+          numeric = {metric: Counter() for metric in ("assets", "liabilities", "equity", "revenue", "operating_income")}
+          archives = Counter()
+          body_counts = Counter()
+          revenue_roles = Counter()
+          xbrl_digests = []
+          try:
+              raw = client._research_get("corp_mapping_zip", DART_BASE + "corpCode.xml",
+                                         params={"crtfc_key": key}, limit=25_000_000)
+              mapping = _mapping(raw, targets.keys())
+              for code, (market_name, stored) in targets.items():
+                  corp = mapping.get(code)
+                  if not corp:
+                      counts["issuer_mapping_unavailable"] += 1
+                      continue
+                  response = client._api("list.json", corp_code=corp, bgn_de=START, end_de=CUTOFF,
+                                         pblntf_ty="A", pblntf_detail_ty="A001", last_reprt_at="N",
+                                         page_no=1, page_count=100)
+                  items = response.get("list") or []
+                  period = next((_period(row["report_nm"])[0] for row in items
+                                 if row["rcept_no"] == stored), None)
+                  if period is None:
+                      counts["stored_receipt_absent_or_unclassified"] += 1
+                      continue
+                  if int(response["total_page"]) != 1 or int(response["total_count"]) != len(items):
+                      counts["annual_listing_incomplete"] += 1
+                      continue
+                  same_period = [row for row in items if _period(row["report_nm"])[0] == period]
+                  latest = max(row["rcept_no"] for row in same_period)
+                  try:
+                      selected = choose_version({"list": same_period, "total_count": len(same_period),
+                                                 "total_page": 1}, corp=corp, code=code,
+                                                market=market_name, later=latest)
+                  except ProbeError:
+                      counts["annual_receipt_identity_unresolved"] += 1
+                      continue
+                  receipt = selected["selected_receipt"]
+                  if receipt is None:
+                      counts[selected["status"]] += 1
+                  elif receipt != stored:
+                      counts["stored_receipt_differs_from_prior_body"] += 1
+                  else:
+                      proof = verify_document(client, receipt)
+                      if proof:
+                          matched_digests.append(proof["archive_sha256"])
+                          counts["prior_receipt_and_document_matched"] += 1
+                          annual = reference[code]["years"]["2024"]
+                          row = annual.get("CFS") or annual["OFS"]
+                          try:
+                              raw = client.original_xbrl_zip(receipt, "11011")
+                              package = _instance_from_zip(raw)
+                              if len(package["instances"]) != 1:
+                                  archives["instance_missing_or_ambiguous"] += 1
+                                  continue
+                              name, root = package["instances"][0]
+                              facts = _instance_facts(root, 2024)
+                              with ZipFile(BytesIO(raw)) as archive:
+                                  bindings = _unambiguous_namespace_bindings(archive.read(name))
+                              member = "ConsolidatedMember" if "CFS" in annual else "SeparateMember"
+                              allowed = set()
+                              for context in root.findall(IX + "context"):
+                                  entity = context.find(IX + "entity")
+                                  if entity is None:
+                                      continue
+                                  ids = entity.findall(IX + "identifier")
+                                  if len(ids) != 1 or not ids[0].get("scheme") or (
+                                          (ids[0].text or "").strip().replace("-", "") not in {corp, code}):
+                                      continue
+                                  containers = entity.findall(IX + "segment") + context.findall(IX + "scenario")
+                                  if len(containers) != 1 or len(containers[0]) != 1:
+                                      continue
+                                  dim = containers[0][0]
+                                  if dim.tag != XBRLDI + "explicitMember":
+                                      continue
+                                  axis = _safe_qname(dim.get("dimension"), bindings)
+                                  value = _safe_qname(dim.text, bindings)
+                                  if (axis and value and axis[0] == value[0] and _ifrs_full_namespace(axis[0])
+                                          and axis[1] == "ConsolidatedAndSeparateFinancialStatementsAxis"
+                                          and value[1] == member):
+                                      allowed.add(context.get("id"))
+                          except ProbeError:
+                              archives["archive_unavailable_or_unsupported"] += 1
+                              continue
+                          xbrl_digests.append(package["zip_sha256"])
+                          archives["parsed"] += 1
+                          revenue = [fact for fact in facts.get("revenue", [])
+                                     if fact["context_ref"] in allowed]
+                          saved_revenue = row["values"].get("revenue")
+                          if saved_revenue is not None and len({fact["amount_krw"] for fact in revenue}) > 1:
+                              body = client.original_document_zip(receipt)
+                              require(sha256(body).hexdigest() == proof["archive_sha256"], "body_hash_changed")
+                              table_matches = []
+                              with ZipFile(BytesIO(body)) as document:
+                                  for entry in document.infolist():
+                                      if not entry.filename.endswith(".xml") or entry.file_size > 25_000_000:
+                                          continue
+                                      xml = document.read(entry)
+                                      if b"<!ENTITY" in xml.upper():
+                                          continue
+                                      try:
+                                          root = ET.fromstring(xml)
+                                      except ET.ParseError:
+                                          continue
+                                      for section in root.iter("SECTION-3"):
+                                          title = "".join(section.findtext("TITLE", "").split())
+                                          expected = ("연결손익계산서", "연결포괄손익계산서") if "CFS" in annual else ("손익계산서", "포괄손익계산서", "별도손익계산서", "별도포괄손익계산서")
+                                          if not any(re.fullmatch(r"(?:[0-9.]+)?" + label, title) for label in expected):
+                                              continue
+                                          for table in section.findall("TABLE"):
+                                              strings = ["".join(cell.itertext()).strip() for cell in table.iter()]
+                                              if not any(re.search(r"2024[.년/ -]", value) for value in strings):
+                                                  continue
+                                              units = {unit for value in strings for unit in re.findall(r"단위\s*[:：]\s*(원|천원|백만원)", value)}
+                                              if len(units) != 1:
+                                                  continue
+                                              scale = {"원": 1, "천원": 1000, "백만원": 1000000}[units.pop()]
+                                              for line in table.iter("TR"):
+                                                  cells = ["".join(cell.itertext()).strip() for cell in line if cell.tag in {"TD", "TH", "TE", "TU"}]
+                                                  if not cells or "".join(cells[0].split()) not in {"매출", "매출액", "수익(매출액)", "영업수익"}:
+                                                      continue
+                                                  numbers = [int(cell.replace(",", "")) for cell in cells[1:]
+                                                             if re.fullmatch(r"[0-9][0-9,]*", cell)]
+                                                  if numbers:
+                                                      table_matches.append((numbers[0] * scale, scale))
+                              if len(table_matches) != 1:
+                                  body_counts["body_table_unresolved"] += 1
+                              else:
+                                  amount, scale = table_matches[0]
+                                  status = ("candidate_exact" if amount == saved_revenue else
+                                            "candidate_within_display_unit" if abs(amount - saved_revenue) < scale else
+                                            "candidate_conflict")
+                                  body_counts[status] += 1
+                              roles = package["revenue_presentation_role_samples"]
+                              if package["revenue_presentation_role_samples_truncated"]:
+                                  revenue_roles["presentation_evidence_truncated"] += 1
+                              else:
+                                  concepts = {role["concept_local"] for role in roles
+                                              if role["as_child_arc_count"] > 0
+                                              and role["embedded_role_type_used_on_presentation"]
+                                              and "income_statement" in role["embedded_role_definition_hints_unverified"]
+                                              and "notes" not in role["embedded_role_definition_hints_unverified"]}
+                                  values = {fact["amount_krw"] for fact in revenue
+                                            if fact["concept_local"] in concepts}
+                                  if not values:
+                                      revenue_roles["income_statement_hint_absent"] += 1
+                                  elif values == {saved_revenue}:
+                                      revenue_roles["income_statement_hint_unique_equal"] += 1
+                                  elif saved_revenue in values:
+                                      revenue_roles["income_statement_hint_still_ambiguous"] += 1
+                                  else:
+                                      revenue_roles["income_statement_hint_excludes_saved_amount"] += 1
+                          for metric, bucket in numeric.items():
+                              saved = row["values"].get(metric)
+                              candidates = {fact["amount_krw"] for fact in facts.get(metric, [])
+                                            if fact["context_ref"] in allowed}
+                              if saved is None:
+                                  bucket["stored_value_missing"] += 1
+                              elif not candidates:
+                                  bucket["no_matching_concept_period_unit_candidate"] += 1
+                              elif candidates == {saved}:
+                                  bucket["all_candidate_values_equal"] += 1
+                              elif saved in candidates:
+                                  bucket["equal_candidate_among_distinct_values"] += 1
+                              else:
+                                  bucket["no_candidate_value_equal"] += 1
+                      else:
+                          counts["prior_receipt_matches_document_unverified"] += 1
+          finally:
+              client.session.close()
+          require(sum(counts.values()) == 16 and len(set(matched_digests)) == len(matched_digests),
+                  "annual_sample_coverage_mismatch")
+          previous = json.loads((ROOT / "ops/v30b-fixed-pit-dart-body-sample.json").read_bytes())
+          require(sorted(matched_digests) == previous["document_sha256"], "prior_document_cohort_changed")
+          prior_numeric = json.loads((ROOT / "ops/v30b-fixed-pit-dart-numeric-sample.json").read_bytes())
+          require(sorted(xbrl_digests) == prior_numeric["xbrl_sha256"], "numeric_archive_cohort_changed")
+          require(sum(archives.values()) == 16 and all(sum(v.values()) == archives["parsed"]
+                  for v in numeric.values()), "numeric_sample_count_mismatch")
+          require(sum(revenue_roles.values()) == 4, "ambiguous_revenue_sample_changed")
+          print("DART_SAMPLE " + json.dumps({"sample": 16, "counts": counts,
+                "xbrl_archive_counts": archives, "ambiguous_revenue_role_hints": revenue_roles, "explicit_scope_candidate_counts": numeric,
+                "xbrl_sha256": sorted(xbrl_digests), "primary_statement_scope_verified": False,
+                "input_sha256": list(PINNED_HASHES), "document_sha256": sorted(matched_digests),
+                "maximum_provider_requests": 53, "body_table_diagnostics": body_counts, "numeric_values_compared": bool(archives["parsed"]),
+                "point_in_time_scores_verified": False}, sort_keys=True))
+          PY
