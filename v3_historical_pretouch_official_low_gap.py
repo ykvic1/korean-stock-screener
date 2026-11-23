@@ -51,6 +51,11 @@ SCHEMA = "v3-historical-pre-first-low-official-gap-v1"
 PROBE_SCHEMA = "v3-historical-pre-first-low-direct-krx-v1"
 BATCH_LIMIT = 5
 UNIT = Decimal("0.0001")
+FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-20261123.json"
+FROZEN_RUN = (45093498230, 137428080473, 14782307230,
+              "4564b572a90af2a0ca1c55367cb45d9059cd16ed3dab1b9cd95b23783543a44f")
+FROZEN_INCREMENTAL_DAYS = 5
+FROZEN_INCREMENTAL_HOLDER_LOWS = 47
 
 
 def saved_official_ohlc_dates(root=ROOT):
@@ -215,6 +220,95 @@ def valid_summary(report):
                 "performance_validated", "v30b_release_ready"))):
         return False
     return True
+
+
+def verified_frozen_coverage(public_panels, baseline_days, root=ROOT):
+    """Reproduce the newly authenticated five-day LOW evidence without API calls.
+
+    Every five-day/47-security observation was compared against the all-market
+    official OHLC in run #45093498230. This function rechecks that it matches
+    the deterministic already-existing 44-day worklist and fixed public data
+    BEFORE promoting those days to observed official OHLC days. No new KRX
+    market calls and no individual issuer facts are ever emitted.
+    """
+    initial = prepare(public_panels, baseline_days)
+    frozen = json.loads((root / "ops" /
+                         "v3-historical-pre-first-low-official-20261123.json"
+                         ).read_text(encoding="utf-8"))
+    require(type(frozen) is dict
+            and frozen.get("schema") == "v3-historical-pre-first-low-official-frozen-v1"
+            and frozen.get("saved_on_kst") == "2026-11-23"
+            and frozen.get("run_url") ==
+                "https://github.com/ykvic1/korean-stock-screener/actions/runs/45093498230"
+            and (frozen.get("run_id"), frozen.get("job_id"),
+                 frozen.get("artifact_id"), frozen.get("artifact_sha256")) == FROZEN_RUN
+            and frozen.get("claim_frozen_readonly") is True,
+            "unauthenticated_frozen_pre_first_low_source")
+    proof = frozen.get("result")
+    require(type(proof) is dict and proof.get("schema") == PROBE_SCHEMA
+            and proof.get("source_public_input_sha256") == list(SOURCE_DIGESTS)
+            and proof.get("planning") == initial["report"]
+            and proof.get("scope_dates") ==
+                [d.isoformat() for d in initial["batch"]]
+            and proof.get("official_low_holder_days_exact") == 47
+            and proof.get("new_market_api_requests_max") == 10
+            and all(proof.get(key) is False for key in (
+                "has_verified_all_pre_first_touch_holder_lows",
+                "performance_validated", "v30b_release_ready")),
+            "tampered_or_stale_five_day_low_evidence")
+    rows = proof.get("official")
+    require(type(rows) is dict and set(rows) == set(proof["scope_dates"])
+            and len(rows) == FROZEN_INCREMENTAL_DAYS,
+            "incomplete_frozen_original_successor_low_dates")
+    already = set()
+    total = 0
+    for on, item in rows.items():
+        targets = initial["uncovered"][day(on)]
+        hashes = item.get("official_source_sha256")
+        require(type(hashes) is dict and set(hashes) == {"KOSPI", "KOSDAQ"}
+                and all(type(value) is str and
+                        re.fullmatch("[a-f0-9]{64}", value)
+                        and value not in already for value in hashes.values())
+                and hashes["KOSPI"] != hashes["KOSDAQ"],
+                "invalid_new_pre_first_low_krx_source_digest")
+        already.update(hashes.values())
+        require(item.get("exact_original_or_successor_pre_first_lows") ==
+                    len(targets)
+                and type(item.get("marketwide_total_rows")) is int
+                and item["marketwide_total_rows"] > 2600
+                and type(item.get("marketwide_traded_exact_ohlc")) is int
+                and type(item.get("marketwide_untraded_rows")) is int
+                and item["marketwide_traded_exact_ohlc"] > 2000
+                and item["marketwide_traded_exact_ohlc"] +
+                    item["marketwide_untraded_rows"] ==
+                    item["marketwide_total_rows"]
+                and item.get("no_prior_official_low_breach_on_this_date") is True,
+                "frozen_pre_first_low_price_or_marketwide_mismatch")
+        total += len(targets)
+    require(total == FROZEN_INCREMENTAL_HOLDER_LOWS,
+            "unexpected_official_direct_prior_low_scope")
+    extended = prepare(public_panels, baseline_days | {day(v) for v in rows})
+    require(extended["report"]["pre_touch_public_traded_holder_days"] ==
+            initial["report"]["pre_touch_public_traded_holder_days"]
+            and extended["report"]["pre_touch_holder_days_on_existing_official_ohlc_dates"]
+                == initial["report"]["pre_touch_holder_days_on_existing_official_ohlc_dates"] + 47
+            and extended["report"]["pre_touch_holder_days_without_existing_official_ohlc_date"]
+                == initial["report"]["pre_touch_holder_days_without_existing_official_ohlc_date"] - 47
+            and len(extended["uncovered"]) == len(initial["uncovered"]) - 5,
+            "new_krx_low_evidence_did_not_reduce_unverified_gap")
+    extended["report"].update({
+        "independently_authenticated_new_low_dates": FROZEN_INCREMENTAL_DAYS,
+        "independently_authenticated_new_pre_touch_holder_lows": total,
+        "prior_official_pre_touch_lows": initial["report"][
+            "pre_touch_holder_days_on_existing_official_ohlc_dates"],
+        "unverified_pre_touch_holder_lows_remaining":
+            extended["report"]["pre_touch_holder_days_without_existing_official_ohlc_date"],
+        "offline_replay_new_krx_market_api_requests": 0,
+        "first_touch_earliest_low_certified": False,
+        "performance_validated": False,
+        "v30b_release_ready": False,
+    })
+    return extended
 
 
 def check_official_session(public, raw, hashes, targets):
