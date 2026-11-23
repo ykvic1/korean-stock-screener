@@ -13,6 +13,8 @@ on:
       - v3_historical_pretouch_official_low_third.py
       - tests/test_v3_historical_pretouch_official_low_third.py
       - v3_historical_pretouch_official_low_fourth.py
+      - v3_historical_pretouch_official_low_fifth.py
+      - ops/v3-historical-pre-first-low-official-fifth-20261123.json
       - ops/v3-historical-pre-first-low-official-fourth-20261123.json
       - ops/v3-historical-pre-first-low-official-third-20261123.json
       - tests/test_v3_historical_pretouch_official_low_second.py
@@ -144,6 +146,13 @@ jobs:
           result="$RUNNER_TEMP/fourth-official-low-replay.json"
           python v3_historical_pretouch_official_low_fourth.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
           jq -e '.verified_holder_days == 329 and .unverified_holder_days == 423 and .replay_provider_calls == 0 and .v30b_release_ready == false' "$result" > /dev/null
+          jq . "$result" >> "$GITHUB_STEP_SUMMARY"
+      - name: Replay the fifth official LOW proof without provider calls
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/fifth-official-low-replay.json"
+          python v3_historical_pretouch_official_low_fifth.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
+          jq -e '.verified_holder_days == 369 and .unverified_holder_days == 383 and .replay_provider_calls == 0 and .v30b_release_ready == false' "$result" > /dev/null
           jq . "$result" >> "$GITHUB_STEP_SUMMARY"
       - name: Compare closes, listed shares and observable trade status
         env:
