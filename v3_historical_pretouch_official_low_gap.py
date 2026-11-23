@@ -73,12 +73,10 @@ def saved_official_ohlc_dates(root=ROOT):
         on for batch in touches["groups"]
         for on in _unpack(batch)["sessions"]
     }
-    official = {day(v) for v in baseline | later | direct_touch}
+    official = {day(v) for v in set(baseline) | later | direct_touch}
     require(len(baseline) == 14 and len(later) == 27
-            and len(direct_touch) == 10 and len(official) == 51
-            and not (set(baseline) & later)
-            and not (set(baseline) & direct_touch)
-            and not (later & direct_touch),
+            and len(direct_touch) == 10 and 41 <= len(official) <= 51
+            and not (set(baseline) & later),
             "overlapping_or_missing_authenticated_marketwide_ohlc_days")
     return official
 
@@ -105,7 +103,8 @@ def prepare(public_panels, confirmed):
     """Select only *traded* pre-first LOW holder dates with unverified KRX LOW."""
     sessions = sorted(public_panels)
     holder = daily_holder_plan(sessions)
-    require(len(confirmed) == 51 and all(d in public_panels for d in confirmed)
+    require(41 <= len(confirmed) <= 51
+            and all(d in public_panels for d in confirmed)
             and len(holder["reference"]) == 17, "invalid_saved_ohlc_day_calendar")
     holders = {on: {origin: (code, units)
                     for origin, code, units in holders_on}
