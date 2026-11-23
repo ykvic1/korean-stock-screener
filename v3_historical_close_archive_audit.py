@@ -34,7 +34,7 @@ from v3_historical_official_close_stop_reference import (
 )
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_historical_pretouch_official_low_gap import (
-    prepare as prepare_first_low, saved_official_ohlc_dates,
+    verified_frozen_coverage as prepare_first_low, saved_official_ohlc_dates,
     valid_summary as valid_first_low_gap,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
