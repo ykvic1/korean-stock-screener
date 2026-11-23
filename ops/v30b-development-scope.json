@@ -12,7 +12,6 @@
     "forward_outcomes_workflow": ".github/workflows/v3-forward-entry.yml"
   },
   "remaining_fixed_snapshot_verification": [
-    "KRX regular-session volume and turnover provenance",
     "Historical point-in-time issuer and financial coverage",
     "Historical corporate-action evidence beyond the completed fixed pre-touch LOW sample"
   ],
@@ -42,5 +41,13 @@
       "exclusion_scope": "historical_verification_completion_counts",
       "evidence": "ops/v30b-fixed-pit-dart-revenue-body-diagnostic.json"
     }
+  },
+  "krx_regular_session_reference_comparison_required_for_release": false,
+  "first_operations_recovery": {
+    "session_kst": "2026-11-23",
+    "full_market_run_id": 45284600929,
+    "official_close_run_id": 45288320284,
+    "catalog_and_official_close_asof": "2026-11-23",
+    "trigger": "workflow_dispatch"
   }
 }
