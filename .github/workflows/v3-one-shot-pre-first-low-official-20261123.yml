@@ -1,4 +1,5 @@
 name: V3 One-Shot KRX Pre-First LOW Verification 20261123
+# Retry: entry-date first LOW has no earlier holder trading session.
 # Retry: diagnose only fixed pre-touch source-validation reasons before KRX calls.
 
 # Branch-only one-time probe; do not merge this workflow into main.
