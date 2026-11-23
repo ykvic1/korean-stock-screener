@@ -10,6 +10,7 @@ on:
     # 21:30 on multiple recently observed sessions (e.g. 23:19 on Nov 10).
     # This reduces the risk of hashing a still-changing after-market source.
     - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: prior weekday data
+    - cron: '30 20 * * 1-5' # 05:30 KST Tue-Sat: recover unpublished data
   # Run in the next day's early hours after BOTH KRX and NXT evening
   # sessions. Scheduling later lets the daily provider settle, but does NOT
   # turn FChart prices into certified
@@ -38,6 +39,7 @@ permissions:
 # Reuse existing publication lock; do not publish racing daily/quant reports.
 concurrency:
   group: korea-stock-screener-publication
+  queue: max
   cancel-in-progress: false
 
 jobs:
@@ -46,6 +48,7 @@ jobs:
     timeout-minutes: 12
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      already_published: ${{ steps.census.outputs.already_published }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,11 +56,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Skip another scheduled scan when the target is already published
+        id: census
+        if: github.event_name == 'schedule'
+        run: |
+          set -euo pipefail
+          target=$(TZ=Asia/Seoul date --date=yesterday +%F)
+          if jq -e --arg target "$target" '.date == $target' docs/data.json >/dev/null &&
+             jq -e --arg target "$target" '.date == $target' docs/v22-market-catalog.json >/dev/null; then
+            echo 'already_published=true' >> "$GITHUB_OUTPUT"
+            echo "Market snapshot and catalog are already published for $target"
+          fi
       - name: Install full market listing dependencies
+        if: steps.census.outputs.already_published != 'true'
         run: pip install -r requirements.txt
       # Source computation tests are checked by code-change CI, not rerun
       # on every unchanged-data collection schedule.
       - id: plan
+        if: steps.census.outputs.already_published != 'true'
         name: Plan all stocks, codes only, chunks of 100
         env:
           REQUESTED_ASOF: ${{ inputs.asof }}
@@ -89,6 +105,7 @@ jobs:
           fi
           echo "matrix=$(python -c 'import json;print(json.dumps(json.load(open("batch-plan/matrix.json")),separators=(",",":")))')" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
+        if: steps.census.outputs.already_published != 'true'
         with:
           name: market-code-plan-${{ github.run_id }}
           path: batch-plan/manifest.json
@@ -97,6 +114,7 @@ jobs:
 
   analyze:
     needs: prepare
+    if: needs.prepare.outputs.already_published != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 50
     strategy:
