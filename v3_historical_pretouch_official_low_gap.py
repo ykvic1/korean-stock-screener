@@ -219,6 +219,18 @@ def valid_summary(report):
                 "historical_pit_scores_certified",
                 "performance_validated", "v30b_release_ready"))):
         return False
+    if "independently_authenticated_new_low_dates" in report:
+        if (report.get("independently_authenticated_new_low_dates") != 5
+                or report.get("independently_authenticated_new_pre_touch_holder_lows") != 47
+                or report.get("prior_official_pre_touch_lows") != 168
+                or report.get("pre_touch_public_traded_holder_days") != 752
+                or report.get("pre_touch_holder_days_on_existing_official_ohlc_dates") != 215
+                or report.get("pre_touch_holder_days_without_existing_official_ohlc_date") != 537
+                or report.get("unverified_pre_touch_holder_lows_remaining") != 537
+                or report.get("previously_authenticated_official_marketwide_ohlc_dates") != 49
+                or report.get("distinct_pre_touch_official_low_missing_dates") != 189
+                or report.get("offline_replay_new_krx_market_api_requests") != 0):
+            return False
     return True
 
 
@@ -386,13 +398,17 @@ def main(argv=None):
     try:
         panels = read_panels(args.sources)
         known = saved_official_ohlc_dates()
-        prepared = prepare(panels, known)
         if args.probe:
+            # One-shot first batch was already authenticated. Refuse replay
+            # rather than unknowingly using another ten provider requests.
+            require(not FROZEN.exists(),
+                    "frozen_first_low_five_day_probe_already_completed")
+            prepared = prepare(panels, known)
             key = os.environ.get("KRX_API_KEY", "")
             require(bool(key.strip()), "official_krx_key_unavailable")
             result = check_bounded_batch(panels, prepared, KRXClient(key))
         else:
-            result = prepared["report"]
+            result = verified_frozen_coverage(panels, known)["report"]
         print(json.dumps(result, sort_keys=True))
     except (OSError, ValueError, TypeError, KeyError, ImportError) as exc:
         # Emit only a fixed-format reason identifier. No ticker or quote.
