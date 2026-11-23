@@ -1,0 +1,115 @@
+name: V3 frozen historical DART body sample
+on:
+  push:
+    branches: [v30b-dart-prior-body-sample]
+    paths: [.github/workflows/v30b-dart-prior-body-sample.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt pyarrow
+      - name: Reconstruct historical cohort and verify bounded dated annual filings
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o prices.parquet
+          base=https://raw.githubusercontent.com/ykvic1/korean-stock-screener/62ec75bd9769a7e4102a56d1f323176c10156e95/docs
+          curl -fsSL --max-time 45 "$base/v3-dart-bulk-history.json" -o financial.json
+          curl -fsSL --max-time 30 "$base/v22-market-catalog.json" -o catalog.json
+          cd "$GITHUB_WORKSPACE"
+          python - <<'PY'
+          import json
+          import os
+          from collections import Counter
+          from datetime import datetime, time
+          from pathlib import Path
+          from hashlib import sha256
+
+          import pyarrow.parquet as pq
+          from v3_historical_annual_receipt_recovery import (
+              DARTClient, DART_BASE, PINNED_HASHES, CUTOFF, START, _mapping, _period,
+              choose_version, verify_document, require,
+          )
+          from v3_historical_financial_factor_replay import (
+              MARKETS, ROOT, SIGNAL, TAG, dated_reference, ledger_rows, operating_catalog,
+          )
+
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          prices, finances, catalog = [tmp / name for name in ("prices.parquet", "financial.json", "catalog.json")]
+          for path, expected in zip((prices, finances, catalog), PINNED_HASHES, strict=True):
+              require(sha256(path.read_bytes()).hexdigest() == expected, "frozen_input_hash_mismatch")
+          market = pq.read_table(prices, columns=["Code", "Name", "Market"], filters=[
+              ("Date", "=", datetime.combine(SIGNAL, time.min)), ("Market", "in", list(MARKETS)),
+          ]).to_pylist()
+          identity = {row["Code"]: (MARKETS[row["Market"]], row["Name"]) for row in market}
+          cohort = operating_catalog(prices, identity, 2573)["rows"]
+          current = {row["code"]: (row["market"], row["name"])
+                     for row in json.loads(catalog.read_bytes())["rows"]}
+          reference = dated_reference(json.loads(finances.read_bytes()), identity, current)
+          reviewed = set(json.loads((ROOT / "ops" /
+              f"v3-performance-recovered-annual-statements-{TAG}.json").read_bytes())["records"])
+          reviewed.update(row["code"] for row in ledger_rows(ROOT, "delisted-annual-statements"))
+          targets = {}
+          for row in sorted(cohort, key=lambda x: (-(x["reference_market_cap_eok"] or 0), x["code"])):
+              code, market_name = row["code"], row["market"]
+              annual = reference.get(code, {}).get("years", {}).get("2024", {})
+              if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < 8:
+                  targets[code] = (market_name, (annual.get("CFS") or annual["OFS"])["receipt_id"])
+          require(len(targets) == 16, "unexpected_annual_sample_count")
+          key = os.environ["DART_API_KEY"]
+          client = DARTClient(key)
+          client.set_research_timeout(18)
+          counts = Counter()
+          matched_digests = []
+          try:
+              raw = client._research_get("corp_mapping_zip", DART_BASE + "corpCode.xml",
+                                         params={"crtfc_key": key}, limit=25_000_000)
+              mapping = _mapping(raw, targets.keys())
+              for code, (market_name, stored) in targets.items():
+                  corp = mapping.get(code)
+                  if not corp:
+                      counts["issuer_mapping_unavailable"] += 1
+                      continue
+                  response = client._api("list.json", corp_code=corp, bgn_de=START, end_de=CUTOFF,
+                                         pblntf_ty="A", pblntf_detail_ty="A001", last_reprt_at="N",
+                                         page_no=1, page_count=100)
+                  items = response.get("list") or []
+                  period = next((_period(row["report_nm"])[0] for row in items
+                                 if row["rcept_no"] == stored), None)
+                  if period is None:
+                      counts["stored_receipt_absent_or_unclassified"] += 1
+                      continue
+                  latest = max(row["rcept_no"] for row in items if _period(row["report_nm"])[0] == period)
+                  selected = choose_version(response, corp=corp, code=code, market=market_name, later=latest)
+                  receipt = selected["selected_receipt"]
+                  if receipt is None:
+                      counts[selected["status"]] += 1
+                  elif receipt != stored:
+                      counts["stored_receipt_differs_from_prior_body"] += 1
+                  else:
+                      proof = verify_document(client, receipt)
+                      if proof:
+                          matched_digests.append(proof["archive_sha256"])
+                          counts["prior_receipt_and_document_matched"] += 1
+                      else:
+                          counts["prior_receipt_matches_document_unverified"] += 1
+          finally:
+              client.session.close()
+          require(sum(counts.values()) == 16 and len(set(matched_digests)) == len(matched_digests),
+                  "annual_sample_coverage_mismatch")
+          print("DART_SAMPLE " + json.dumps({"sample": 16, "counts": counts,
+                "input_sha256": list(PINNED_HASHES), "document_sha256": sorted(matched_digests),
+                "maximum_provider_requests": 33, "numeric_values_compared": False,
+                "point_in_time_scores_verified": False}, sort_keys=True))
+          PY
