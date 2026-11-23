@@ -42,15 +42,22 @@ jobs:
           set -euo pipefail
           python v3_historical_pretouch_official_low_second.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$RUNNER_TEMP/second-prior-worklist.json"
           jq -e '.pre_touch_holder_days_on_existing_official_ohlc_dates == 215 and .pre_touch_holder_days_without_existing_official_ohlc_date == 537 and .bounded_next_issuer_low_observations == 35 and .first_touch_earliest_low_certified == false and .v30b_release_ready == false' "$RUNNER_TEMP/second-prior-worklist.json" >/dev/null
-      - name: Independently check 35 issuer LOWs over only 5 previously unqueried KRX sessions
-        env:
-          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+      - name: Revalidate 35 frozen official KRX LOWs in second batch without API calls
         run: |
           set -euo pipefail
-          python v3_historical_pretouch_official_low_second.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" --probe > "$RUNNER_TEMP/second-official-low-evidence.json"
-          jq -e '.official_low_holder_days_exact == 35 and .new_market_api_requests_max == 10 and .has_verified_all_pre_first_touch_holder_lows == false and .performance_validated == false and .v30b_release_ready == false and (.scope_dates|length) == 5' "$RUNNER_TEMP/second-official-low-evidence.json" >/dev/null
-          jq '{schema,scope_dates,official_low_holder_days_exact,new_market_api_requests_max,has_verified_all_pre_first_touch_holder_lows,v30b_release_ready}' "$RUNNER_TEMP/second-official-low-evidence.json" >> "$GITHUB_STEP_SUMMARY"
-          jq -c . "$RUNNER_TEMP/second-official-low-evidence.json"
+          python v3_historical_pretouch_official_low_second.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$RUNNER_TEMP/second-offline-verified.json"
+          jq -e '.pre_touch_public_traded_holder_days == 752 and .pre_touch_holder_days_on_existing_official_ohlc_dates == 250 and .pre_touch_holder_days_without_existing_official_ohlc_date == 502 and .independently_authenticated_new_pre_touch_holder_lows == 82 and .second_batch_additional_original_successor_lows == 35 and .offline_replay_new_krx_market_api_requests == 0 and .first_touch_earliest_low_certified == false and .v30b_release_ready == false' "$RUNNER_TEMP/second-offline-verified.json" >/dev/null
+          jq . "$RUNNER_TEMP/second-offline-verified.json" >> "$GITHUB_STEP_SUMMARY"
+          jq -c . "$RUNNER_TEMP/second-offline-verified.json"
+      - name: Re-audit all 245 archived market CLOSE sessions plus new direct LOW evidence
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python v3_historical_close_archive_audit.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$RUNNER_TEMP/second-low-full-market-audit.json"
+          jq -e '.official_sessions_compared == 245 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_on_existing_official_ohlc_dates == 250 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_without_existing_official_ohlc_date == 502 and .pre_first_low_official_ohlc_coverage.first_touch_earliest_low_certified == false and .pre_first_low_official_ohlc_coverage.v30b_release_ready == false and .new_market_api_calls == 0' "$RUNNER_TEMP/second-low-full-market-audit.json" >/dev/null
+          jq -c .pre_first_low_official_ohlc_coverage "$RUNNER_TEMP/second-low-full-market-audit.json"
       - name: Retain only non-identifying official marketwide hash evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,6 +65,6 @@ jobs:
           name: second-pre-first-low-krx-evidence
           path: |
             ${{ runner.temp }}/second-prior-worklist.json
-            ${{ runner.temp }}/second-official-low-evidence.json
+            ${{ runner.temp }}/second-offline-verified.json
           if-no-files-found: ignore
           retention-days: 90
