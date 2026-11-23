@@ -1,4 +1,4 @@
-"""Replay the next two exact KRX LOW batches against the frozen input panels."""
+"""Replay bounded KRX LOW batches against the frozen input panels."""
 from __future__ import annotations
 
 import argparse
@@ -14,22 +14,35 @@ from v3_historical_pretouch_official_low_fourth import (
 from v3_historical_pretouch_official_low_gap import PROBE_SCHEMA, choose_batch
 
 PROVENANCE = (45120255470, 137512148468)
+SIXTH_PROVENANCE = (45121219037, 137515205090)
+SIXTH_FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-sixth-20261123.json"
 FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-fifth-20261123.json"
 
 
-def replay(panels, proof):
+def replay(panels, proof, subsequent=None):
+    require((proof["run_id"], proof["job_id"]) == PROVENANCE,
+            "fifth_low_provenance_mismatch")
     fourth = json.loads(FOURTH_FROZEN.read_text(encoding="utf-8"))
     baseline = verify_fourth_official_coverage(panels, fourth)
     plan, seen = verified_plan(panels)
-    result = proof["result"]
-    require(len(result["batches"]) == 2 and result["maximum_market_api_requests"] == 20
-            and result["performance_validated"] is False
-            and result["v30b_release_ready"] is False, "fifth_low_batch_scope_changed")
     excluded = {day(on) for on in fourth["result"]["scope_dates"]}
     seen.update(
         digest for row in fourth["result"]["official"].values()
         for digest in row["official_source_sha256"].values()
     )
+    baseline = replay_batches(plan, proof["result"], baseline, excluded, seen, 2)
+    if subsequent is None:
+        return baseline
+    require((subsequent["run_id"], subsequent["job_id"]) == SIXTH_PROVENANCE,
+            "sixth_low_provenance_mismatch")
+    return replay_batches(plan, subsequent["result"], baseline, excluded, seen, 6)
+
+
+def replay_batches(plan, result, baseline, excluded, seen, expected_batches):
+    require(len(result["batches"]) == expected_batches
+            and result["maximum_market_api_requests"] == 10 * expected_batches
+            and result["performance_validated"] is False
+            and result["v30b_release_ready"] is False, "historical_low_batch_scope_changed")
     added = 0
     for batch in result["batches"]:
         planned = choose_batch(plan["uncovered"], excluded)
@@ -75,11 +88,12 @@ def replay(panels, proof):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sources", nargs=3, type=Path)
+    parser.add_argument("--include-sixth", action="store_true")
     args = parser.parse_args()
     proof = json.loads(FROZEN.read_text(encoding="utf-8"))
-    require((proof["run_id"], proof["job_id"]) == PROVENANCE,
-            "fifth_low_provenance_mismatch")
-    print(json.dumps(replay(read_panels(args.sources), proof), sort_keys=True))
+    subsequent = (json.loads(SIXTH_FROZEN.read_text(encoding="utf-8"))
+                  if args.include_sixth else None)
+    print(json.dumps(replay(read_panels(args.sources), proof, subsequent), sort_keys=True))
 
 
 if __name__ == "__main__":
