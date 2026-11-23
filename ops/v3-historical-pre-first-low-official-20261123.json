@@ -1,0 +1,114 @@
+{
+  "schema": "v3-historical-pre-first-low-official-frozen-v1",
+  "saved_on_kst": "2026-11-23",
+  "run_url": "https://github.com/ykvic1/korean-stock-screener/actions/runs/45093498230",
+  "run_id": 45093498230,
+  "job_id": 137428080473,
+  "artifact_id": 14782307230,
+  "artifact_sha256": "4564b572a90af2a0ca1c55367cb45d9059cd16ed3dab1b9cd95b23783543a44f",
+  "claim_frozen_readonly": true,
+  "result": {
+    "has_verified_all_pre_first_touch_holder_lows": false,
+    "new_market_api_requests_max": 10,
+    "official": {
+      "2025-11-17": {
+        "exact_original_or_successor_pre_first_lows": 13,
+        "marketwide_total_rows": 2763,
+        "marketwide_traded_exact_ohlc": 2661,
+        "marketwide_untraded_rows": 102,
+        "no_prior_official_low_breach_on_this_date": true,
+        "official_source_sha256": {
+          "KOSDAQ": "eba548d63d9a0b58d13ea991dd97a2232514846b851d32770cc8016df1715ef5",
+          "KOSPI": "1a56ea469f93a0f05243d11731d5cd30d82e4077c37a247131313252505584eb"
+        }
+      },
+      "2025-11-20": {
+        "exact_original_or_successor_pre_first_lows": 10,
+        "marketwide_total_rows": 2765,
+        "marketwide_traded_exact_ohlc": 2661,
+        "marketwide_untraded_rows": 104,
+        "no_prior_official_low_breach_on_this_date": true,
+        "official_source_sha256": {
+          "KOSDAQ": "78d836f391d33db3cb0eb20c4e61218def66fdd39eeb4f693058c183461ac0aa",
+          "KOSPI": "598ea98cace7b79af7c9406a0fc0ab10f4541b9e07fae2c66f38f1e697fa6470"
+        }
+      },
+      "2025-11-25": {
+        "exact_original_or_successor_pre_first_lows": 9,
+        "marketwide_total_rows": 2769,
+        "marketwide_traded_exact_ohlc": 2668,
+        "marketwide_untraded_rows": 101,
+        "no_prior_official_low_breach_on_this_date": true,
+        "official_source_sha256": {
+          "KOSDAQ": "09fe0a804b6470f99198dc0d861e63924bc7742256cab291c1e1a20fcb66c2f2",
+          "KOSPI": "cbc15d039a1b1f1112b4e94d0b8277de94e79f3366f44411bdd77a0575c3241f"
+        }
+      },
+      "2025-11-26": {
+        "exact_original_or_successor_pre_first_lows": 8,
+        "marketwide_total_rows": 2767,
+        "marketwide_traded_exact_ohlc": 2664,
+        "marketwide_untraded_rows": 103,
+        "no_prior_official_low_breach_on_this_date": true,
+        "official_source_sha256": {
+          "KOSDAQ": "550dab7e234e0753a93697efd73fca0f29e3c56104fb2ff9330c011d2903b45e",
+          "KOSPI": "077bc237bd12b82217cc6ce5e7a419f3c55b99e0f3589eb989127219d8f870f6"
+        }
+      },
+      "2025-11-27": {
+        "exact_original_or_successor_pre_first_lows": 7,
+        "marketwide_total_rows": 2769,
+        "marketwide_traded_exact_ohlc": 2665,
+        "marketwide_untraded_rows": 104,
+        "no_prior_official_low_breach_on_this_date": true,
+        "official_source_sha256": {
+          "KOSDAQ": "e61f49097dcfbe0a415742c21af9d21c99751a33b540a5f1ff4581a7c0668369",
+          "KOSPI": "b9de8a16dab0419202fb7d9d6abc16a6d69b319774718ec68f4fed88de60ef06"
+        }
+      }
+    },
+    "official_low_holder_days_exact": 47,
+    "performance_validated": false,
+    "planning": {
+      "all_prior_official_lows_covered": false,
+      "bounded_next_issuer_low_observations": 47,
+      "bounded_next_official_request_dates": [
+        "2025-11-17",
+        "2025-11-20",
+        "2025-11-25",
+        "2025-11-26",
+        "2025-11-27"
+      ],
+      "distinct_pre_touch_official_low_missing_dates": 194,
+      "first_touch_earliest_low_certified": false,
+      "historical_pit_scores_certified": false,
+      "maximum_official_krx_api_requests_if_executed": 10,
+      "original_issuers": 17,
+      "original_issuers_with_replayed_low_touch": 14,
+      "performance_validated": false,
+      "pre_touch_holder_days_on_existing_official_ohlc_dates": 168,
+      "pre_touch_holder_days_without_existing_official_ohlc_date": 584,
+      "pre_touch_public_traded_holder_days": 752,
+      "pre_touch_unpriced_entitlement_holder_days": 60,
+      "pre_touch_untraded_holder_days": 13,
+      "previously_authenticated_official_marketwide_ohlc_dates": 44,
+      "regular_session_volume_independently_verified": false,
+      "schema": "v3-historical-pre-first-low-official-gap-v1",
+      "v30b_release_ready": false
+    },
+    "schema": "v3-historical-pre-first-low-direct-krx-v1",
+    "scope_dates": [
+      "2025-11-17",
+      "2025-11-20",
+      "2025-11-25",
+      "2025-11-26",
+      "2025-11-27"
+    ],
+    "source_public_input_sha256": [
+      "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+      "da748e52cef9fe453ae300abff91c1e2bd1509daa653408ec54dede66a6eda2d",
+      "842fb7a65532cd82e2cc3023fde21e8d6fcdc5008b45db3083f2504c5ead88cc"
+    ],
+    "v30b_release_ready": false
+  }
+}
