@@ -634,13 +634,14 @@ class V30bReadinessTests(unittest.TestCase):
                                     "loss_first_backtest_passed": True})
         self.assertTrue(report["public_summary_valid"], report["blocker_codes"])
         self.assertTrue(report["gates"]["dart_120month_receipt_collection_complete"])
-        self.assertFalse(report["gates"][
-            "verified_1_2_3_6_12month_forward_outcomes"])
+        self.assertFalse(report["forward_performance_required_for_release"])
+        self.assertNotIn("verified_1_2_3_6_12month_forward_outcomes",
+                         report["gates"])
         self.assertFalse(report["gates"][
             "validated_loss_first_stop_target_mfe_mae"])
         self.assertFalse(report["forward_1_2_3_6_12month_returns_certified"])
         self.assertFalse(report["loss_first_risk_backtest_certified"])
-        self.assertIn("five_forward_horizon_outcomes_unverified",
+        self.assertNotIn("five_forward_horizon_outcomes_unverified",
                       report["blocker_codes"])
         self.assertIn("loss_first_stop_target_mfe_mae_unverified",
                       report["blocker_codes"])
