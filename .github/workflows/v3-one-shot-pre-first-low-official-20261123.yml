@@ -44,15 +44,21 @@ jobs:
           python v3_historical_pretouch_official_low_gap.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$RUNNER_TEMP/first-low-plan.json"
           jq -e '.original_issuers_with_replayed_low_touch == 14 and .pre_touch_holder_days_without_existing_official_ohlc_date > 0 and .first_touch_earliest_low_certified == false and .v30b_release_ready == false' "$RUNNER_TEMP/first-low-plan.json" >/dev/null
           jq -c . "$RUNNER_TEMP/first-low-plan.json"
-      - name: Independently authenticate up to five missing KRX OHLC dates
-        env:
-          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+      - name: Revalidate frozen five-day exact KRX LOW evidence without provider requests
         run: |
           set -euo pipefail
-          python v3_historical_pretouch_official_low_gap.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" --probe > "$RUNNER_TEMP/pre-first-low-evidence.json"
-          jq -e '.official_low_holder_days_exact == .planning.bounded_next_issuer_low_observations and .planning.maximum_official_krx_api_requests_if_executed == 10 and .has_verified_all_pre_first_touch_holder_lows == false and .performance_validated == false and .v30b_release_ready == false' "$RUNNER_TEMP/pre-first-low-evidence.json" >/dev/null
-          jq -c . "$RUNNER_TEMP/pre-first-low-evidence.json"
-          jq 'del(.official)' "$RUNNER_TEMP/pre-first-low-evidence.json" >> "$GITHUB_STEP_SUMMARY"
+          jq -e '.pre_touch_public_traded_holder_days == 752 and .pre_touch_holder_days_on_existing_official_ohlc_dates == 215 and .pre_touch_holder_days_without_existing_official_ohlc_date == 537 and .independently_authenticated_new_low_dates == 5 and .independently_authenticated_new_pre_touch_holder_lows == 47 and .offline_replay_new_krx_market_api_requests == 0 and .v30b_release_ready == false' "$RUNNER_TEMP/first-low-plan.json" >/dev/null
+          jq -c . "$RUNNER_TEMP/first-low-plan.json"
+          jq . "$RUNNER_TEMP/first-low-plan.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Confirm 245-day KRX CLOSE archive and all newly frozen LOW coverage coexist
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          set -euo pipefail
+          python v3_historical_close_archive_audit.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$RUNNER_TEMP/pre-first-low-offline-archive.json"
+          jq -e '.official_sessions_compared == 245 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_on_existing_official_ohlc_dates == 215 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_without_existing_official_ohlc_date == 537 and .pre_first_low_official_ohlc_coverage.first_touch_earliest_low_certified == false and .pre_first_low_official_ohlc_coverage.v30b_release_ready == false' "$RUNNER_TEMP/pre-first-low-offline-archive.json" > /dev/null
+          jq -c .pre_first_low_official_ohlc_coverage "$RUNNER_TEMP/pre-first-low-offline-archive.json"
       - name: Retain only anonymous aggregate source fingerprints
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,6 +66,6 @@ jobs:
           name: pre-first-low-official-evidence
           path: |
             ${{ runner.temp }}/first-low-plan.json
-            ${{ runner.temp }}/pre-first-low-evidence.json
+            ${{ runner.temp }}/pre-first-low-offline-archive.json
           if-no-files-found: ignore
           retention-days: 90
