@@ -1,0 +1,150 @@
+{
+  "schema": "v3-dated-krx-nxt-session-scope-evidence-v1",
+  "run_id": 45113896669,
+  "source_jobs": {
+    "2026-11-20": 137492197226,
+    "2026-11-19": 137492197467
+  },
+  "sessions": [
+    {
+      "asof": "2026-11-19",
+      "closing_issuer_count": 65,
+      "combined_krx_nxt_volume_verified": false,
+      "krx_panel": {
+        "by_market": {
+          "KOSDAQ": {
+            "numeric_volume_rows": 1835,
+            "rows": 1835,
+            "zero_volume_rows": 86
+          },
+          "KOSPI": {
+            "numeric_volume_rows": 936,
+            "rows": 936,
+            "zero_volume_rows": 24
+          }
+        },
+        "krx_accumulated_volume_session_scope_verified": false,
+        "market_share_denominator_check": {
+          "api_as_combined_denominator_matches": false,
+          "api_plus_nxt_regular_matches": false,
+          "reported_nxt_share_pct": 8.46,
+          "same_security_universe_independently_verified": false,
+          "status": "compared"
+        },
+        "nxt_identity_join": {
+          "volume_positive": 603
+        },
+        "source_sha256": {
+          "KOSDAQ": "7bf48bfac10c33ebff031c3bf1b2f8a7db49af99c77d791af3ff6ad56678fbc3",
+          "KOSPI": "af68d3356dd20fe221138e90bc25165acbb463ba53bc71470e3134256af2a60e"
+        },
+        "status": "dated_krx_openapi_rows_observed"
+      },
+      "krx_venue_volume_verified": false,
+      "original_nxt_volume_values_exported": false,
+      "other_nxt_sessions_included_verified": false,
+      "overlap_issuer_count": 65,
+      "provider_calls": 6,
+      "regular_issuer_count": 603,
+      "regular_plus_closing_issuer_count": 603,
+      "regular_plus_closing_issuers_in_saved_universe": null,
+      "regular_volume_crosscheck": {
+        "aggregate_rows": 2,
+        "source_sha256": "864fc3bd807366970551ee2a317ad432cc84117e2bf8097985fa1f48b765ab82",
+        "status": "matched"
+      },
+      "score_points_added": 0,
+      "sessions": {
+        "basket": {
+          "issuer_count": 0,
+          "source_sha256": "ab4d3ccc2ae948c151171cce93e35df732d33eaecc51e827ef9f382e22ba87f0",
+          "status": "empty_undated_response"
+        },
+        "closing_price": {
+          "issuer_count": 65,
+          "source_sha256": "31e5950367bc202f9532a87e0edabc71c17f58331c6e87a2c7cf066e1b22bb41",
+          "status": "dated_rows_observed"
+        },
+        "regular_market": {
+          "issuer_count": 603,
+          "source_sha256": "fbb89356cca51c57f40731f4a44db4d7c099a1d68f8c052b492ae5c7ae36417f",
+          "status": "dated_rows_observed"
+        }
+      },
+      "source": "NXT_SESSION_VOLUMES_UNVERIFIED_FOR_SCORE",
+      "status": "nxt_components_observed_no_score_change"
+    },
+    {
+      "asof": "2026-11-20",
+      "closing_issuer_count": 59,
+      "combined_krx_nxt_volume_verified": false,
+      "krx_panel": {
+        "by_market": {
+          "KOSDAQ": {
+            "numeric_volume_rows": 1836,
+            "rows": 1836,
+            "zero_volume_rows": 86
+          },
+          "KOSPI": {
+            "numeric_volume_rows": 935,
+            "rows": 935,
+            "zero_volume_rows": 23
+          }
+        },
+        "krx_accumulated_volume_session_scope_verified": false,
+        "market_share_denominator_check": {
+          "api_as_combined_denominator_matches": false,
+          "api_plus_nxt_regular_matches": false,
+          "reported_nxt_share_pct": 12.27,
+          "same_security_universe_independently_verified": false,
+          "status": "compared"
+        },
+        "nxt_identity_join": {
+          "volume_positive": 603
+        },
+        "source_sha256": {
+          "KOSDAQ": "69f0ac5ff440ee4e6cf6ada34e7b31fabdee6345615646cc73ea757145433b2a",
+          "KOSPI": "5fd825ff4625bf7bad474a405cca60ef7678f8b3577def1f4ed82752bd2a2e70"
+        },
+        "status": "dated_krx_openapi_rows_observed"
+      },
+      "krx_venue_volume_verified": false,
+      "original_nxt_volume_values_exported": false,
+      "other_nxt_sessions_included_verified": false,
+      "overlap_issuer_count": 59,
+      "provider_calls": 6,
+      "regular_issuer_count": 603,
+      "regular_plus_closing_issuer_count": 603,
+      "regular_plus_closing_issuers_in_saved_universe": 603,
+      "regular_volume_crosscheck": {
+        "aggregate_rows": 2,
+        "source_sha256": "fc2d21dabed42efd2df65259909da4f6c97eca4b9d9d41dc81a6d2fb7ad20460",
+        "status": "matched"
+      },
+      "score_points_added": 0,
+      "sessions": {
+        "basket": {
+          "issuer_count": 0,
+          "source_sha256": "ab4d3ccc2ae948c151171cce93e35df732d33eaecc51e827ef9f382e22ba87f0",
+          "status": "empty_undated_response"
+        },
+        "closing_price": {
+          "issuer_count": 59,
+          "source_sha256": "17974e7d8789c9b5e503b6a9d3107605d0151cfc5e276c9e35f91be5131853ba",
+          "status": "dated_rows_observed"
+        },
+        "regular_market": {
+          "issuer_count": 603,
+          "source_sha256": "d74fada24a580f5d0e244a941e46502e96e367849a30de4034ab37db54e6ef9b",
+          "status": "dated_rows_observed"
+        }
+      },
+      "source": "NXT_SESSION_VOLUMES_UNVERIFIED_FOR_SCORE",
+      "status": "nxt_components_observed_no_score_change"
+    }
+  ],
+  "provider_calls": 12,
+  "krx_regular_0900_1530_volume_verified": false,
+  "krx_regular_0900_1530_turnover_verified": false,
+  "v30b_release_ready": false
+}
