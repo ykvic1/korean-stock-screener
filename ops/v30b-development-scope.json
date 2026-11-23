@@ -16,6 +16,7 @@
     "Historical point-in-time issuer and financial coverage",
     "Historical downside path and corporate-action evidence"
   ],
+  "forward_performance_required_for_release": false,
   "performance_validated": false,
   "v30b_release_ready": false,
   "first_scheduled_operations_session_kst": "2026-11-23",
