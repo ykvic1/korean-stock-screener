@@ -1,0 +1,80 @@
+name: V3 next official KRX LOW validation
+on:
+  push:
+    branches: [v30b-final-pretouch-low-coverage]
+    paths: [.github/workflows/v3-next-low-validation-once.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'pyarrow>=20,<27' 'pandas>=2,<3'
+      - name: Download pinned public replay inputs
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o pilot-2025.parquet
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o pilot-2026.parquet
+          curl -fsSL --max-time 30 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o pilot-2026-11-13.csv
+      - name: Check every remaining eligible date against official KRX OHLC
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from v3_historical_pretouch_official_low_fourth import (
+              FOURTH_FROZEN, KRXClient, day, read_panels, require, verified_plan,
+          )
+          from v3_historical_pretouch_official_low_fifth import (
+              FROZEN, SIXTH_FROZEN, SEVENTH_FROZEN, replay,
+          )
+          from v3_historical_pretouch_official_low_gap import (
+              read_official_openings, check_official_session,
+          )
+
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          panels = read_panels([tmp / f"pilot-{key}" for key in (
+              "2025.parquet", "2026.parquet", "2026-11-13.csv")])
+          fourth, fifth, sixth, seventh = (
+              json.loads(path.read_text(encoding="utf-8"))
+              for path in (FOURTH_FROZEN, FROZEN, SIXTH_FROZEN, SEVENTH_FROZEN))
+          baseline = replay(panels, fifth, sixth, seventh)
+          require(baseline["verified_holder_days"] == 590, "baseline_scope_changed")
+          plan, seen = verified_plan(panels)
+          prior = [fourth["result"]] + [
+              batch for proof in (fifth, sixth, seventh) for batch in proof["result"]["batches"]]
+          excluded = {day(on) for batch in prior for on in batch["scope_dates"]}
+          seen.update(digest for batch in prior for row in batch["official"].values()
+                      for digest in row["official_source_sha256"].values())
+          pending = sorted(set(plan["uncovered"]) - excluded)
+          require(sum(len(plan["uncovered"][on]) for on in pending) == 162
+                  and len(pending) <= 100, "unexpected_remaining_scope")
+          client = KRXClient(os.environ["KRX_API_KEY"])
+          verified = 0
+          failed = []
+          for on in pending:
+              try:
+                  raw, hashes = read_official_openings(client, on.isoformat())
+                  row = check_official_session(panels[on], raw, hashes, plan["uncovered"][on])
+                  require(len(set(hashes.values())) == 2 and seen.isdisjoint(hashes.values()),
+                          "repeat_source_fingerprint")
+              except Exception as exc:
+                  failed.append({"date": on.isoformat(), "error_type": type(exc).__name__})
+                  continue
+              seen.update(hashes.values())
+              verified += row["exact_original_or_successor_pre_first_lows"]
+              print("LOW_DAY " + json.dumps({"date": on.isoformat(), "proof": row}), flush=True)
+          print("LOW_TOTAL " + json.dumps({"new_verified_holder_days": verified,
+                "verified_holder_days": 590 + verified, "unverified_holder_days": 162 - verified,
+                "requested_sessions": len(pending), "failed": failed}), flush=True)
+          PY
