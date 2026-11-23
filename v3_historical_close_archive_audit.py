@@ -35,6 +35,7 @@ from v3_historical_official_close_stop_reference import (
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_historical_pretouch_official_low_gap import (
     prepare as prepare_first_low, saved_official_ohlc_dates,
+    valid_summary as valid_first_low_gap,
 )
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -317,7 +318,9 @@ def close_reconciliation_complete(report):
                 or not valid_holder_daily(report.get("holder_daily_official_close_path"))
                 or not valid_legal_gap(report.get("holder_legal_unpriced_gap_ledger"))
                 or not valid_official_close_stop(
-                    report.get("holder_close_reference_chronology"))))
+                    report.get("holder_close_reference_chronology"))
+                or not valid_first_low_gap(
+                    report.get("pre_first_low_official_ohlc_coverage"))))
             or report.get("new_market_api_calls") != 0):
         return False
 
