@@ -38,22 +38,27 @@ jobs:
 
           import pyarrow.parquet as pq
           from v3_historical_annual_receipt_recovery import (
-              DARTClient, DART_BASE, PINNED_HASHES, CUTOFF, START, _mapping, _period,
+              DARTClient, DART_BASE, ProbeError, PINNED_HASHES, CUTOFF, START, _mapping, _period,
               choose_version, verify_document, require,
           )
           from v3_historical_financial_factor_replay import (
-              MARKETS, ROOT, SIGNAL, TAG, dated_reference, ledger_rows, operating_catalog,
+              MARKETS, ROOT, SIGNAL, TAG, dated_reference, ledger_rows,
           )
+
+          from screener import market_snapshot
 
           tmp = Path(os.environ["RUNNER_TEMP"])
           prices, finances, catalog = [tmp / name for name in ("prices.parquet", "financial.json", "catalog.json")]
           for path, expected in zip((prices, finances, catalog), PINNED_HASHES, strict=True):
               require(sha256(path.read_bytes()).hexdigest() == expected, "frozen_input_hash_mismatch")
-          market = pq.read_table(prices, columns=["Code", "Name", "Market"], filters=[
+          market = pq.read_table(prices, columns=["Code", "Name", "Market", "Close", "Volume", "Amount", "Marcap"], filters=[
               ("Date", "=", datetime.combine(SIGNAL, time.min)), ("Market", "in", list(MARKETS)),
-          ]).to_pylist()
-          identity = {row["Code"]: (MARKETS[row["Market"]], row["Name"]) for row in market}
-          cohort = operating_catalog(prices, identity, 2573)["rows"]
+          ])
+          identity = {row["Code"]: (MARKETS[row["Market"]], row["Name"]) for row in market.to_pylist()}
+          selected_cohort = market_snapshot(market.to_pandas())
+          require(len(selected_cohort) == 2573 and all(identity[code] == (row["market"], row["name"])
+                  for code, row in selected_cohort.items()), "frozen_scope_mismatch")
+          cohort = [{"code": code, **row} for code, row in selected_cohort.items()]
           current = {row["code"]: (row["market"], row["name"])
                      for row in json.loads(catalog.read_bytes())["rows"]}
           reference = dated_reference(json.loads(finances.read_bytes()), identity, current)
@@ -61,7 +66,7 @@ jobs:
               f"v3-performance-recovered-annual-statements-{TAG}.json").read_bytes())["records"])
           reviewed.update(row["code"] for row in ledger_rows(ROOT, "delisted-annual-statements"))
           targets = {}
-          for row in sorted(cohort, key=lambda x: (-(x["reference_market_cap_eok"] or 0), x["code"])):
+          for row in sorted(cohort, key=lambda x: (-(x["market_cap_eok"] or 0), x["code"])):
               code, market_name = row["code"], row["market"]
               annual = reference.get(code, {}).get("years", {}).get("2024", {})
               if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < 8:
@@ -90,8 +95,18 @@ jobs:
                   if period is None:
                       counts["stored_receipt_absent_or_unclassified"] += 1
                       continue
-                  latest = max(row["rcept_no"] for row in items if _period(row["report_nm"])[0] == period)
-                  selected = choose_version(response, corp=corp, code=code, market=market_name, later=latest)
+                  if int(response["total_page"]) != 1 or int(response["total_count"]) != len(items):
+                      counts["annual_listing_incomplete"] += 1
+                      continue
+                  same_period = [row for row in items if _period(row["report_nm"])[0] == period]
+                  latest = max(row["rcept_no"] for row in same_period)
+                  try:
+                      selected = choose_version({"list": same_period, "total_count": len(same_period),
+                                                 "total_page": 1}, corp=corp, code=code,
+                                                market=market_name, later=latest)
+                  except ProbeError:
+                      counts["annual_receipt_identity_unresolved"] += 1
+                      continue
                   receipt = selected["selected_receipt"]
                   if receipt is None:
                       counts[selected["status"]] += 1
