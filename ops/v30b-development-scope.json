@@ -14,7 +14,7 @@
   "remaining_fixed_snapshot_verification": [
     "KRX regular-session volume and turnover provenance",
     "Historical point-in-time issuer and financial coverage",
-    "Historical downside path and corporate-action evidence"
+    "Historical corporate-action evidence beyond the completed fixed pre-touch LOW sample"
   ],
   "forward_performance_required_for_release": false,
   "performance_validated": false,
@@ -30,5 +30,17 @@
     "listed_total": 2592,
     "ranked_count": 2570,
     "first_scheduled_operations_run_verified": false
+  },
+  "fixed_snapshot_evidence": {
+    "pre_touch_low": {
+      "verified_eligible_traded_observations": 752,
+      "outstanding_eligible_traded_observations": 0,
+      "archive_audit_run_id": 45125199385
+    },
+    "historical_revenue": {
+      "excluded_unresolved_inputs": 4,
+      "exclusion_scope": "historical_verification_completion_counts",
+      "evidence": "ops/v30b-fixed-pit-dart-revenue-body-diagnostic.json"
+    }
   }
 }
