@@ -47,16 +47,24 @@ class HistoricalOfficialHolderGapTests(TestCase):
     @staticmethod
     def synthetic_full_report():
         session = date(2026, 1, 2)
-        ids = [f"{i:06d}" for i in range(687)]
+        cases = []
+        for cause, count in gap.FROZEN_CAUSES.items():
+            cases.extend([cause] * count)
+        assert len(cases) == 687
+        identifiers = [f"{i:06d}" for i in range(687)]
         p = {
             "total": 687,
             "eligible_holder_day_cells": 4148,
             "traded_or_suspended_holder_rows": 3461,
-            "causes": {"cash_entitlement_no_market_shares": 687},
-            "by_day": {session: [(code, "cash_entitlement_no_market_shares") for code in ids]},
+            "causes": dict(gap.FROZEN_CAUSES),
+            "by_day": {
+                session: list(zip(identifiers, cases, strict=True))
+            },
         }
-        o = [(code, session, "cash_entitlement_no_market_shares",
-              "old_security_absent_in_both_sources") for code in ids]
+        o = [(code, session, cause,
+              ("old_security_absent_in_both_sources" if i < 506
+               else "old_security_untraded_in_both_sources"))
+             for i, (code, cause) in enumerate(zip(identifiers, cases, strict=True))]
         return p, o
 
     def test_only_complete_nontrading_687_day_partition_can_pass(self):
