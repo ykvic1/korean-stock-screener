@@ -1,0 +1,1259 @@
+{
+  "run_id": 45123850602,
+  "job_id": 137523566200,
+  "summary": {
+    "new_verified_holder_days": 162,
+    "verified_holder_days": 752,
+    "unverified_holder_days": 0,
+    "requested_sessions": 89,
+    "failed": []
+  },
+  "sessions": [
+    {
+      "date": "2026-01-22",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "fd6f726685f911fd35c20b0158e337f8d73b5d98e3489e265bbe3e722184df7c",
+          "KOSDAQ": "c5f60cee0b8e5531d681bb98d23479b0ba49d33027c23f5859f9a78f709a85da"
+        },
+        "marketwide_traded_exact_ohlc": 2690,
+        "marketwide_untraded_rows": 91,
+        "marketwide_total_rows": 2781,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-01-23",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "6b921611612d8454d31ca0b313c3607fd3eb51be61e29bfa00e964dfad51c8d6",
+          "KOSDAQ": "7d84fd56ec9cee2383506c32c58d8501cb890f8c039b15a780eb1caf8bf1640b"
+        },
+        "marketwide_traded_exact_ohlc": 2689,
+        "marketwide_untraded_rows": 92,
+        "marketwide_total_rows": 2781,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-09",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "dac33a1a341aaa3d466a841aacd15ba90598585ddfbecf51567873362401d7fd",
+          "KOSDAQ": "4bdd596c74d669f7707097af66b65b7878891b4ab490b265031ba10ff963bbb8"
+        },
+        "marketwide_traded_exact_ohlc": 2659,
+        "marketwide_untraded_rows": 111,
+        "marketwide_total_rows": 2770,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-10",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "879987b59f4381d9eb0d0ed656da68977217e67f9819acdc7c35a6d81a4e4231",
+          "KOSDAQ": "d9d7e6735c88a1af6ac2bce5d68249d8f8791263b008d92396951b4b3acb8c9b"
+        },
+        "marketwide_traded_exact_ohlc": 2657,
+        "marketwide_untraded_rows": 112,
+        "marketwide_total_rows": 2769,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-11",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "dd4573e9a171d9e8a1c6511d21ef89c3bf621b692a6949b0e3cff30660c80167",
+          "KOSDAQ": "77acef3082af42d1346439455ccb9d08e107e46c3304ea9aae5d9daa0ae870e7"
+        },
+        "marketwide_traded_exact_ohlc": 2656,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2769,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-12",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "e6d6241516d5eab046e604107e8e5b6c599d8821de9e6a467fe942ad438b645f",
+          "KOSDAQ": "87c4dd630af7aa4cdd6a2134d06c5cbdce69229165171503c769796c9ed273f9"
+        },
+        "marketwide_traded_exact_ohlc": 2654,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-15",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "fd17de2bcf179b1ca445a56eb7370bd76fdee32c6c1f75c75b06aab98449f052",
+          "KOSDAQ": "95e99b38da6f40f62234e05b1f910566d43fbdac37b9aec257e36e17daa8a315"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 116,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-16",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "aec11f45ed4c88eed3c0823f32269175d90349ff8e5cbde4224a6161e64f2d4e",
+          "KOSDAQ": "51e5335453d67c3fb6cfec5afbb9e74fca7436c7d8441650d455440c68fac54c"
+        },
+        "marketwide_traded_exact_ohlc": 2653,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-17",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "55710e3af7723d685c95d4404c4092b30aab10c543309f82ea4f1c037832a78b",
+          "KOSDAQ": "d989306da13f394c0db203f47e089ef0d068ddff4e4b1a234da9b2cf62aaf017"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 117,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-18",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "0266da19358e6579b8765dcea9420499f805ce79d065fe4f11c3146a9da04cf9",
+          "KOSDAQ": "9ef1d248c3f4dd6dc776729eaf43bf850fde6bd623712dcbea04d503930d59b2"
+        },
+        "marketwide_traded_exact_ohlc": 2650,
+        "marketwide_untraded_rows": 117,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-19",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "f71211e5dbacd718ebde58c4037baff9bc1d925b6a6ecbf18efdf3aa798b9ecb",
+          "KOSDAQ": "abe1c19d7d18678515f4aa0839f5241ce44b9db62d8b572702a0d489c7031cb6"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 120,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-22",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "e6c6f704a7cb951cba57aa364ceb06f0d6065d8b67512e9eaf551196a6d95d88",
+          "KOSDAQ": "da68aaa228b7711d36e4073e9fcaaec6672471ef634e514fbd099cdaba8a794f"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 117,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-23",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "4d21825770cee35696d271427f6e5ad6af197f7eaeef6c9ebeb8bcd8ca269dac",
+          "KOSDAQ": "72b855806d9fe61275fc7c59b64eec85aeef07772dbf4fa094de3733ab870589"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 116,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 3,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-25",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "45474c22a2b72b1173defe4cdc9ef078166ef08714b4574a39d1a43dad430170",
+          "KOSDAQ": "936a90a626b854de8f9f2200dbdeaa14762096857a2d5e184440889baa3ac538"
+        },
+        "marketwide_traded_exact_ohlc": 2653,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-26",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "6e91ffb67ac7f371da000d7e620363ff316288c6e8b26439863564a477df6564",
+          "KOSDAQ": "77cf08dd9408206f7e038141259df49bde6f31e9b049736e506ebad3b8c333df"
+        },
+        "marketwide_traded_exact_ohlc": 2655,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2768,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-06-30",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "f6468d4e525ea346a41397a048ac50e51494cabf3b5762716e19d703fc832aaf",
+          "KOSDAQ": "b1b5ee7bf5965a6f94a0b1517649077ba92b83d8a7977dba5b2afef14b1d9f5e"
+        },
+        "marketwide_traded_exact_ohlc": 2662,
+        "marketwide_untraded_rows": 107,
+        "marketwide_total_rows": 2769,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-01",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "cc0b7870d296de722a73d47f8b2899cf832a2bbf91a06a6c66af25a337bca013",
+          "KOSDAQ": "bd7774ec8aae2722552c73c41932f92a47cdaecd102fe1371d6d2f2438a92a0a"
+        },
+        "marketwide_traded_exact_ohlc": 2657,
+        "marketwide_untraded_rows": 109,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-02",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "17f9ae5a600a1cca8c0ce304651f99b2fe5ef6a263d44bdc78a68736db0f373f",
+          "KOSDAQ": "41687237f52f780e5001a9d11885dd645990592d3a16d310be999343e0a17cd2"
+        },
+        "marketwide_traded_exact_ohlc": 2655,
+        "marketwide_untraded_rows": 111,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-06",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "a9a3ed914dff18fe04ecd529559f934c8a9dcb5455412e35e70727688f1fb52a",
+          "KOSDAQ": "96be96af0277f0a123f10f1bfd3244827e8296f334cdf592100d0b7a1abf00b9"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-07",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "c92b82b7f8514d87da58e2149f652b844fdc6615df9603fca335694df60c3d59",
+          "KOSDAQ": "4d1fdf6ff0cf7bde6d4b4e6a2b05be49a11700c528198efbaa8d66fdcfaeb553"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-08",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "0da3f97d496c33f5342e16f5af364b9c592fb6938bf0d879f9c60cbd802564b4",
+          "KOSDAQ": "de21f9ac0014d85ab760829de71f61f04702258e5053ef50609c60b8a302551d"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-09",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "c1b3af7060e86497de31519ea29f90640e561f700e9658e83d84e3aee9d55f5c",
+          "KOSDAQ": "e207a41fc9ac0414a25a5877c5d479849f3944d3d9ac07f24d5c6cba2c35754c"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-10",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "4af684833a79f8bf75c8edc76d89b4cb0c802e3847d43e89c65ac8b62ab645e5",
+          "KOSDAQ": "dd96977f670dab4263dc285cb03c31ec5f94c7b3b6fbca90010a411f06895a55"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 117,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-13",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "af46767387efae5a30b75de338f9766f97bb0b90cec3ed4c5c930dfa2750e59b",
+          "KOSDAQ": "e597f9f48ff181a1c2af25744981857fb78cd7ead16931eadd222fc70d3282d4"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-14",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "933693a55d968e6709beb34ccdcf2ec3ea772ed5f7dbe9bc77890d6a649b06ef",
+          "KOSDAQ": "c7b3687b145f71de1ccc08956e3a1f78e9d24d135a6c6db94f62803f6519f646"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-15",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "ed0f7a04e85e1792db12129659927b4f768829f30b8d1bc778edda1839d1378e",
+          "KOSDAQ": "722942d05b3dbe0ebd5f1e8053351608c7b17b61d2c37b9ff12455266a503b2b"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-16",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "254263e1a6d63b97e06f31474392fa18d6a986d0431e96f22ed6d447319aad86",
+          "KOSDAQ": "a61908c3ca76447872446d7bdf6575197eb4d3e4d426429d7a9d5ffe69579b01"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-20",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "f2a84155936340528f8240fac177bf2344aa4e58e0316f1ea4b08a01b89ff4e1",
+          "KOSDAQ": "79a3fde72078dfedddfa7f89a76e58bd50aac0e2ec6de92337830c05c244e056"
+        },
+        "marketwide_traded_exact_ohlc": 2653,
+        "marketwide_untraded_rows": 111,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-21",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "2fbb4aa6f3b9dc092685fe8f690627831c308a8e41412223a87170b12f534da6",
+          "KOSDAQ": "a2a6579157ba887bfa5add019c9625d467b9abde15501238f232de5092dffa9c"
+        },
+        "marketwide_traded_exact_ohlc": 2650,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-22",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "a0e4708363a5080f9061386324644f7d9284acb08a7bc31eaef53f123b330c08",
+          "KOSDAQ": "0db7f76fd4f545385aaad59297181ac373d5eb1b774c35b5e3047d93732e80c6"
+        },
+        "marketwide_traded_exact_ohlc": 2650,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-23",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "331c47dd41cb399059bcd138bf0ca497ef86b7c41332681dd0635f97ab14c69d",
+          "KOSDAQ": "84953583e6a762a72521e548e38be45589c62568880fffb811bcaf687c968180"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-24",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "1629f53bbe9830602bf2aace215047165f91cd1b2bcab45e8c0ad7c55d51c187",
+          "KOSDAQ": "24a19f73bacdcb96de7ffaf3a319b09846a00d375caf8821cd0a14f98828eb08"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 116,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-27",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "53e7db091b0f9f4d5ba3b01065351559bedc98a38384aae94387ca9661c3380d",
+          "KOSDAQ": "821116f10399404f10ed474485810070187032c1730245ac4429ae8dc8f16252"
+        },
+        "marketwide_traded_exact_ohlc": 2650,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-28",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "076a75e610b3afeeaa5b1f3fbf70cf904b1773e2c65f4d2d09fce06055eb875a",
+          "KOSDAQ": "2e2699e1db61965c8acfe30c71515f47ca3a04982037c8f77b565aef1cf5b45e"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 112,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-29",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "45377e4bb4cac4eea7bdd44df2d8c84270dc172c8739620eef01e613538e156b",
+          "KOSDAQ": "e241415c0ff43d9e9cc607712a54de96044467adb4bca61c0d43cb71e7d42007"
+        },
+        "marketwide_traded_exact_ohlc": 2647,
+        "marketwide_untraded_rows": 117,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-30",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "72049580c371faa194269e44c3a6000bbca12164c2193bccb0031599e83c0d52",
+          "KOSDAQ": "2bb45408f4c3a1b99e8f21b61e56ff37b8909dcb178fd56a7672c8cfa5bf9b81"
+        },
+        "marketwide_traded_exact_ohlc": 2644,
+        "marketwide_untraded_rows": 120,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-07-31",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9c85d08f6395f10121d0a251c4a7a001cdc1d08be8a4ebb80d4dd880a467a930",
+          "KOSDAQ": "c7311279033a4bfba70e90a22b4b3fa1808d08654e49fb57002105ab291953fa"
+        },
+        "marketwide_traded_exact_ohlc": 2645,
+        "marketwide_untraded_rows": 118,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-03",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "ccc7a4b73a864a77aadb077a3a926d24dfcdf0afa3904dfaef2d6dcb7346e0b1",
+          "KOSDAQ": "74cdda9f4dd95c5d57ee386243e54b16748d1be357b5482f6a7daa0fee0d4c6a"
+        },
+        "marketwide_traded_exact_ohlc": 2644,
+        "marketwide_untraded_rows": 119,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-04",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "26b88026525ccdcd19097edd6bad6e39ef61210109885e2ceff36121e4d2ced2",
+          "KOSDAQ": "7202cef3b4e3e9a4b1f11affccbb8d9b08783501438a882434cb95f33ced175a"
+        },
+        "marketwide_traded_exact_ohlc": 2641,
+        "marketwide_untraded_rows": 122,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-05",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "0d6fdaa8ee45919f3d3623571ab5b6ae376abc2d1bb78916982d494dc36c5413",
+          "KOSDAQ": "77f582510df3a42d116817f4babe5a899c496b6a59bda54c12e573aa6845582c"
+        },
+        "marketwide_traded_exact_ohlc": 2640,
+        "marketwide_untraded_rows": 123,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-06",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9727e8c538091e3282a420424b8237a9e9357f27024a849b846bf159b252ede4",
+          "KOSDAQ": "cedc5917dfbc208b7ad9e3f757f6460bddc419bde97e31eee9289259bf80ebd2"
+        },
+        "marketwide_traded_exact_ohlc": 2638,
+        "marketwide_untraded_rows": 125,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-07",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "2b7cad51eb0ea1f07f8d3130f700ae626ac644528f49e032ec3f89347b7b2955",
+          "KOSDAQ": "3490c695c06b1cc08bcc21649a26690719062adb1f2890e36beb7df5192091b6"
+        },
+        "marketwide_traded_exact_ohlc": 2633,
+        "marketwide_untraded_rows": 130,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-10",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "b1e6cab9682a54f7ac4dcddbbe99da2328b3125969e44d9551fd69eda47c93c9",
+          "KOSDAQ": "f9c05178539041e16ec92353b1b52d510be832bebc2106331e0c37ea60af136e"
+        },
+        "marketwide_traded_exact_ohlc": 2630,
+        "marketwide_untraded_rows": 132,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-11",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "fc6d969807231643c38a57e7903771cd66949560bd6c6c10b543cb2926bc3179",
+          "KOSDAQ": "235a45af7065a483e90ea999e45823cff70eeed5a306962f3a5d3c8ec98197f1"
+        },
+        "marketwide_traded_exact_ohlc": 2630,
+        "marketwide_untraded_rows": 131,
+        "marketwide_total_rows": 2761,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-12",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "fc4be21b2cbbb9b25bbcfa3292ce14c4e1fd6e07429a752a3fc34cb0a622bfeb",
+          "KOSDAQ": "a9ff654537d00f91554f2ffdd567eefba4277b303f5a80e888ecfbf1b6011725"
+        },
+        "marketwide_traded_exact_ohlc": 2632,
+        "marketwide_untraded_rows": 130,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-13",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "aeebbdc95e6fc273690586ebf12852e3c827a1b06ff847577169f2004b18f59b",
+          "KOSDAQ": "63ccbf7a2aa6fe9378c84fafd800136b8db09e3758a483198eab9a21584d62eb"
+        },
+        "marketwide_traded_exact_ohlc": 2625,
+        "marketwide_untraded_rows": 138,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "67f83fc9a0c5dd923bf1869218c57ca53ff4e1aefcda0d415742c1f4bf5da790",
+          "KOSDAQ": "513fcbaf1509c58c67de40eb2c60a1afa8acd8bad1a89ff809d83e2a51eb3445"
+        },
+        "marketwide_traded_exact_ohlc": 2630,
+        "marketwide_untraded_rows": 133,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-18",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "bcc9dc97eb80c8a544ed427b4e49147789cf617442bfbe250896262d98a20755",
+          "KOSDAQ": "147b186766fb20fcdc7e2f245f34dc57705fc5f86ddeccb2de98b545caea47ea"
+        },
+        "marketwide_traded_exact_ohlc": 2634,
+        "marketwide_untraded_rows": 129,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-19",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9e3899a0e5ffb178320ae16f76a43f9dc5ccf9339f3986652d22fb423a2789e2",
+          "KOSDAQ": "802b999071f164dfceaa4c179d6c95d9186cd0e574a82a1f7f0c8163436243d2"
+        },
+        "marketwide_traded_exact_ohlc": 2635,
+        "marketwide_untraded_rows": 128,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-21",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "ff933f712d868733857fc2a0449d8688e339a7edda875e81a8b5c82cc1fc93ad",
+          "KOSDAQ": "eb6565caa246724f3cb72c1c6c7b57fb21bb8bb56f739abbef46c1d46894e23a"
+        },
+        "marketwide_traded_exact_ohlc": 2627,
+        "marketwide_untraded_rows": 137,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-24",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "01097ae71ac9b7520515350c74223a52f81260422b09424c0e922cc101752859",
+          "KOSDAQ": "b4dc1a13a4221cb33aa5c7923d9c296cae11d7341acd5f5997f7033a00e99f93"
+        },
+        "marketwide_traded_exact_ohlc": 2626,
+        "marketwide_untraded_rows": 139,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-25",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9a06f1fd42785b8739f46c2af86f63d3be28af00348a35631de9af8c6e60fa1d",
+          "KOSDAQ": "c43939ff7c7e695543f54c15bfa6052d64cfeec55eb422db18b730b539b46c0a"
+        },
+        "marketwide_traded_exact_ohlc": 2632,
+        "marketwide_untraded_rows": 135,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-26",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "19d79f7ff99a109b902a18a8ad6e9e2fef025280d4bd691003f1f3c33956b72b",
+          "KOSDAQ": "8c782e6e55e7fdc71423e99ed43205493200cd694a48b2a6caae212043e02175"
+        },
+        "marketwide_traded_exact_ohlc": 2633,
+        "marketwide_untraded_rows": 134,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-27",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "139b67038ea74ac950a8d44f22d7cf20c4124c85bac4015a762749dbce60ec41",
+          "KOSDAQ": "070af73b4f318b0db157be4a04d331a609e0de5f377510e77b65f5bd67d6d423"
+        },
+        "marketwide_traded_exact_ohlc": 2636,
+        "marketwide_untraded_rows": 131,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-28",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9ec59541167a33af3523c87a608ec034435dd4de882b34b04ec1de693b0b891f",
+          "KOSDAQ": "ba15ebff26bd77f56c7f9a8fbaca07928c602578d36de150420a2e26e6ac114f"
+        },
+        "marketwide_traded_exact_ohlc": 2639,
+        "marketwide_untraded_rows": 128,
+        "marketwide_total_rows": 2767,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-08-31",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "061264742eb88879ab2d75871f6fde8f3c00462baccf058c64baebf9fa79483e",
+          "KOSDAQ": "2900410dbfa52011d904dc8b2bb7573e191d23f497565491e0bd1039a2ab9167"
+        },
+        "marketwide_traded_exact_ohlc": 2644,
+        "marketwide_untraded_rows": 122,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-01",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "2c09ed42d25be447377a80cee6d1779c1e905490050730d84763204f9195db15",
+          "KOSDAQ": "610e1987603b2e77f686dac4cbcb8f2f694dcfed71429c9d6c545b86dbd70f0e"
+        },
+        "marketwide_traded_exact_ohlc": 2641,
+        "marketwide_untraded_rows": 124,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-02",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9d2cc5d037f855dd56599b766daa8d7a8e285554922412bff9421b631a821819",
+          "KOSDAQ": "a360bcf6b3a393f094099e1732627f311221b0184a1dd229d8e6c3bd058fb8de"
+        },
+        "marketwide_traded_exact_ohlc": 2644,
+        "marketwide_untraded_rows": 121,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-03",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "f1a9a30b2f96e333c3792021d72e86ffa14963f7cc460ac23b52cccf5b46cf0e",
+          "KOSDAQ": "4e1a42aa04948452d7a7e90637bddbd2ab963506cda9f5c1f83671215b3fa48b"
+        },
+        "marketwide_traded_exact_ohlc": 2640,
+        "marketwide_untraded_rows": 124,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-04",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "85d9a3d7399b1a633d34170f86177c9a9004a712011c9afad77da5bdddfa1f6b",
+          "KOSDAQ": "e2bfdb2515923ab625c18ad425b2c7692be65fcc89c5ea9e03f176f417266643"
+        },
+        "marketwide_traded_exact_ohlc": 2641,
+        "marketwide_untraded_rows": 124,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-07",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "25ad3e19d2734db9df4919f6570795e1c00237c9fef42b84b2ae28b1024ae390",
+          "KOSDAQ": "f029c0940dfbe5bcae690e289c2a7a59f499f89c75f9aac00e209a43b2dfebec"
+        },
+        "marketwide_traded_exact_ohlc": 2646,
+        "marketwide_untraded_rows": 119,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-08",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "1dc80e85349dc7e2dced895a6feed87a0f890dcbb1a70d3297ed03b91e78ac67",
+          "KOSDAQ": "d00cde13a070314a394bdad4e3d1f02628b3ed9e7786d167cb876201c429b127"
+        },
+        "marketwide_traded_exact_ohlc": 2647,
+        "marketwide_untraded_rows": 118,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-09",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "31c0161f9f8c911a9ad7923f688ed1b376242076e5c14762e5e3f46460d80092",
+          "KOSDAQ": "fadb1e84b9a20590b7da6141c84f61a51e830a45ce310f005aec631d946060e2"
+        },
+        "marketwide_traded_exact_ohlc": 2646,
+        "marketwide_untraded_rows": 119,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-10",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "b485bff88135292bd946c2f745f075d3594735182c689cfa41fe6219a8c098a8",
+          "KOSDAQ": "b848e642d9af16fac7987b8406eb614d460bf8e6b4091f9630f02fafc1374a5f"
+        },
+        "marketwide_traded_exact_ohlc": 2652,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-15",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "faf91de5c41c1600f9913e5b6af951f28edce2b966bd32464b564b19065e9943",
+          "KOSDAQ": "3595c9598fd248ec57f60d430b8035b6c2a868776a3fc5c65b96507c8f042bb4"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-16",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "24366332c9163189584462c4008561790193ca3aefb2e4d2efd91ec685b0ac54",
+          "KOSDAQ": "bbaebaa83d0e437a43837cfc794a4992c863d39d9f870c2016ea4868bbbaebd9"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-17",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "eeec2a93c1daeb8bd515e63b3dbbbe135d260a92463151eaf6efa4c8db4e2fc2",
+          "KOSDAQ": "c2d25a35f6ac7421b692784136380bf656308b8b400756337bdff3b20f0b102f"
+        },
+        "marketwide_traded_exact_ohlc": 2643,
+        "marketwide_untraded_rows": 119,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-21",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "fb2aa83f527a9c660c97ee30067646ec276123f38195610c7615fefc6f886648",
+          "KOSDAQ": "d638dce44a171060b413358eef6534c957f62e8cecce3d6e9e422f3a0bd72533"
+        },
+        "marketwide_traded_exact_ohlc": 2647,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2760,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-22",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "e45b0cf968080949ba8623010ef9da2bca4029a8362b6112cd8e414a4e4c9a4b",
+          "KOSDAQ": "1d02b1a21eeff69ebfbca96664c1566c3fffc8fbe2c8f33552d50f5927137257"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-23",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "321a121c6a88ac0fdaab456b89f30e2bf72b86cf036e43524dda8ce8d1218826",
+          "KOSDAQ": "d04816b1f154393d264803936389af005d916cfe686374a43b7a23cc00590651"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 115,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-28",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "42eb7eb21cb3023bbfa7ad95e6574aff8102b0fce6020b3ce09087f3b2aa5104",
+          "KOSDAQ": "c5411d2b9dfd57ee2360a425428f273297c18b8455ce3c2496e89e581c350bd2"
+        },
+        "marketwide_traded_exact_ohlc": 2650,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-29",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "098b25bd7d49e4402d70172c7284c70e3718a5be528c2d55caaff0fe52a24ff3",
+          "KOSDAQ": "6c2e8f71759a2d6527fe27073224204b81d96dd30c0b7dd5420dbb24c340311d"
+        },
+        "marketwide_traded_exact_ohlc": 2656,
+        "marketwide_untraded_rows": 109,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-09-30",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "297c8c576b8c80a64015c1f4b6122a8540ccb486e617f2b6569aefe82822f2c0",
+          "KOSDAQ": "433373f06874f0ba22491d785ede1b9ef7274f7aea698d3e40c7d64752262fbd"
+        },
+        "marketwide_traded_exact_ohlc": 2657,
+        "marketwide_untraded_rows": 109,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-01",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "00cc8fd4321bef20b00a4cc7be031eed267f36eefabd3e141478a74a3b0e9145",
+          "KOSDAQ": "6e921cb014e00e3b01596d7d7d98d8242142a1a689109b803a891b3c376d8e16"
+        },
+        "marketwide_traded_exact_ohlc": 2658,
+        "marketwide_untraded_rows": 108,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-02",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "096af5a6299d1d58e45c3361058e258bb24f08b2b39d5cb06eabe356fa6f14b0",
+          "KOSDAQ": "3ad91ff7105d0a567ab7ea591d779c726e3d731e05583be7fbf549f033144d68"
+        },
+        "marketwide_traded_exact_ohlc": 2659,
+        "marketwide_untraded_rows": 107,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "89f71ba44a27407cbd0664e88fc7f9861e0e2c9a862648f5834ffcf60ecf02b5",
+          "KOSDAQ": "883ccc9394bea68f4024c20edc8d102ed95b2573663345f32bb6f69197c88ab5"
+        },
+        "marketwide_traded_exact_ohlc": 2656,
+        "marketwide_untraded_rows": 110,
+        "marketwide_total_rows": 2766,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "c9cc12f862cab679156d700bc7490df729618c3f9e234419331badcd772acf2c",
+          "KOSDAQ": "ae62b39ba2db572f2c72ae27799e6e6bdd87229c53d99704387da3d70e2efd86"
+        },
+        "marketwide_traded_exact_ohlc": 2658,
+        "marketwide_untraded_rows": 107,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 2,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-12",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "8a686340a8b4e014f710f3a58026ef0dad23020d7baf4d62d34c94c40760401f",
+          "KOSDAQ": "ef7f9dcbf7c15e5b7e493fff9ee2a468c70ff5419816c2de5b93dd94db7c9bc4"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 111,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-13",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "9ea5d4fad41026a363836cdf505055a01388bc8214605a596d492e44bb912951",
+          "KOSDAQ": "d2324cbebe3381ddf9444cd1589ee3e56c619a4417fc22b705083e6870baeb45"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 110,
+        "marketwide_total_rows": 2761,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "089fbc3395dcece04b920c0120fb0d9c338ee5650dc8c52221e42ace5da96c9d",
+          "KOSDAQ": "f7995e2d19d216c4a0eb0d049c6941431f61598250125c3cdc2f64d11739d58e"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 110,
+        "marketwide_total_rows": 2761,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "41c7f30d5986ce4934fb5194781197101a3131de1b85a3a6e9727d907a0e1951",
+          "KOSDAQ": "2428d10039a31fbafc5311ca44f975aaabb5c364b9ef872ecd61d4c3c1548350"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 111,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "405ff9a6edc940d48e1f4c8eb7d415b717f08c58ae7dffee06cc4e1745050266",
+          "KOSDAQ": "6c81b7ca5fddd48412dbd25505bfd6da435d43dd224ee8e51c26684076e1c893"
+        },
+        "marketwide_traded_exact_ohlc": 2649,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "6e000d56cf0f03f1ab039861d2b77fad060a58d84b6b44541c750fce470b95df",
+          "KOSDAQ": "06490e03c934417006d38a47ca718358af8edced5759f01bbe1ca6c153c82b6d"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "e9f8b076144fbe05164a3f33443ee874de878fcb95c87b1b4d7622e4ceb2af76",
+          "KOSDAQ": "7fbe506aaf3546903fd265a9bc6e665da4cf9e9edcc689b781490afb8f6e44a8"
+        },
+        "marketwide_traded_exact_ohlc": 2649,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2762,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "089f6c000ae74efdb6d69599c99074ce95c04e6416f6faf36effd02618e595a8",
+          "KOSDAQ": "869a98e755f4a07520414cf0f61e221e9f612af664bbb428864c3143013ece03"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 112,
+        "marketwide_total_rows": 2763,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "a990b377e656a72e9e721652aa86a1fe78fa3a9cb45253fa05582c6cfe895ffb",
+          "KOSDAQ": "1dac21502effb30da9d6e2700ec1163e7edb994bb34421bdd369c02824611be4"
+        },
+        "marketwide_traded_exact_ohlc": 2648,
+        "marketwide_untraded_rows": 116,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "eb6f1c52ef55312e1d0ab1b63899a1e501c0f235120f26dd93592e8d70894e10",
+          "KOSDAQ": "e68fe2ad745e233cc89906f2569068a62db780c04eeb3d1d676c5d43414a0a58"
+        },
+        "marketwide_traded_exact_ohlc": 2646,
+        "marketwide_untraded_rows": 118,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "255a70736a67f48b2c5abca941f5a32fa03c1a820e4a2e173ab553d1a4ac9ba6",
+          "KOSDAQ": "a077e9e9ab8fc44602534ed7a9c2c2905ad90ae4cb0406f64444e23d19f1eea3"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 114,
+        "marketwide_total_rows": 2765,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    },
+    {
+      "date": "2026-10-28",
+      "proof": {
+        "official_source_sha256": {
+          "KOSPI": "c31cc86dddabd6cf32108ec1cb48d9c5b05f8c41ccec8eb64329921f922839ee",
+          "KOSDAQ": "2c53062cca15102e9d81b1abe6316f9f3e0b55b24db702f1c7232b6327b503db"
+        },
+        "marketwide_traded_exact_ohlc": 2651,
+        "marketwide_untraded_rows": 113,
+        "marketwide_total_rows": 2764,
+        "exact_original_or_successor_pre_first_lows": 1,
+        "no_prior_official_low_breach_on_this_date": true
+      }
+    }
+  ]
+}
