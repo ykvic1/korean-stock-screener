@@ -38,6 +38,22 @@ EVIDENCE = (
     "old_security_trade_status_mismatch",
 )
 PROVEN_EVIDENCE = set(EVIDENCE[:2])
+# Independently observed 245-session KRX archive, 2026-11-23:
+# https://github.com/ykvic1/korean-stock-screener/actions/runs/45088118727
+# Changes to these frozen aggregate counts require a fresh source audit.
+FROZEN_CAUSES = {
+    "exchange_waiting_for_effect": 21,
+    "exchange_effective_before_share_trading": 132,
+    "cash_waiting_for_effect": 4,
+    "cash_effective_before_payment": 29,
+    "cash_entitlement_no_market_shares": 168,
+    "post_liquidation_trade_no_mark": 200,
+    "unresolved_distribution_no_mark": 133,
+}
+FROZEN_EVIDENCE = {
+    "old_security_absent_in_both_sources": 506,
+    "old_security_untraded_in_both_sources": 181,
+}
 
 
 def gap_plan(p, root=ROOT):
@@ -223,6 +239,8 @@ def valid_summary(report):
             or report.get("verified_no_original_trade_after_last_trade") != 687
             or report.get("missing_historical_gap_date_observations") != 0
             or sum(causes.values()) != 687 or sum(evidence.values()) != 687
+            or any(causes[k] != expected for k, expected in FROZEN_CAUSES.items())
+            or any(evidence[k] != expected for k, expected in FROZEN_EVIDENCE.items())
             or any(evidence[k] != 0 for k in set(EVIDENCE) - PROVEN_EVIDENCE)
             or report.get("all_corporate_action_gaps_accounted_for") is not True
             or any(report.get(k) != 0 for k in (
