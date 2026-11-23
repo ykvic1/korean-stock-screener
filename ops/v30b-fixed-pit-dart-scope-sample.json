@@ -1,0 +1,81 @@
+{
+  "schema": "v30b-fixed-pit-dart-scope-sample-v1",
+  "historical_signal_asof": "2025-11-13",
+  "fiscal_year": 2024,
+  "run_id": 45136314884,
+  "job_id": 137563334602,
+  "unfiltered_comparison_run_id": 45132945721,
+  "scope_filter": "Explicit IFRS accounting-scope member, official corporation or stock identifier, exact fiscal period and KRW unit; primary statement role unverified",
+  "counts": {
+    "prior_receipt_and_document_matched": 16
+  },
+  "document_sha256": [
+    "0f6d03cf728b57db780c50d217f3104f08aac3e4dad2f98c1c0700c8f3ab31c2",
+    "27c835544e361c6ed8d1fc050de0e75be11398cd34f2c687622acad02870806a",
+    "287781dff7918eed8e31a26b52c8d7af75e866283082110dde01334d03e101ba",
+    "3ba3b4d433622a99bcf20ffb53dbd2b451a423241a25488cbec2a0d571a788d6",
+    "51465b76d94edd32029c405c6b9d711705e90e7de71e157dde30c2309abc411c",
+    "605b9204037c5671b95e40d6396d8d05286f41a50e2827ed03d7fd6767dd05b1",
+    "606ffc728a5a275fcfc27d798560f3fd73e9880641399389d72b35fdc1fbb2d6",
+    "77f9338da8a59a7f79398895f9461dcca613924993314b602c8f93da8ca5cfc9",
+    "9878f62437ba0f8822ab58907dd3dbfbb9f34be5e9e9b68a45c1eb2944f46745",
+    "a717e9016ecd6b6a789a06c7b2aa8cd3578003f52f23730c2f4fd7e6de3cdd3f",
+    "aeceed9e9190e8736749130e618f58a2df1b8edf290f4d1706b07bd341c0cb41",
+    "c02d3ba67a16bb52bb07b5fb66b391a34b601b370eb7a11d47e9fbba87c9c280",
+    "cb16b90857325ced0e98c2801522f225c809207f1d2a98ec67502bdc7296c2f8",
+    "d5732c9bfcfa0027d2a24c1961a2dd9691e602cb1f371847a6a20c251a823b89",
+    "e7648e5c4def8ba4644ed42d7c6b8a634ed7b96b40e1b7a2fe3511d4cb3095cb",
+    "f99468e650877b45ec305c254913a08a704b997399b34cc3bfdeab73cc708d9c"
+  ],
+  "explicit_scope_candidate_counts": {
+    "assets": {
+      "all_candidate_values_equal": 16
+    },
+    "equity": {
+      "all_candidate_values_equal": 16
+    },
+    "liabilities": {
+      "all_candidate_values_equal": 16
+    },
+    "operating_income": {
+      "all_candidate_values_equal": 16
+    },
+    "revenue": {
+      "all_candidate_values_equal": 11,
+      "equal_candidate_among_distinct_values": 4,
+      "stored_value_missing": 1
+    }
+  },
+  "input_sha256": [
+    "2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+    "991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c",
+    "41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4"
+  ],
+  "maximum_provider_requests": 49,
+  "numeric_values_compared": true,
+  "point_in_time_scores_verified": false,
+  "primary_statement_scope_verified": false,
+  "sample": 16,
+  "xbrl_archive_counts": {
+    "parsed": 16
+  },
+  "xbrl_sha256": [
+    "035d169278378122c0379bea805e604d1ffc22482064d81f53c344d251a132f2",
+    "12319690fcb86c55ba03874d19d54b3bf5e003da2986bf0be67c17b3a34e17d3",
+    "1679f01638e6fdf10e88484b695ab4427fb2d7c270232fd98e01a0cdf711949c",
+    "23709158d9bca66e9af66c3233ab22dd65f1bb8897bc6d1e313201df74663633",
+    "2857a1ed15cdf4dc325b33a21550416fa3c4a128daf8aa3d73dd66204bb5ef21",
+    "3e4eb5e1624cd9211975b49082774f8b82cd58b52cdfba9e7aa209e28fe6272a",
+    "695395dea16bf90a5eb660f3265278f8ecd7e41416b0daf8691d3399898aee99",
+    "6be4cd63a5e534af682065f8737004dad7d2f7cd440197149316cea9d22c346b",
+    "76009bd426d089ab03130e9a30bec4d9d611ef462e4f90d820d349c7c3aa3959",
+    "7aac01ad95c2630588ab73067ae7c9d8b3ed2b356db73c401bd42524dbe1de93",
+    "7cffaf7f8dabf9fc7a36ab28f1fee47830167276719dc93babf685c174cc2b05",
+    "965414da4d78eb0379394a4411ca25825a037f33d2498ddfca672214d1bd19c9",
+    "b73d88d5841b32562a395be504d3a22a133eaf68a7514dbd35865748e50ed473",
+    "bbf8cf0cb36f920e422445c69459145f4f82390c7eab5518a7e4d997a6125e51",
+    "c614ffd12312e158a9a83be9dd44996720ce8c92352d8f5fedc0bebc94ca563c",
+    "df51a75fcdcc0a983e3a265fad93c66b45209fa9cc7f3e152f9c33766a92d7f9"
+  ],
+  "v30b_release_ready": false
+}
