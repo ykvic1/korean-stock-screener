@@ -55,7 +55,8 @@ class HistoricalOfficialCloseStopReferenceTests(TestCase):
             # A 4-day synthetic fixture is deliberately not a production proof.
             with patch.object(audit, "require",
                               side_effect=lambda ok, reason: None if ok else (
-                                  None if reason == "official_close_stop_observation_roster_changed"
+                                  None if reason in ("official_close_stop_observation_roster_changed",
+                                                      "official_close_stop_evidence_prerequisites_missing")
                                   else (_ for _ in ()).throw(ValueError(reason)))):
                 report = audit.summarize(p, observations, {}, {})
         self.assertEqual(report["reported_public_first_low_touch_issuers"], 14)
@@ -77,7 +78,8 @@ class HistoricalOfficialCloseStopReferenceTests(TestCase):
                 audit, "valid_gaps", return_value=True):
             with patch.object(audit, "require",
                               side_effect=lambda ok, reason: None if ok else (
-                                  None if reason == "official_close_stop_observation_roster_changed"
+                                  None if reason in ("official_close_stop_observation_roster_changed",
+                                                      "official_close_stop_evidence_prerequisites_missing")
                                   else (_ for _ in ()).throw(ValueError(reason)))):
                 report = audit.summarize(p, observations, {}, {})
         self.assertEqual(report["origin_outcomes"][
@@ -105,7 +107,8 @@ class HistoricalOfficialCloseStopReferenceTests(TestCase):
                 audit, "valid_gaps", return_value=True), patch.object(
                 audit, "require",
                 side_effect=lambda ok, reason: None if ok else (
-                    None if reason == "official_close_stop_observation_roster_changed"
+                    None if reason in ("official_close_stop_observation_roster_changed",
+                                                      "official_close_stop_evidence_prerequisites_missing")
                     else (_ for _ in ()).throw(ValueError(reason)))):
             report = audit.summarize(p, observations, {}, {})
         for key in (
