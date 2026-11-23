@@ -28,6 +28,10 @@ from v3_historical_official_holder_gap_ledger import (
     gap_plan as legal_gap_plan, observe_gap, summarize as summarize_legal_gap,
     valid_summary as valid_legal_gap,
 )
+from v3_historical_official_close_stop_reference import (
+    summarize as summarize_official_close_stop,
+    valid_summary as valid_official_close_stop,
+)
 from v3_historical_pilot_daily_replay import CALENDAR_CODES, SOURCE_DIGESTS
 from v3_krx_private_github_backfill import PrivateGitStorage, PrivateHistoryError, storage_diagnostic
 from v3_regular_close_indicators import CloseHistoryError, PRIVATE_REPO, archive_path, read_day
@@ -220,6 +224,13 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
     legal_gap_report = (
         summarize_legal_gap(gap_schedule, legal_gap_observations, holder_daily_report)
         if gap_schedule is not None else None)
+    # This check is closing-price-only. The same frozen holder observations
+    # are ephemeral and issuer-level rows must never enter public output.
+    official_close_stop_report = (
+        summarize_official_close_stop(
+            holder_daily, holder_daily_observations,
+            holder_daily_report, legal_gap_report)
+        if holder_daily is not None else None)
     totals = {key: Counter(compare({}, {}, ())) for key in ("market", "pilot", "extreme")}
     for result in by_session.values():
         for key, total in totals.items():
@@ -252,6 +263,7 @@ def build(panels, storage, root=ROOT, *, extreme_rows=None, share_event_rows=Non
         "holder_terminal_official_close": holder_report,
         "holder_daily_official_close_path": holder_daily_report,
         "holder_legal_unpriced_gap_ledger": legal_gap_report,
+        "holder_close_reference_chronology": official_close_stop_report,
         "schema": SCHEMA,
         "from": SIGNAL.isoformat(),
         "through": END.isoformat(),
@@ -294,7 +306,9 @@ def close_reconciliation_complete(report):
                 or not report["holder_terminal_official_close"][
                     "all_quoted_horizons_have_exact_holder_close"]
                 or not valid_holder_daily(report.get("holder_daily_official_close_path"))
-                or not valid_legal_gap(report.get("holder_legal_unpriced_gap_ledger"))))
+                or not valid_legal_gap(report.get("holder_legal_unpriced_gap_ledger"))
+                or not valid_official_close_stop(
+                    report.get("holder_close_reference_chronology"))))
             or report.get("new_market_api_calls") != 0):
         return False
 
