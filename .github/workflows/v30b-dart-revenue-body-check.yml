@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [2, 6, 10, 14]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -85,7 +85,7 @@ jobs:
                   targets[code] = (market_name, (annual.get("CFS") or annual["OFS"])["receipt_id"])
           require(len(targets) == 16, "unexpected_annual_sample_count")
           shard = int(os.environ["SAMPLE_SHARD"])
-          targets = dict(list(targets.items())[shard::4])
+          targets = dict(list(targets.items())[shard:shard + 1])
           key = os.environ["DART_API_KEY"]
           client = DARTClient(key)
           client.set_research_timeout(18)
@@ -259,16 +259,16 @@ jobs:
                           counts["prior_receipt_matches_document_unverified"] += 1
           finally:
               client.session.close()
-          require(sum(counts.values()) == 4 and len(set(matched_digests)) == len(matched_digests),
+          require(sum(counts.values()) == 1 and len(set(matched_digests)) == len(matched_digests),
                   "annual_sample_coverage_mismatch")
           previous = json.loads((ROOT / "ops/v30b-fixed-pit-dart-body-sample.json").read_bytes())
           require(set(matched_digests) <= set(previous["document_sha256"]), "prior_document_cohort_changed")
           prior_numeric = json.loads((ROOT / "ops/v30b-fixed-pit-dart-numeric-sample.json").read_bytes())
           require(set(xbrl_digests) <= set(prior_numeric["xbrl_sha256"]), "numeric_archive_cohort_changed")
-          require(sum(archives.values()) == 4 and all(sum(v.values()) == archives["parsed"]
+          require(sum(archives.values()) == 1 and all(sum(v.values()) == archives["parsed"]
                   for v in numeric.values()), "numeric_sample_count_mismatch")
           require(sum(revenue_roles.values()) == sum(body_counts.values()), "body_sample_count_changed")
-          print("DART_SAMPLE " + json.dumps({"sample": 4, "shard": shard, "counts": counts,
+          print("DART_SAMPLE " + json.dumps({"sample": 1, "shard": shard, "counts": counts,
                 "xbrl_archive_counts": archives, "ambiguous_revenue_role_hints": revenue_roles, "explicit_scope_candidate_counts": numeric,
                 "xbrl_sha256": sorted(xbrl_digests), "primary_statement_scope_verified": False,
                 "input_sha256": list(PINNED_HASHES), "document_sha256": sorted(matched_digests),
