@@ -1,0 +1,15 @@
+{
+  "schema": "v30b-fixed-pit-dart-revenue-body-diagnostic-v1",
+  "historical_signal_asof": "2025-11-13",
+  "fiscal_year": 2024,
+  "source_runs": [
+    45160388248,
+    45164292036
+  ],
+  "ambiguous_revenue_inputs_targeted": 4,
+  "body_table_unresolved": 4,
+  "primary_statement_scope_verified": false,
+  "point_in_time_scores_verified": false,
+  "v30b_release_ready": false,
+  "reason": "The bounded XML selector did not uniquely identify a matching current-year revenue row in a scope-labelled primary statement. This is a selector limitation; no numeric disagreement was established."
+}
