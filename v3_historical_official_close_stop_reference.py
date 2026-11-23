@@ -29,6 +29,34 @@ OUTCOMES = (
     "public_first_low_missing_official_traded_close",
 )
 BAD = frozenset(OUTCOMES[-3:])
+# Verified with the independent 245-day KRX CLOSE archive (not intraday LOW):
+# https://github.com/ykvic1/korean-stock-screener/actions/runs/45091853716
+FROZEN_ORIGIN_OUTCOMES = {
+    "public_first_low_and_official_close_same_day": 7,
+    "official_close_breach_later_than_public_first_low": 6,
+    "public_first_low_but_no_official_close_breach": 1,
+    "no_public_low_touch_and_no_official_close_breach": 3,
+    "official_close_breach_before_public_first_low": 0,
+    "official_close_breach_without_public_low_touch": 0,
+    "public_first_low_missing_official_traded_close": 0,
+}
+FROZEN_HORIZON_OUTCOMES = {
+    "low_touch_with_official_closing_breach_by_horizon": 52,
+    "low_touch_without_closing_breach_by_horizon": 1,
+    "no_low_touch_and_no_official_closing_breach_by_horizon": 32,
+    "closing_breach_precedes_reported_low_touch": 0,
+    "closing_breach_when_no_reported_low_touch": 0,
+    "reported_low_touch_outside_traded_holder_path": 0,
+}
+FROZEN_COUNTS = {
+    "reported_public_first_low_touch_issuers": 14,
+    "reported_no_public_low_touch_issuers": 3,
+    "first_low_dates_with_authenticated_official_close": 14,
+    "first_low_dates_whose_official_close_is_above_reference": 7,
+    "untraded_observations_before_reported_first_low": 13,
+    "closing_breach_lag_sessions_after_first_low_total": 18,
+    "closing_breach_lag_sessions_after_first_low_max": 7,
+}
 HORIZON_OUTCOMES = (
     "low_touch_with_official_closing_breach_by_horizon",
     "low_touch_without_closing_breach_by_horizon",
@@ -77,7 +105,6 @@ def summarize(plan, observations, authenticated_daily, authenticated_gaps):
     first_low_day_has_official_traded_close = 0
     day_of_first_low_official_close_above_reference = 0
     consecutive_close_breach_lag_days = []
-    close_post_first_low = {}
     for origin, reference in sorted(plan["reference"].items()):
         days = [d for d in plan["days"] if (origin, d) in seen]
         positions = {d: seen[origin, d] for d in days}
@@ -85,7 +112,6 @@ def summarize(plan, observations, authenticated_daily, authenticated_gaps):
         low_touch = (day(reference["first_observed_touch_on"])
                      if reference["first_observed_touch_on"] else None)
         close_touch = _first_close_breach(days, positions, line)
-        close_post_first_low[origin] = close_touch
         if low_touch is None:
             no_touch += 1
             state = (
@@ -180,6 +206,9 @@ def valid_summary(x):
             or any(type(v) is not int or v < 0 for v in
                    list(origin.values()) + list(horizon.values()))
             or sum(origin.values()) != 17 or sum(horizon.values()) != 85
+            or origin != FROZEN_ORIGIN_OUTCOMES
+            or horizon != FROZEN_HORIZON_OUTCOMES
+            or any(x.get(key) != value for key, value in FROZEN_COUNTS.items())
             or x.get("original_issuers") != 17 or x.get("horizons") != 85
             or x.get("official_close_observation_holder_days") != 3461
             or (x.get("reported_public_first_low_touch_issuers")
