@@ -1,12 +1,11 @@
 {
   "schema": "v30b-development-scope-v1",
-  "development_cutoff_kst": "2026-11-23",
+  "development_cutoff_kst": "2026-11-20",
   "cutoff_inclusive": true,
-  "cutoff_session_can_be_ingested_when_source_finalizes": true,
   "advance_development_cutoff_on_new_market_data": false,
   "post_cutoff_ingestion": "scheduled_operations",
   "wave_validation_required": false,
-  "practice": "Use the last completed source snapshot through the cutoff. Do not create missing observations. Forward outcomes are measured on their scheduled maturities with the existing workflow.",
+  "practice": "Use the frozen 2026-11-20 close snapshot for development acceptance. New sessions enter scheduled operations starting 2026-11-23. Forward outcomes are measured on their scheduled maturities with the existing workflow.",
   "automation": {
     "market_census_workflow": ".github/workflows/full-market-batches.yml",
     "operational_score_workflow": ".github/workflows/v3-operational-research-score.yml",
@@ -18,5 +17,17 @@
     "Historical downside path and corporate-action evidence"
   ],
   "performance_validated": false,
-  "v30b_release_ready": false
+  "v30b_release_ready": false,
+  "first_scheduled_operations_session_kst": "2026-11-23",
+  "operational_development_acceptance": {
+    "status": "passed_on_frozen_baseline",
+    "baseline_asof": "2026-11-20",
+    "deployed_commit": "6608c3c091c3b7252c926975a87e9af650e41e8a",
+    "official_close_run_id": 45116288783,
+    "score_run_id": 45116460242,
+    "pages_run_id": 45116546650,
+    "listed_total": 2592,
+    "ranked_count": 2570,
+    "first_scheduled_operations_run_verified": false
+  }
 }
