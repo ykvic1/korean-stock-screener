@@ -1,0 +1,22 @@
+{
+  "schema": "v30b-development-scope-v1",
+  "development_cutoff_kst": "2026-11-23",
+  "cutoff_inclusive": true,
+  "cutoff_session_can_be_ingested_when_source_finalizes": true,
+  "advance_development_cutoff_on_new_market_data": false,
+  "post_cutoff_ingestion": "scheduled_operations",
+  "wave_validation_required": false,
+  "practice": "Use the last completed source snapshot through the cutoff. Do not create missing observations. Forward outcomes are measured on their scheduled maturities with the existing workflow.",
+  "automation": {
+    "market_census_workflow": ".github/workflows/full-market-batches.yml",
+    "operational_score_workflow": ".github/workflows/v3-operational-research-score.yml",
+    "forward_outcomes_workflow": ".github/workflows/v3-forward-entry.yml"
+  },
+  "remaining_fixed_snapshot_verification": [
+    "KRX regular-session volume and turnover provenance",
+    "Historical point-in-time issuer and financial coverage",
+    "Historical downside path and corporate-action evidence"
+  ],
+  "performance_validated": false,
+  "v30b_release_ready": false
+}
