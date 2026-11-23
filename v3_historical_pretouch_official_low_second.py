@@ -27,6 +27,11 @@ EXPECTED_DATES = (
     "2025-12-04", "2025-12-05",
 )
 EXPECTED_HOLDER_DAYS = 35
+SECOND_PROVENANCE = (
+    45103508411, 137459465300, 14786595941,
+    "2ce1d78cedaf7d002f59650cbdc709bb89119e35c54d855c9e5c46848e222cbe",
+)
+SECOND_RUN_URL = "https://github.com/ykvic1/korean-stock-screener/actions/runs/45103508411"
 
 
 def second_batch_plan(public_panels):
@@ -55,7 +60,7 @@ def probe_second(public_panels, client):
     return result
 
 
-def valid_second_evidence(public_panels, second, *, provenance=None):
+def valid_second_evidence(public_panels, second, *, provenance=SECOND_PROVENANCE):
     """Check that saved aggregate matches current independent frozen sources.
 
     Historical truth is bounded to the independently authenticated 5 dates.
@@ -64,7 +69,8 @@ def valid_second_evidence(public_panels, second, *, provenance=None):
     prior = second_batch_plan(public_panels)
     require(type(second) is dict and second.get("schema") == SCHEMA
             and second.get("saved_on_kst") == "2026-11-23"
-            and second.get("claim_frozen_readonly") is True,
+            and second.get("claim_frozen_readonly") is True
+            and second.get("run_url") == SECOND_RUN_URL,
             "second_pre_first_low_source_not_frozen")
     if provenance is not None:
         require(tuple(second.get(key) for key in (
