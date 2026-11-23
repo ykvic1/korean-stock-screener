@@ -1,0 +1,81 @@
+name: V3 next official KRX LOW validation
+on:
+  push:
+    branches: [v30b-low-validation-seventh]
+    paths: [.github/workflows/v3-next-low-validation-once.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'pyarrow>=20,<27' 'pandas>=2,<3'
+      - name: Download pinned public replay inputs
+        working-directory: ${{ runner.temp }}
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o pilot-2025.parquet
+          curl -fsSL --max-time 60 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o pilot-2026.parquet
+          curl -fsSL --max-time 30 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o pilot-2026-11-13.csv
+      - name: Replay 470 comparisons and check eight new bounded batches
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          from v3_historical_pretouch_official_low_fourth import (
+              FOURTH_FROZEN, KRXClient, day, read_panels, require,
+              verified_plan, verify_fourth_official_coverage,
+          )
+          from v3_historical_pretouch_official_low_gap import choose_batch, check_bounded_batch
+
+          from v3_historical_pretouch_official_low_fifth import FROZEN, SIXTH_FROZEN, replay
+
+          tmp = Path(os.environ["RUNNER_TEMP"])
+          panels = read_panels([tmp / f"pilot-{key}" for key in (
+              "2025.parquet", "2026.parquet", "2026-11-13.csv")])
+          frozen = json.loads(FOURTH_FROZEN.read_text(encoding="utf-8"))
+          fifth = json.loads(FROZEN.read_text(encoding="utf-8"))
+          sixth = json.loads(SIXTH_FROZEN.read_text(encoding="utf-8"))
+          baseline = replay(panels, fifth, sixth)
+          require(baseline["verified_holder_days"] == 470, "baseline_scope_changed")
+          plan, fingerprints = verified_plan(panels)
+          fourth = frozen["result"]
+          excluded = {day(on) for on in fourth["scope_dates"]}
+          fingerprints.update(value for row in fourth["official"].values()
+                              for value in row["official_source_sha256"].values())
+          for batch in fifth["result"]["batches"] + sixth["result"]["batches"]:
+              excluded.update(day(on) for on in batch["scope_dates"])
+              fingerprints.update(value for row in batch["official"].values()
+                                  for value in row["official_source_sha256"].values())
+          client = KRXClient(os.environ["KRX_API_KEY"])
+          batches = []
+          for _ in range(8):
+              batch = choose_batch(plan["uncovered"], excluded)
+              report = check_bounded_batch(panels, {**plan, "batch": batch}, client)
+              digests = {value for row in report["official"].values()
+                         for value in row["official_source_sha256"].values()}
+              require(len(digests) == 10 and digests.isdisjoint(fingerprints),
+                      "repeated_krx_source_fingerprints")
+              excluded.update(batch)
+              fingerprints.update(digests)
+              batches.append(report)
+              print('LOW_BATCH ' + json.dumps(report, sort_keys=True), flush=True)
+
+          added = sum(batch["official_low_holder_days_exact"] for batch in batches)
+          result = {"verified_holder_days": 470 + added,
+                    "unverified_holder_days": 282 - added, "new_verified_holder_days": added,
+                    "maximum_market_api_requests": 80,
+                    "performance_validated": False, "v30b_release_ready": False}
+          print("LOW_TOTAL " + json.dumps(result, sort_keys=True), flush=True)
+          PY
