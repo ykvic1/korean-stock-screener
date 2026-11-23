@@ -1,0 +1,22 @@
+name: Read fourth LOW audit artifact
+on:
+  push:
+    branches: [v30b-krx-pre-first-low-fourth-20261123]
+    paths: [.github/workflows/v3-historical-fourth-low-replay.yml]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  read:
+    if: github.ref == 'refs/heads/v30b-krx-pre-first-low-fourth-20261123'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          artifact-ids: 14789629317
+          run-id: 45112064445
+          github-token: ${{ github.token }}
+      - run: jq -c . fourth-low.json
