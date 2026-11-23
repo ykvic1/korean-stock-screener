@@ -530,12 +530,16 @@ class V30bReadinessTests(unittest.TestCase):
         o, s, h = public_inputs()
         r = assess_v30b(o, s, h, proof={
             "verified": True, "signed": True, "v30b_release_ready": True,
-            "certified_score": 100, "investment_grade_certified_count": 2497})
+            "certified_score": 100, "investment_grade_certified_count": 2497,
+            "krx_regular_session_volume_and_turnover": True})
         self.assertTrue(r["public_summary_valid"])
         self.assertFalse(r["v30b_release_ready"])
         self.assertFalse(r["confirmed_scoring_authorized"])
         self.assertIsNone(r["certified_score"])
         self.assertIn("authenticated_source_chain_unverified", r["blocker_codes"])
+        self.assertFalse(r["gates"]["krx_regular_session_volume_and_turnover"])
+        self.assertIn("krx_regular_session_volume_and_turnover_unverified",
+                      r["blocker_codes"])
 
     def test_invalid_payloads_fail_closed_and_only_codes_returned(self):
         r = assess_v30b({"private_issuer_id": "000001"}, None, [])
