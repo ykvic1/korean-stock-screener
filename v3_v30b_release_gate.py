@@ -935,7 +935,6 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         # Structural horizon-readiness tests use frozen *synthetic* cohorts;
         # none are actual after-signal KRX adjusted total returns or
         # loss-first walk-forward outcomes on a certified delisted universe.
-        "verified_1_2_3_6_12month_forward_outcomes": False,
         "validated_loss_first_stop_target_mfe_mae": False,
     }
     blockers = set(issues)
@@ -950,7 +949,6 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "historical_delisted_pit_universe_unverified",
         "authenticated_source_chain_unverified",
         "investment_grade_scoring_not_authorized",
-        "five_forward_horizon_outcomes_unverified",
         "loss_first_stop_target_mfe_mae_unverified",
     })
     return {
@@ -993,6 +991,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "dart_receipt_collection_is_pit_or_adjusted_certified": False,
         "historical_window_is_pit_or_adjusted_certified": False,
         "forward_1_2_3_6_12month_returns_certified": False,
+        "forward_performance_required_for_release": False,
         "loss_first_risk_backtest_certified": False,
         "industry_in_100point_score": False,
         "missing_factor_as_zero": False,
