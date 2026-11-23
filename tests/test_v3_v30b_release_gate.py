@@ -537,8 +537,9 @@ class V30bReadinessTests(unittest.TestCase):
         self.assertFalse(r["confirmed_scoring_authorized"])
         self.assertIsNone(r["certified_score"])
         self.assertIn("authenticated_source_chain_unverified", r["blocker_codes"])
-        self.assertFalse(r["gates"]["krx_regular_session_volume_and_turnover"])
-        self.assertIn("krx_regular_session_volume_and_turnover_unverified",
+        self.assertFalse(r["krx_regular_session_reference_comparison_required_for_release"])
+        self.assertNotIn("krx_regular_session_volume_and_turnover", r["gates"])
+        self.assertNotIn("krx_regular_session_volume_and_turnover_unverified",
                       r["blocker_codes"])
 
     def test_invalid_payloads_fail_closed_and_only_codes_returned(self):
