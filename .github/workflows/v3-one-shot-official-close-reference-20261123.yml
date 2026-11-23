@@ -1,4 +1,5 @@
 name: V3 One Shot 245 KRX Official Closing Support Breach 20261123
+# Retry after restricting synthetic fixture exceptions to unit tests only.
 
 on:
   push:
