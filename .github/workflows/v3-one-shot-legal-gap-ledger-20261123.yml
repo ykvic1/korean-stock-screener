@@ -1,4 +1,5 @@
 name: V3 One-Shot KRX Historical Legal Gap Ledger 20261123
+# Correction: keep explicit zero-count categories when evaluating scope.
 
 on:
   push:
