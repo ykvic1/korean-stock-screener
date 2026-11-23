@@ -16,10 +16,12 @@ from v3_historical_pretouch_official_low_gap import PROBE_SCHEMA, choose_batch
 PROVENANCE = (45120255470, 137512148468)
 SIXTH_PROVENANCE = (45121219037, 137515205090)
 SIXTH_FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-sixth-20261123.json"
+SEVENTH_PROVENANCE = (45122380843, 137518868630)
+SEVENTH_FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-seventh-20261123.json"
 FROZEN = ROOT / "ops/v3-historical-pre-first-low-official-fifth-20261123.json"
 
 
-def replay(panels, proof, subsequent=None):
+def replay(panels, proof, subsequent=None, latest=None):
     require((proof["run_id"], proof["job_id"]) == PROVENANCE,
             "fifth_low_provenance_mismatch")
     fourth = json.loads(FOURTH_FROZEN.read_text(encoding="utf-8"))
@@ -32,10 +34,16 @@ def replay(panels, proof, subsequent=None):
     )
     baseline = replay_batches(plan, proof["result"], baseline, excluded, seen, 2)
     if subsequent is None:
+        require(latest is None, "missing_sixth_low_evidence")
         return baseline
     require((subsequent["run_id"], subsequent["job_id"]) == SIXTH_PROVENANCE,
             "sixth_low_provenance_mismatch")
-    return replay_batches(plan, subsequent["result"], baseline, excluded, seen, 6)
+    baseline = replay_batches(plan, subsequent["result"], baseline, excluded, seen, 6)
+    if latest is None:
+        return baseline
+    require((latest["run_id"], latest["job_id"]) == SEVENTH_PROVENANCE,
+            "seventh_low_provenance_mismatch")
+    return replay_batches(plan, latest["result"], baseline, excluded, seen, 8)
 
 
 def replay_batches(plan, result, baseline, excluded, seen, expected_batches):
@@ -89,11 +97,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("sources", nargs=3, type=Path)
     parser.add_argument("--include-sixth", action="store_true")
+    parser.add_argument("--include-seventh", action="store_true")
     args = parser.parse_args()
     proof = json.loads(FROZEN.read_text(encoding="utf-8"))
     subsequent = (json.loads(SIXTH_FROZEN.read_text(encoding="utf-8"))
-                  if args.include_sixth else None)
-    print(json.dumps(replay(read_panels(args.sources), proof, subsequent), sort_keys=True))
+                  if args.include_sixth or args.include_seventh else None)
+    latest = (json.loads(SEVENTH_FROZEN.read_text(encoding="utf-8"))
+              if args.include_seventh else None)
+    print(json.dumps(replay(read_panels(args.sources), proof, subsequent, latest), sort_keys=True))
 
 
 if __name__ == "__main__":

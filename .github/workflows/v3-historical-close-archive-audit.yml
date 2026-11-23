@@ -14,6 +14,7 @@ on:
       - tests/test_v3_historical_pretouch_official_low_third.py
       - v3_historical_pretouch_official_low_fourth.py
       - v3_historical_pretouch_official_low_fifth.py
+      - ops/v3-historical-pre-first-low-official-seventh-20261123.json
       - ops/v3-historical-pre-first-low-official-sixth-20261123.json
       - ops/v3-historical-pre-first-low-official-fifth-20261123.json
       - ops/v3-historical-pre-first-low-official-fourth-20261123.json
@@ -148,12 +149,12 @@ jobs:
           python v3_historical_pretouch_official_low_fourth.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
           jq -e '.verified_holder_days == 329 and .unverified_holder_days == 423 and .replay_provider_calls == 0 and .v30b_release_ready == false' "$result" > /dev/null
           jq . "$result" >> "$GITHUB_STEP_SUMMARY"
-      - name: Replay the fifth and sixth official LOW proofs without provider calls
+      - name: Replay cumulative official LOW proofs without provider calls
         run: |
           set -euo pipefail
           result="$RUNNER_TEMP/historical-official-low-replay.json"
-          python v3_historical_pretouch_official_low_fifth.py --include-sixth "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
-          jq -e '.verified_holder_days == 470 and .unverified_holder_days == 282 and .replay_provider_calls == 0 and .v30b_release_ready == false' "$result" > /dev/null
+          python v3_historical_pretouch_official_low_fifth.py --include-seventh "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
+          jq -e '.verified_holder_days == 590 and .unverified_holder_days == 162 and .replay_provider_calls == 0 and .v30b_release_ready == false' "$result" > /dev/null
           jq . "$result" >> "$GITHUB_STEP_SUMMARY"
       - name: Compare closes, listed shares and observable trade status
         env:
