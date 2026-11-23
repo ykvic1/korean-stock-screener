@@ -80,7 +80,7 @@ class ThirdOfficialPreFirstLowTests(TestCase):
         workflow=(root/".github/workflows/v3-historical-close-archive-audit.yml").read_text()
         self.assertIn("regular_session_volume_independently_verified",code)
         self.assertIn("performance_validated",code)
-        self.assertIn("third_krx_official_source",code.replace("market_hash","source"))
+        self.assertIn("third_krx_market_hash_reused_or_missing",code)
         self.assertIn("v3_historical_pretouch_official_low_third.py",workflow)
         self.assertIn("test_v3_historical_pretouch_official_low_third.py",workflow)
         self.assertIn("contents: read",workflow)
