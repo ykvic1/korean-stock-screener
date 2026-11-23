@@ -17,6 +17,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           artifact-ids: 14789629317
+          merge-multiple: true
           run-id: 45112064445
           github-token: ${{ github.token }}
       - run: jq -c . fourth-low.json
