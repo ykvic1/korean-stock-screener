@@ -111,7 +111,7 @@ def prepare(public_panels, confirmed):
     holder = daily_holder_plan(sessions)
     # Second independently authenticated five-date batch increases the unique
     # official OHLC coverage from 49 to 54; never synthesize earlier LOWs.
-    require(41 <= len(confirmed) <= 61
+    require(41 <= len(confirmed) <= 71
             and all(d in public_panels for d in confirmed)
             and len(holder["reference"]) == 17, "invalid_saved_ohlc_day_calendar")
     holders = {on: {origin: (code, units)
@@ -201,7 +201,7 @@ def valid_summary(report):
     if (report.get("original_issuers") != 17
             or report.get("original_issuers_with_replayed_low_touch") != 14
             or not 41 <= report.get(
-                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 61
+                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 71
             or any(type(report.get(key)) is not int or report[key] < 0
                    for key in numeric)
             or report["pre_touch_public_traded_holder_days"] !=
@@ -243,6 +243,17 @@ def valid_summary(report):
                 and report.get("unverified_pre_touch_holder_lows_remaining") == 502
                 and report.get("previously_authenticated_official_marketwide_ohlc_dates") == 54
                 and report.get("distinct_pre_touch_official_low_missing_dates") == 184)
+        elif batch_count == 20:
+            consistent = (
+                report.get("independently_authenticated_new_pre_touch_holder_lows") == 140
+                and report.get("second_batch_additional_original_successor_lows") == 35
+                and report.get("third_batch_additional_original_successor_lows") == 58
+                and report.get("third_batch_new_official_market_days") == 10
+                and report.get("pre_touch_holder_days_on_existing_official_ohlc_dates") == 308
+                and report.get("pre_touch_holder_days_without_existing_official_ohlc_date") == 444
+                and report.get("unverified_pre_touch_holder_lows_remaining") == 444
+                and report.get("previously_authenticated_official_marketwide_ohlc_dates") == 64
+                and report.get("distinct_pre_touch_official_low_missing_dates") == 174)
         else:
             consistent = False
         if not (common and consistent):

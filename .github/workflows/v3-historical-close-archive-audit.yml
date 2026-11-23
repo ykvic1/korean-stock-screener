@@ -10,6 +10,9 @@ on:
       - v3_historical_official_close_stop_reference.py
       - v3_historical_pretouch_official_low_gap.py
       - v3_historical_pretouch_official_low_second.py
+      - v3_historical_pretouch_official_low_third.py
+      - tests/test_v3_historical_pretouch_official_low_third.py
+      - ops/v3-historical-pre-first-low-official-third-20261123.json
       - tests/test_v3_historical_pretouch_official_low_second.py
       - ops/v3-historical-pre-first-low-official-second-20261123.json
       - ops/v3-historical-pre-first-low-official-20261123.json
@@ -129,6 +132,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_v3_historical_pretouch_official_low_second.py' -v
+      - name: Verify third pre-first LOW no-repeat KRX offline tests
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_historical_pretouch_official_low_third.py' -v
       - name: Compare closes, listed shares and observable trade status
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -137,7 +144,7 @@ jobs:
           set -euo pipefail
           result="$RUNNER_TEMP/historical-close-archive-audit.json"
           python v3_historical_close_archive_audit.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
-          jq -e '.pre_first_low_official_ohlc_coverage.original_issuers_with_replayed_low_touch == 14 and .pre_first_low_official_ohlc_coverage.pre_touch_public_traded_holder_days == 752 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_on_existing_official_ohlc_dates == 250 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_without_existing_official_ohlc_date == 502 and .pre_first_low_official_ohlc_coverage.independently_authenticated_new_low_dates == 10 and .pre_first_low_official_ohlc_coverage.independently_authenticated_new_pre_touch_holder_lows == 82 and .pre_first_low_official_ohlc_coverage.second_batch_additional_original_successor_lows == 35 and .pre_first_low_official_ohlc_coverage.offline_replay_new_krx_market_api_requests == 0 and .pre_first_low_official_ohlc_coverage.first_touch_earliest_low_certified == false and .pre_first_low_official_ohlc_coverage.performance_validated == false and .pre_first_low_official_ohlc_coverage.v30b_release_ready == false' "$result" >/dev/null
+          jq -e '.pre_first_low_official_ohlc_coverage.original_issuers_with_replayed_low_touch == 14 and .pre_first_low_official_ohlc_coverage.pre_touch_public_traded_holder_days == 752 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_on_existing_official_ohlc_dates == 308 and .pre_first_low_official_ohlc_coverage.pre_touch_holder_days_without_existing_official_ohlc_date == 444 and .pre_first_low_official_ohlc_coverage.independently_authenticated_new_low_dates == 20 and .pre_first_low_official_ohlc_coverage.independently_authenticated_new_pre_touch_holder_lows == 140 and .pre_first_low_official_ohlc_coverage.third_batch_additional_original_successor_lows == 58 and .pre_first_low_official_ohlc_coverage.offline_replay_new_krx_market_api_requests == 0 and .pre_first_low_official_ohlc_coverage.offline_replay_new_krx_market_api_requests == 0 and .pre_first_low_official_ohlc_coverage.first_touch_earliest_low_certified == false and .pre_first_low_official_ohlc_coverage.performance_validated == false and .pre_first_low_official_ohlc_coverage.v30b_release_ready == false' "$result" >/dev/null
           jq -e '.holder_close_reference_chronology.all_official_closing_breaches_consistent_with_frozen_public_first_lows == true and .holder_close_reference_chronology.official_close_observation_holder_days == 3461 and .holder_close_reference_chronology.first_intraday_reference_touch_certified == false and .holder_close_reference_chronology.performance_validated == false and .holder_close_reference_chronology.v30b_release_ready == false' "$result" >/dev/null
           jq -e '.holder_legal_unpriced_gap_ledger.all_corporate_action_gaps_accounted_for == true and .holder_legal_unpriced_gap_ledger.eligible_holder_day_cells == 4148 and .holder_legal_unpriced_gap_ledger.unpriced_corporate_gap_holder_date_cells == 687 and .holder_legal_unpriced_gap_ledger.verified_no_original_trade_after_last_trade == 687 and .holder_legal_unpriced_gap_ledger.new_krx_market_api_requests == 0 and .holder_legal_unpriced_gap_ledger.first_intraday_reference_touch_proven == false and .holder_legal_unpriced_gap_ledger.v30b_release_ready == false' "$result" >/dev/null
           jq -e '.holder_daily_official_close_path.daily_close_and_holder_schedule_matched == true and .holder_daily_official_close_path.frozen_horizon_observation_counts_reproduced == 85 and .holder_daily_official_close_path.frozen_horizon_intraday_extremes_bound_official_close == 85 and .holder_daily_official_close_path.close_does_not_precede_frozen_first_low_touch == 85 and .holder_daily_official_close_path.new_krx_market_api_requests == 0 and .holder_daily_official_close_path.new_private_archive_reads == 0 and .holder_daily_official_close_path.earliest_intraday_low_touch_certified == false and .holder_daily_official_close_path.complete_adjusted_total_return_history_certified == false and .holder_daily_official_close_path.performance_validated == false and .holder_daily_official_close_path.v30b_release_ready == false' "$result" >/dev/null
