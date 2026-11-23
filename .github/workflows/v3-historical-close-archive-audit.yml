@@ -7,6 +7,8 @@ on:
       - v3_historical_close_archive_audit.py
       - v3_historical_official_holder_terminal.py
       - v3_historical_official_holder_daily_path.py
+      - v3_historical_official_close_stop_reference.py
+      - tests/test_v3_historical_official_close_stop_reference.py
       - v3_historical_official_holder_gap_ledger.py
       - tests/test_v3_historical_official_holder_gap_ledger.py
       - tests/test_v3_historical_official_holder_daily_path.py
@@ -109,6 +111,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m unittest discover -s tests -p 'test_v3_historical_official_holder_gap_ledger.py' -v
+      - name: Chronological KRX CLOSE reference-breach regression (offline)
+        run: |
+          set -euo pipefail
+          python -m unittest discover -s tests -p 'test_v3_historical_official_close_stop_reference.py' -v
       - name: Compare closes, listed shares and observable trade status
         env:
           V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
@@ -117,6 +123,7 @@ jobs:
           set -euo pipefail
           result="$RUNNER_TEMP/historical-close-archive-audit.json"
           python v3_historical_close_archive_audit.py "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv" > "$result"
+          jq -e '.holder_close_reference_chronology.all_official_closing_breaches_consistent_with_frozen_public_first_lows == true and .holder_close_reference_chronology.official_close_observation_holder_days == 3461 and .holder_close_reference_chronology.first_intraday_reference_touch_certified == false and .holder_close_reference_chronology.performance_validated == false and .holder_close_reference_chronology.v30b_release_ready == false' "$result" >/dev/null
           jq -e '.holder_legal_unpriced_gap_ledger.all_corporate_action_gaps_accounted_for == true and .holder_legal_unpriced_gap_ledger.eligible_holder_day_cells == 4148 and .holder_legal_unpriced_gap_ledger.unpriced_corporate_gap_holder_date_cells == 687 and .holder_legal_unpriced_gap_ledger.verified_no_original_trade_after_last_trade == 687 and .holder_legal_unpriced_gap_ledger.new_krx_market_api_requests == 0 and .holder_legal_unpriced_gap_ledger.first_intraday_reference_touch_proven == false and .holder_legal_unpriced_gap_ledger.v30b_release_ready == false' "$result" >/dev/null
           jq -e '.holder_daily_official_close_path.daily_close_and_holder_schedule_matched == true and .holder_daily_official_close_path.frozen_horizon_observation_counts_reproduced == 85 and .holder_daily_official_close_path.frozen_horizon_intraday_extremes_bound_official_close == 85 and .holder_daily_official_close_path.close_does_not_precede_frozen_first_low_touch == 85 and .holder_daily_official_close_path.new_krx_market_api_requests == 0 and .holder_daily_official_close_path.new_private_archive_reads == 0 and .holder_daily_official_close_path.earliest_intraday_low_touch_certified == false and .holder_daily_official_close_path.complete_adjusted_total_return_history_certified == false and .holder_daily_official_close_path.performance_validated == false and .holder_daily_official_close_path.v30b_release_ready == false' "$result" >/dev/null
           jq 'del(.by_session)' "$result" >> "$GITHUB_STEP_SUMMARY"
