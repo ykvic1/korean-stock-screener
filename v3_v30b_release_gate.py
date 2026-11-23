@@ -932,9 +932,7 @@ def assess_v30b(observed: Any, scorecard: Any, history: Any,
         "historical_delisted_pit_universe": False,
         "authenticated_point_in_time_source_chain": False,
         "investment_grade_scoring": False,
-        # Structural horizon-readiness tests use frozen *synthetic* cohorts;
-        # none are actual after-signal KRX adjusted total returns or
-        # loss-first walk-forward outcomes on a certified delisted universe.
+        # Historical downside validation requires a certified delisted universe.
         "validated_loss_first_stop_target_mfe_mae": False,
     }
     blockers = set(issues)
