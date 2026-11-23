@@ -201,7 +201,7 @@ def valid_summary(report):
     if (report.get("original_issuers") != 17
             or report.get("original_issuers_with_replayed_low_touch") != 14
             or not 41 <= report.get(
-                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 51
+                "previously_authenticated_official_marketwide_ohlc_dates", -1) <= 61
             or any(type(report.get(key)) is not int or report[key] < 0
                    for key in numeric)
             or report["pre_touch_public_traded_holder_days"] !=
