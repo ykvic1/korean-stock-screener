@@ -176,7 +176,8 @@ def summarize(plan, observations, daily):
     verified = sum(sources[k] for k in PROVEN_EVIDENCE)
     daily_pass = valid_daily(daily)
     success = (
-        missing == 0 and causes == plan["causes"]
+        missing == 0
+        and all(causes[k] == plan["causes"].get(k, 0) for k in CAUSES)
         and verified == plan["total"] and daily_pass
         and plan["traded_or_suspended_holder_rows"]
             + plan["total"] == plan["eligible_holder_day_cells"]
