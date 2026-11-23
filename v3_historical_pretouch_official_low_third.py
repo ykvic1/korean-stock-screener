@@ -39,7 +39,10 @@ FIRST_FIVE = (
 FIRST_EXPECTED_HOLDER_LOWS = 30
 MAX_NEW_MARKET_API_REQUESTS = 20
 # Pinned after actual independently successful one-shot KRX source verification.
-THIRD_PROVENANCE = None
+THIRD_PROVENANCE = (
+    45107523222, 137472099269, 14788107574,
+    "ffeb52e1fecdf19601bfdead39999cc4fbc532bc77774b9c160063fb01adbdca",
+)
 
 
 def previous_verified(panels):
