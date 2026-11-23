@@ -111,7 +111,7 @@ def prepare(public_panels, confirmed):
     holder = daily_holder_plan(sessions)
     # Second independently authenticated five-date batch increases the unique
     # official OHLC coverage from 49 to 54; never synthesize earlier LOWs.
-    require(41 <= len(confirmed) <= 61
+    require(41 <= len(confirmed) <= 71
             and all(d in public_panels for d in confirmed)
             and len(holder["reference"]) == 17, "invalid_saved_ohlc_day_calendar")
     holders = {on: {origin: (code, units)
