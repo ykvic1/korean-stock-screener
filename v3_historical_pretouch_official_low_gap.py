@@ -17,6 +17,7 @@ from collections import Counter
 from decimal import Decimal, ROUND_HALF_UP
 import json
 import os
+import re
 from pathlib import Path
 
 from official_probe.clients import KRXClient
@@ -299,9 +300,13 @@ def main(argv=None):
         else:
             result = prepared["report"]
         print(json.dumps(result, sort_keys=True))
-    except (OSError, ValueError, TypeError, KeyError, ImportError):
-        parser.exit(1, "historical_pre_first_low_official_gap_audit_failed\n")
-
+    except (OSError, ValueError, TypeError, KeyError, ImportError) as exc:
+        # Emit only a fixed-format reason identifier. No ticker or quote.
+        reason = str(exc)
+        if not re.fullmatch(r"[a-z][a-z0-9_]{5,99}", reason):
+            reason = "invalid_or_unexpected_input"
+        parser.exit(1, "historical_pre_first_low_official_gap_audit_failed:"
+                    + reason + "\\n")
 
 if __name__ == "__main__":
     main()
