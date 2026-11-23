@@ -3,7 +3,7 @@ from datetime import date
 from decimal import Decimal
 from pathlib import Path
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 import v3_historical_pretouch_official_low_second as second
 
@@ -27,7 +27,7 @@ class SecondPreFirstLowTests(TestCase):
         with patch.object(second, "verified_frozen_coverage", return_value=sentinel):
             with patch.object(second, "saved_official_ohlc_dates", return_value=set()):
                 self.assertIs(second.second_batch_plan({}), sentinel)
-            with patch.object(second.SECOND_FROZEN, "exists", return_value=True):
+            with patch.object(second, "SECOND_FROZEN", Mock(**{"exists.return_value": True})):
                 with patch.object(second, "check_bounded_batch") as network:
                     with self.assertRaises(ValueError):
                         second.probe_second({}, object())
