@@ -1,5 +1,12 @@
 name: V3 expanded historical financial value comparison
 on:
+  workflow_dispatch:
+    inputs:
+      market_offset:
+        description: Number of previously checked issuers to skip in each market
+        type: number
+        required: true
+        default: 16
   push:
     branches: [v30b-fixed-snapshot-verification-expansion]
     paths: [.github/workflows/v30b-expanded-numeric-check.yml]
@@ -19,6 +26,7 @@ jobs:
       - run: python -m pip install -r requirements.txt pyarrow
       - name: Reconstruct historical cohort and verify bounded dated annual filings
         env:
+          MARKET_OFFSET: ${{ inputs.market_offset || '16' }}
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
         run: |
           set -euo pipefail
@@ -70,16 +78,18 @@ jobs:
           reviewed = set(json.loads((ROOT / "ops" /
               f"v3-performance-recovered-annual-statements-{TAG}.json").read_bytes())["records"])
           reviewed.update(row["code"] for row in ledger_rows(ROOT, "delisted-annual-statements"))
+          offset = int(os.environ["MARKET_OFFSET"])
+          require(offset >= 0, "negative_market_offset")
           targets = {}
           for row in sorted(cohort, key=lambda x: (-(x["market_cap_eok"] or 0), x["code"])):
               code, market_name = row["code"], row["market"]
               annual = reference.get(code, {}).get("years", {}).get("2024", {})
-              if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < 16:
+              if code not in reviewed and annual and sum(x[0] == market_name for x in targets.values()) < offset + 8:
                   targets[code] = (market_name, (annual.get("CFS") or annual["OFS"])["receipt_id"])
           expanded = {}
           for market_name in ("KOSPI", "KOSDAQ"):
               rows = [(code, item) for code, item in targets.items() if item[0] == market_name]
-              expanded.update(rows[8:16])
+              expanded.update(rows[offset:offset + 8])
           targets = expanded
           require(len(targets) == 16, "unexpected_annual_sample_count")
           key = os.environ["DART_API_KEY"]
@@ -191,7 +201,7 @@ jobs:
                   "annual_sample_coverage_mismatch")
           require(sum(archives.values()) == len(matched_digests) and all(sum(v.values()) == archives["parsed"]
                   for v in numeric.values()), "numeric_sample_count_mismatch")
-          print("DART_SAMPLE " + json.dumps({"sample": 16, "counts": counts,
+          print("DART_SAMPLE " + json.dumps({"sample": 16, "market_offset": offset, "counts": counts,
                 "xbrl_archive_counts": archives, "explicit_scope_candidate_counts": numeric,
                 "xbrl_sha256": sorted(xbrl_digests), "primary_statement_scope_verified": False,
                 "input_sha256": list(PINNED_HASHES), "document_sha256": sorted(matched_digests),
