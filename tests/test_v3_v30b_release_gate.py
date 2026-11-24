@@ -11,7 +11,7 @@ from pathlib import Path
 import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
-                                    fixed_market_roster_reconciled,
+                                    fixed_primary_statements_reconciled, fixed_market_roster_reconciled,
                                     issuer_csv_reconciles,
                                     issuer_catalog_reconciles,
                                     issuer_fcf_preview_reconciles,
@@ -29,6 +29,16 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_frozen_statement_counts_preserve_missing_inputs(self):
+        ops = ROOT / "ops"
+        scope = json.loads((ops / "v30b-development-scope.json").read_text())
+        receipts = scope["fixed_snapshot_evidence"]["expanded_verification_followup"]["completed_original_receipt_cohort"]
+        totals = json.loads((ops / "v30b-fixed-pit-primary-statement-totals.json").read_text())
+        self.assertTrue(fixed_primary_statements_reconciled(receipts, totals))
+        self.assertFalse(fixed_primary_statements_reconciled(receipts, {}))
+        totals["primary_statement_fields"]["revenue"]["stored_value_missing"] -= 1
+        self.assertFalse(fixed_primary_statements_reconciled(receipts, totals))
+
     def test_frozen_roster_requires_agreement_with_official_archive(self):
         ops = ROOT / "ops"
         scope = json.loads((ops / "v30b-development-scope.json").read_text())

@@ -1,0 +1,40 @@
+{
+  "anchor": "2025-11-13",
+  "issuers": 2267,
+  "primary_statement_fields": {
+    "assets": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2117,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 1
+    },
+    "equity": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2117,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 1
+    },
+    "liabilities": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2118,
+      "no_matching_primary_row": 3
+    },
+    "operating_income": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2067,
+      "no_matching_primary_row": 53,
+      "stored_value_missing": 1
+    },
+    "revenue": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2057,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 61
+    }
+  },
+  "statuses": {
+    "compared": 2122,
+    "historical_and_saved_receipt_differ": 1,
+    "original_document_unresolved": 144
+  }
+}
