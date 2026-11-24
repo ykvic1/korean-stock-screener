@@ -1037,6 +1037,30 @@ def _read_operational_json(path: Path) -> dict:
         raise V30bInputError("r1d_operational_source_unreadable") from None
 
 
+def fixed_market_roster_reconciled(scope, archive):
+    """Verify the frozen raw roster claim against the archived official daily comparison."""
+    saved = scope.get("fixed_snapshot_evidence", {}).get("historical_raw_market_roster", {})
+    market = archive.get("totals", {}).get("market", {})
+    rows = market.get("rows")
+    sessions = archive.get("official_sessions_compared")
+    return (
+        archive.get("schema") == "v3-historical-close-archive-audit-v1"
+        and archive.get("from") == saved.get("from") == "2025-11-13"
+        and archive.get("through") == saved.get("through") == "2026-11-13"
+        and archive.get("run_url") == saved.get("audit_run")
+        and type(sessions) is int and sessions > 0
+        and sessions == archive.get("market_sessions_expected") == saved.get("official_sessions_compared")
+        and archive.get("official_sessions_missing") == []
+        and type(rows) is int and rows > 0 and rows == saved.get("security_session_rows_reconciled")
+        and all(market.get(field) == rows for field in ("exact_close", "exact_listed_shares", "same_trade_status"))
+        and all(market.get(field) == 0 for field in (
+            "both_rows_missing", "close_mismatch", "identity_mismatch", "mismatch_listed_shares",
+            "official_row_missing", "public_close_unavailable", "public_row_missing",
+            "public_shares_unavailable", "trade_status_mismatch", "trade_status_unavailable"))
+        and saved.get("identity_mismatches") == saved.get("official_or_public_missing_rows") == 0
+    )
+
+
 def main(argv: list[str] | None = None) -> dict:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--observed", type=Path,
@@ -1081,6 +1105,12 @@ def main(argv: list[str] | None = None) -> dict:
     if a.development_scope.is_file():
         scope = _read_public_json(a.development_scope)
         if scope.get("schema") == "v30b-development-scope-v1":
+            roster_archive = a.development_scope.with_name("v3-historical-close-archive-audit-20251113.json")
+            raw_roster_ok = fixed_market_roster_reconciled(
+                scope, _read_public_json(roster_archive) if roster_archive.is_file() else {})
+            report["gates"]["fixed_historical_raw_market_roster_reconciled"] = raw_roster_ok
+            if not raw_roster_ok:
+                report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_raw_market_roster_unreconciled"})
             report["fixed_development_snapshot"] = {
                 "asof": scope.get("development_cutoff_kst"),
                 "recorded_evidence": scope.get("fixed_snapshot_evidence", {}),
