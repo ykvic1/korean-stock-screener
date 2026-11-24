@@ -97,6 +97,14 @@ jobs:
           # Exit 2 on public summary/source inconsistency, 3 on accidental
           # certification. Do NOT hide either with "|| true".
           python v3_v30b_release_gate.py --assert-blocked > "$RUNNER_TEMP/v30b-readiness-aggregate.json"
+      - name: Retain release audit decision and evidence
+        if: ${{ github.event_name != 'pull_request' && !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: v30b-release-audit-${{ github.run_id }}
+          path: ${{ runner.temp }}/v30b-readiness-aggregate.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Reconcile operational CSV and actual Pages detail attachment
         if: ${{ github.event_name != 'pull_request' }}
         run: |
