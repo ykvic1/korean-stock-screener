@@ -150,6 +150,16 @@
             "original_chain_unresolved": 1,
             "prior_document_zip_verified": 23
           }
+        },
+        {
+          "run_id": 45333054049,
+          "offset": 100,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "original_chain_unresolved": 2,
+            "prior_document_zip_verified": 23
+          }
         }
       ]
     }
