@@ -458,6 +458,29 @@
         "KOSPI": 401,
         "KOSDAQ": 401,
         "independent_operating_classification_verified": false
+      },
+      "primary_statement_totals": {
+        "run_id": 45398445138,
+        "summary_job_id": 138482384046,
+        "artifact_id": 14925152203,
+        "artifact_digest": "sha256:c5939cfc622f50ac5d7257466a45a26d6e4eb9579030fb069ce53c8112e0e321",
+        "evidence": "ops/v30b-fixed-pit-primary-statement-totals.json"
+      },
+      "adjusted_path_comparison": {
+        "run_id": 45401210913,
+        "artifact_id": 14922649825,
+        "artifact_digest": "sha256:e0bc6f52f6afeccd318e568c4cc1eda9f4af40f75c6554192f69602dc891b667",
+        "issuers": 5,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 894,
+          "krx_reference_match": 6,
+          "krx_reference_differs": 39
+        },
+        "unresolved_issuer": "291230",
+        "first_unresolved_session": "2026-09-14",
+        "last_unresolved_session": "2026-11-13",
+        "official_scale_unchanged_for_unresolved_pairs": 39,
+        "official_adjusted_history_verified": false
       }
     }
   },
