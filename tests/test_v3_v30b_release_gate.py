@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 import unittest
 
-from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
+from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS, fixed_exchange_ratios_reconciled,
                                     fixed_primary_statements_reconciled, fixed_market_roster_reconciled,
                                     fixed_operating_membership_reconciled,
                                     issuer_csv_reconciles,
@@ -30,6 +30,19 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_fixed_exchange_ratios_match_ledger_and_detect_edits(self):
+        ops = ROOT / "ops"
+        scope = json.loads((ops / "v30b-development-scope.json").read_text(encoding="utf-8"))
+        followup = scope["fixed_snapshot_evidence"]["expanded_verification_followup"]
+        review = followup["kind_exchange_ratio_review"]
+        with (ops / "v3-performance-delisting-settlement-20251113.csv").open(encoding="utf-8-sig", newline="") as stream:
+            ledger = list(csv.DictReader(stream))
+        self.assertTrue(fixed_exchange_ratios_reconciled(review, ledger))
+        changed = copy.deepcopy(review)
+        changed["rows"][0]["shares_per_old_share"] = "0.1"
+        self.assertFalse(fixed_exchange_ratios_reconciled(changed, ledger))
+        self.assertFalse(fixed_exchange_ratios_reconciled({"rows": review["rows"][:-1]}, ledger))
+
     def test_membership_reconciliation_catches_later_delisted_omissions(self):
         ops = ROOT / "ops"
         scope = json.loads((ops / "v30b-development-scope.json").read_text())

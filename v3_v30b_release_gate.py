@@ -1083,6 +1083,28 @@ def fixed_operating_membership_reconciled(evidence, reference):
     )
 
 
+def fixed_exchange_ratios_reconciled(review, ledger):
+    """Match each reviewed predecessor, successor and ratio to its ledger entry."""
+    if not isinstance(review, dict) or not isinstance(review.get("rows"), list):
+        return False
+    try:
+        def key(row):
+            ratio = Decimal(row["shares_per_old_share"])
+            if not ratio.is_finite() or ratio <= 0:
+                raise ValueError("invalid exchange ratio")
+            return row["code"], row["successor_code"], ratio
+
+        rows = review["rows"]
+        recorded = [key(row) for row in rows]
+        expected = [key(row) for row in ledger if row["treatment"] == "stock_exchange"]
+        return (len(recorded) == 11 == len({code for code, _, _ in recorded})
+                and Counter(recorded) == Counter(expected)
+                and all(str(row.get("notice_url", "")).startswith("https://kind.krx.co.kr/external/")
+                        for row in rows))
+    except (InvalidOperation, ValueError, TypeError, KeyError):
+        return False
+
+
 def fixed_primary_statements_reconciled(receipts, totals):
     """Reconcile the receipt and account counts; this checks coverage accounting only."""
     statuses = totals.get("statuses")
@@ -1167,6 +1189,16 @@ def main(argv: list[str] | None = None) -> dict:
             if membership and not membership_ok:
                 report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_operating_membership_unreconciled"})
             followup = scope.get("fixed_snapshot_evidence", {}).get("expanded_verification_followup", {})
+            review = followup.get("kind_exchange_ratio_review")
+            if review is not None:
+                ledger = a.development_scope.with_name("v3-performance-delisting-settlement-20251113.csv")
+                exchange_ok = False
+                if ledger.is_file():
+                    with ledger.open(encoding="utf-8-sig", newline="") as stream:
+                        exchange_ok = fixed_exchange_ratios_reconciled(review, csv.DictReader(stream))
+                report["gates"]["fixed_exchange_ratios_reconciled"] = exchange_ok
+                if not exchange_ok:
+                    report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_exchange_ratios_unreconciled"})
             totals_path = a.development_scope.with_name("v30b-fixed-pit-primary-statement-totals.json")
             totals = _read_public_json(totals_path) if totals_path.is_file() else {}
             reconciled = fixed_primary_statements_reconciled(followup.get("completed_original_receipt_cohort", {}), totals)
