@@ -339,6 +339,39 @@
           }
         },
         "primary_statement_scope_verified": false
+      },
+      "numeric_market_offset_16": {
+        "run_id": 45340315939,
+        "market_offset": 16,
+        "issuer_count": 16,
+        "counts": {
+          "prior_receipt_and_document_matched": 16
+        },
+        "archive_counts": {
+          "archive_unavailable_or_unsupported": 1,
+          "parsed": 15
+        },
+        "account_value_outcomes": {
+          "assets": {
+            "all_candidate_values_equal": 15
+          },
+          "equity": {
+            "all_candidate_values_equal": 15
+          },
+          "liabilities": {
+            "all_candidate_values_equal": 15
+          },
+          "operating_income": {
+            "all_candidate_values_equal": 14,
+            "no_matching_concept_period_unit_candidate": 1
+          },
+          "revenue": {
+            "all_candidate_values_equal": 10,
+            "equal_candidate_among_distinct_values": 2,
+            "stored_value_missing": 3
+          }
+        },
+        "primary_statement_scope_verified": false
       }
     }
   },
