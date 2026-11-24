@@ -111,6 +111,17 @@
         "both_official_anchors_matched": 2,
         "adjusted_price_history_verified": false
       }
+    },
+    "expanded_verification_followup": {
+      "corporate_action_anchor_batches": [
+        {
+          "offset": 2,
+          "run_id": 45333008487,
+          "reviewed_events_checked": 2,
+          "both_official_anchors_matched": 2,
+          "adjusted_price_history_verified": false
+        }
+      ]
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
