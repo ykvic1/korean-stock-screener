@@ -604,7 +604,8 @@ def audit(root=ROOT, *, daily_replay=None):
     non_spac = {code for code in members if roster[code]["kind_spac_name"] == "false"}
     non_spac_entry_traded = {code for code in non_spac if trades[code]["next_session_status"] == "traded"}
     replay_summary = (
-        daily_replay(references, prices, paths, settlements, trades, adjustments, share_actions, successor_listings)
+        daily_replay(references, prices, paths, settlements, trades, adjustments, share_actions,
+                     {code: successor_listings[code] for code in exchanges})
         if daily_replay else {}
     )
     return {
