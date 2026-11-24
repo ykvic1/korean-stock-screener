@@ -92,6 +92,25 @@
       "independent_operating_classification_verified": false,
       "evidence": "ops/v3-historical-close-archive-audit-20251113.json",
       "audit_run": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077"
+    },
+    "expanded_verification_pilot": {
+      "historical_annual_disclosures": {
+        "run_id": 45332003874,
+        "historical_signal_asof": "2025-11-13",
+        "eligible_pinned_cohort": 2267,
+        "offset": 0,
+        "attempted": 25,
+        "prior_document_zip_verified": 24,
+        "original_chain_unresolved": 1,
+        "numeric_financial_inputs_restored": 0
+      },
+      "corporate_actions": {
+        "run_id": 45332054066,
+        "offset": 0,
+        "reviewed_events_checked": 2,
+        "both_official_anchors_matched": 2,
+        "adjusted_price_history_verified": false
+      }
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
