@@ -1,0 +1,81 @@
+name: Reconcile frozen annual disclosure batches
+on:
+  push:
+    branches: [main, v30b-reconcile-frozen-receipts]
+    paths: [.github/workflows/v30b-reconcile-frozen-receipts.yml]
+  workflow_run:
+    workflows: ["V3.0b Historical Annual Disclosure Recovery"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  reconcile:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.id == 45349779494
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download retained receipt evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for run in 45332003874 45336398969 45333054049 45334311942 45349779494; do
+            gh run download "$run" --pattern 'historical-annual-receipt-recovery*' --dir "inputs/$run"
+          done
+      - name: Check issuer identities and reconcile outcomes
+        run: |
+          python - <<'PY'
+          from collections import Counter
+          import json
+          import os
+          from pathlib import Path
+
+          cohort = 2267
+          pins = ["2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e","991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c","41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4"]
+          batches = {}
+          codes = set()
+          totals = Counter()
+          for path in sorted(Path("inputs").rglob("historical-annual-receipt-recovery.json")):
+              row = json.loads(path.read_text())
+              offset = row["reference_offset"]
+              # The earlier run retried offset 425. Use its replacement run for that slice.
+              if path.parts[1] == "45334311942" and offset == 425:
+                  continue
+              if (row["schema"] != "v3-historical-annual-receipt-recovery-v1"
+                      or row["pinned_sources_sha256"] != pins or row["anchor"] != "2025-11-13"
+                      or row["eligible_cohort_size"] != cohort or row["live"] is not True
+                      or row["provider_or_contract_failure"] is not None
+                      or offset not in range(0, cohort, 25) or offset in batches):
+                  raise ValueError(f"Invalid batch at {path}")
+              records = row["records"]
+              counts = Counter(record["status"] for record in records.values())
+              if (len(records) != min(25, cohort - offset) or len(records) != row["target_count"]
+                      or row["targets_with_result"] != len(records) or counts != row["counts"]
+                      or codes.intersection(records)):
+                  raise ValueError(f"Duplicate issuer or inconsistent batch at {path}")
+              codes.update(records)
+              totals.update(counts)
+              batches[offset] = int(path.parts[1])
+          missing = sorted(set(range(0, cohort, 25)) - batches.keys())
+          result = dict(anchor="2025-11-13", eligible_issuers=cohort, checked_issuers=len(codes),
+                        missing_offsets=missing, counts=dict(totals), source_runs_by_offset=batches,
+                        point_in_time_scores_verified=False, numeric_financial_inputs_restored=0)
+          Path("receipt-coverage.json").write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              print(f"Checked {len(codes)}/{cohort} distinct issuers. Outstanding batches: {len(missing)}.", file=summary)
+              for status, count in sorted(totals.items()):
+                  print(f"- {status}: {count}", file=summary)
+          if not batches or (os.environ["GITHUB_EVENT_NAME"] == "workflow_run" and missing):
+              raise ValueError("Incomplete frozen receipt batch set")
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frozen-receipt-coverage
+          path: receipt-coverage.json
+          if-no-files-found: error
+          retention-days: 90
