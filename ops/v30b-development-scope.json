@@ -81,6 +81,17 @@
         "ops/v3-performance-delisted-financial-coverage-20251113.csv"
       ],
       "independent_historical_universe_verified": false
+    },
+    "historical_raw_market_roster": {
+      "from": "2025-11-13",
+      "through": "2026-11-13",
+      "official_sessions_compared": 245,
+      "security_session_rows_reconciled": 678572,
+      "official_or_public_missing_rows": 0,
+      "identity_mismatches": 0,
+      "independent_operating_classification_verified": false,
+      "evidence": "ops/v3-historical-close-archive-audit-20251113.json",
+      "audit_run": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077"
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
