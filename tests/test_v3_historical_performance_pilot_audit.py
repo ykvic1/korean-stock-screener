@@ -20,7 +20,7 @@ class HistoricalPerformancePilotAuditTests(unittest.TestCase):
         self.assertEqual(report["methods"]["awaiting_final_distribution_unpriced"], 2)
         self.assertEqual(report["pilot_issuers"], 17)
         self.assertEqual(report["successor_share_delivery_counts"], {
-            "new_shares": 8, "treasury_delivery": 1, "merger_then_consolidation": 1,
+            "new_shares": 9, "treasury_delivery": 1, "merger_then_consolidation": 1,
         })
         self.assertEqual(report["horizons"]["3"]["with_value"], 17)
         self.assertEqual(report["horizons"]["6"]["unpriced_final_distributions"], 1)

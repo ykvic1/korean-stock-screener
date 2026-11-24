@@ -525,7 +525,8 @@ def audit(root=ROOT, *, daily_replay=None):
     dividend_replays = {}
     exchanges = {code for code in references if settlements[code]["treatment"] == "stock_exchange"}
     successor_listings = load("successor-listings", "code")
-    successor_counts = successor_listing_counts(successor_listings, exchanges, settlements, share_actions)
+    ledger_exchanges = {code for code, row in settlements.items() if row["treatment"] == "stock_exchange"}
+    successor_counts = successor_listing_counts(successor_listings, ledger_exchanges, settlements, share_actions)
     end = max(day(row["valuation_session"]) for row in prices.values())
     fractions = fractional_cash_terms(
         load("fractional-cash", "code"), load("pre-exchange-fractional-cash", "code"),
@@ -603,7 +604,8 @@ def audit(root=ROOT, *, daily_replay=None):
     non_spac = {code for code in members if roster[code]["kind_spac_name"] == "false"}
     non_spac_entry_traded = {code for code in non_spac if trades[code]["next_session_status"] == "traded"}
     replay_summary = (
-        daily_replay(references, prices, paths, settlements, trades, adjustments, share_actions, successor_listings)
+        daily_replay(references, prices, paths, settlements, trades, adjustments, share_actions,
+                     {code: successor_listings[code] for code in exchanges})
         if daily_replay else {}
     )
     return {
