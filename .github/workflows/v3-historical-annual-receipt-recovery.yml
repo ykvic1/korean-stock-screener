@@ -28,7 +28,7 @@ jobs:
       fail-fast: true
       max-parallel: 1
       matrix:
-        offset: ${{ fromJSON(github.ref_name == 'v30b-fixed-snapshot-verification-expansion' && github.event_name == 'push' && '["150","175","200","225","250","275","300","325","350","375","400","425","450","475","500","525","550","575","600","625","650","675","700","725","750","775","800","825","850","875","900","925","950","975","1000","1025","1050","1075","1100","1125","1150","1175","1200","1225","1250","1275","1300","1325","1350","1375","1400","1425","1450","1475","1500","1525","1550","1575","1600","1625","1650","1675","1700","1725","1750","1775","1800","1825","1850","1875","1900","1925","1950","1975","2000","2025","2050","2075","2100","2125","2150","2175","2200","2225","2250"]' || '[""]') }}
+        offset: ${{ fromJSON(github.ref_name == 'v30b-fixed-snapshot-verification-expansion' && github.event_name == 'push' && '["425","450","475","500","525","550","575","600","625","650","675","700","725","750","775","800","825","850","875","900","925","950","975","1000","1025","1050","1075","1100","1125","1150","1175","1200","1225","1250","1275","1300","1325","1350","1375","1400","1425","1450","1475","1500","1525","1550","1575","1600","1625","1650","1675","1700","1725","1750","1775","1800","1825","1850","1875","1900","1925","1950","1975","2000","2025","2050","2075","2100","2125","2150","2175","2200","2225","2250"]' || '[""]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -59,7 +59,15 @@ jobs:
           if [[ -n "$REFERENCE_OFFSET" ]]; then
             args+=(--reference-offset "$REFERENCE_OFFSET")
           fi
-          python v3_historical_annual_receipt_recovery.py --live "${args[@]}" "$temp/historical-prices.parquet" "$temp/historical-financial-pin.json" "$temp/historical-catalog-pin.json" > "$temp/historical-annual-receipt-recovery.json"
+          for attempt in 1 2; do
+            if python v3_historical_annual_receipt_recovery.py --live "${args[@]}" "$temp/historical-prices.parquet" "$temp/historical-financial-pin.json" "$temp/historical-catalog-pin.json" > "$temp/historical-annual-receipt-recovery.json"; then
+              break
+            fi
+            if [[ "$attempt" == 2 ]] || ! jq -e '.provider_or_contract_failure == "Official API transport failed (request details suppressed)"' "$temp/historical-annual-receipt-recovery.json" >/dev/null; then
+              exit 1
+            fi
+            sleep 30
+          done
       - name: Report recovery counts
         if: always()
         run: |
