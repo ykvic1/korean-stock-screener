@@ -161,7 +161,14 @@
             "prior_document_zip_verified": 23
           }
         }
-      ]
+      ],
+      "share_action_path_replay": {
+        "run_id": 45335901319,
+        "matched_events": 1212,
+        "incorporated_into_path": 906,
+        "saved_report_recomputed_exactly": true,
+        "official_adjusted_history_verified": false
+      }
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
