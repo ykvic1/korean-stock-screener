@@ -1061,6 +1061,28 @@ def fixed_market_roster_reconciled(scope, archive):
     )
 
 
+def fixed_operating_membership_reconciled(evidence, reference):
+    """Compare the independent daily-market selection with the frozen operating ledger."""
+    counts = reference.get("scope_counts", {})
+    all_rows = counts.get("all_observed_securities", {})
+    operating = counts.get("reproduced_operating_scope", {})
+    if not evidence or not operating or not all_rows:
+        return False
+    hashes = evidence.get("source_sha256", {})
+    return (
+        evidence.get("date") == reference.get("signal_session") == "2025-11-13"
+        and set(hashes) == {"KOSPI", "KOSDAQ"}
+        and all(isinstance(h, str) and re.fullmatch(r"[0-9a-f]{64}", h) for h in hashes.values())
+        and evidence.get("operating_roster_reconciled") is True
+        and evidence.get("official_market_rows") == all_rows["listed"]
+        and evidence.get("raw_later_delisted_present") == all_rows["later_delisted"]
+        and evidence.get("matching_later_delisted_in_scope") == operating["later_delisted"]
+        and evidence.get("matching_identities") == evidence.get("official_selected")
+        == evidence.get("frozen_selected") == operating["listed"]
+        and all(evidence.get(k) == 0 for k in ("official_only", "frozen_only", "different_market_or_name"))
+    )
+
+
 def fixed_primary_statements_reconciled(receipts, totals):
     """Reconcile the receipt and account counts; this checks coverage accounting only."""
     statuses = totals.get("statuses")
@@ -1136,6 +1158,14 @@ def main(argv: list[str] | None = None) -> dict:
             report["gates"]["fixed_historical_raw_market_roster_reconciled"] = raw_roster_ok
             if not raw_roster_ok:
                 report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_raw_market_roster_unreconciled"})
+            membership = scope.get("fixed_snapshot_evidence", {}).get("historical_raw_market_roster", {}).get(
+                "official_daily_operating_membership", {})
+            operating_path = a.development_scope.with_name("v3-performance-operating-scope-20251113.json")
+            operating = _read_public_json(operating_path) if operating_path.is_file() else {}
+            membership_ok = raw_roster_ok and fixed_operating_membership_reconciled(membership, operating)
+            report["gates"]["fixed_historical_operating_membership_reconciled"] = membership_ok
+            if membership and not membership_ok:
+                report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_operating_membership_unreconciled"})
             followup = scope.get("fixed_snapshot_evidence", {}).get("expanded_verification_followup", {})
             totals_path = a.development_scope.with_name("v30b-fixed-pit-primary-statement-totals.json")
             totals = _read_public_json(totals_path) if totals_path.is_file() else {}
