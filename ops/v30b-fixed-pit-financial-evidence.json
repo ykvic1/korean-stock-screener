@@ -44,5 +44,49 @@
       "operating_growth_margin": 49,
       "sales_to_cap": 49
     }
+  },
+  "bulk_reference_receipt_date_audit": {
+    "source_commit": "62ec75bd9769a7e4102a56d1f323176c10156e95",
+    "source_path": "docs/v3-dart-bulk-history.json",
+    "source_blob": "1d4ff708abb582c76c0e780bf0439c577b4f50e1",
+    "scope": "Entire pinned reference catalog before historical identity and override filters",
+    "count_unit": "Fiscal year and accounting scope rows, except issuer counts",
+    "signal_session": "2025-11-13",
+    "catalog_issuers": 2591,
+    "fiscal_year_counts": {
+      "2022": {
+        "eligible_receipt_date_before_signal": 3886,
+        "receipt_on_signal": 0,
+        "receipt_after_signal": 17,
+        "invalid_receipt_date": 0,
+        "no_numeric_values": 2,
+        "issuers_with_before_signal_receipt": 2141,
+        "issuers_with_after_signal_receipt": 9
+      },
+      "2023": {
+        "eligible_receipt_date_before_signal": 4165,
+        "receipt_on_signal": 0,
+        "receipt_after_signal": 29,
+        "invalid_receipt_date": 0,
+        "no_numeric_values": 0,
+        "issuers_with_before_signal_receipt": 2306,
+        "issuers_with_after_signal_receipt": 16
+      },
+      "2024": {
+        "eligible_receipt_date_before_signal": 4285,
+        "receipt_on_signal": 0,
+        "receipt_after_signal": 95,
+        "invalid_receipt_date": 0,
+        "no_numeric_values": 0,
+        "issuers_with_before_signal_receipt": 2371,
+        "issuers_with_after_signal_receipt": 52
+      }
+    },
+    "restored_2024_same_scope_overlap": {
+      "same_scope": 51,
+      "same_scope_after_signal": 51,
+      "same_later_receipt": 51
+    },
+    "receipt_date_validates_original_filing_version": false
   }
 }
