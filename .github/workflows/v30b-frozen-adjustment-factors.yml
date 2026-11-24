@@ -81,15 +81,19 @@ jobs:
                           prices[parts[0]] = int(parts[4])
               before, after = [prices.get(day.strftime("%Y%m%d")) for day in days]
               state = "adjusted_anchor_unavailable"
+              detail = {}
               if before and after:
                   expected = Fraction(int(event["old_units"]), int(event["new_units"]))
                   observed = Fraction(before * raw_after, after * raw_before)
+                  detail = {"expected_multiplier": str(expected), "observed_multiplier": str(observed),
+                            "prior_matches_unadjusted": before == raw_before,
+                            "listing_matches_unadjusted": after == raw_after}
                   # Two integer adjusted closes can each be rounded by half a won.
                   lower = Fraction((2*before-1)*raw_after, (2*after+1)*raw_before)
                   upper = Fraction((2*before+1)*raw_after, (2*after-1)*raw_before)
                   state = ("exact" if observed == expected else "within_rounding"
                            if lower <= expected <= upper else "different_factor")
-              outcomes.append({"event_date": event["listing_on"], "state": state,
+              outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
                                "adjusted_response_sha256": sha256(response.content).hexdigest()})
           result = {"source": "Naver historical chart", "event_count": len(events), "outcomes": outcomes,
                     "counts": dict(Counter(item["state"] for item in outcomes)),
