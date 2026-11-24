@@ -68,6 +68,19 @@
       "scope_comparison_run_id": 45136314884,
       "evidence": "ops/v30b-fixed-pit-dart-scope-sample.json",
       "coverage_evidence": "ops/v30b-fixed-pit-financial-evidence.json"
+    },
+    "delisted_anchor_identity": {
+      "historical_signal_asof": "2025-11-13",
+      "ledger_rows_reconciled": 92,
+      "different_anchor_and_delisting_names": 6,
+      "finance_review_rows": 92,
+      "operating_scope_rows": 59,
+      "source_paths": [
+        "ops/v3-performance-delistings-20251113.csv",
+        "ops/v3-performance-delisting-trade-observations-20251113.csv",
+        "ops/v3-performance-delisted-financial-coverage-20251113.csv"
+      ],
+      "independent_historical_universe_verified": false
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
