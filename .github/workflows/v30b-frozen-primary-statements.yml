@@ -1,0 +1,72 @@
+name: Verify frozen annual primary-statement values
+on:
+  push:
+    branches: [v30b-frozen-primary-statements]
+    paths:
+      - v3_frozen_primary_statements.py
+      - .github/workflows/v30b-frozen-primary-statements.yml
+  workflow_run:
+    workflows: ["V3.0b Historical Annual Disclosure Recovery"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      remaining:
+        description: Check offsets from 425 through 2250
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  compare:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.id == 45349779494 && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        start: ${{ fromJSON((github.event_name == 'workflow_run' || inputs.remaining == true) && '[425,525,625,725,825,925,1025,1125,1225,1325,1425,1525,1625,1725,1825,1925,2025,2125,2225]' || '[0,100,200,300,400]') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Load original receipt archives for this range
+        env:
+          START: ${{ matrix.start }}
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          end=$((START+100))
+          if (( START < 425 && end > 425 )); then end=425; fi
+          if (( end > 2267 )); then end=2267; fi
+          echo "BATCH_END=$end" >> "$GITHUB_ENV"
+          for ((offset=START; offset<end; offset+=25)); do
+            name="historical-annual-receipt-recovery-$offset"
+            if (( offset == 0 )); then run=45332003874; name=historical-annual-receipt-recovery
+            elif (( offset == 25 )); then run=45336398969
+            elif (( offset < 150 )); then run=45333054049
+            elif (( offset < 425 )); then run=45334311942
+            else run=45349779494
+            fi
+            gh run download "$run" --name "$name" --dir "inputs/$offset"
+          done
+          curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/ykvic1/korean-stock-screener/62ec75bd9769a7e4102a56d1f323176c10156e95/docs/v3-dart-bulk-history.json -o "$RUNNER_TEMP/financial.json"
+      - name: Match original receipt and primary-statement amounts
+        env:
+          START: ${{ matrix.start }}
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: python v3_frozen_primary_statements.py "$RUNNER_TEMP/financial.json" inputs "$START" "$BATCH_END"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen-primary-statements-${{ matrix.start }}
+          path: primary-statement-evidence.json
+          if-no-files-found: error
+          retention-days: 90
