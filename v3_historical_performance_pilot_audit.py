@@ -525,7 +525,8 @@ def audit(root=ROOT, *, daily_replay=None):
     dividend_replays = {}
     exchanges = {code for code in references if settlements[code]["treatment"] == "stock_exchange"}
     successor_listings = load("successor-listings", "code")
-    successor_counts = successor_listing_counts(successor_listings, exchanges, settlements, share_actions)
+    ledger_exchanges = {code for code, row in settlements.items() if row["treatment"] == "stock_exchange"}
+    successor_counts = successor_listing_counts(successor_listings, ledger_exchanges, settlements, share_actions)
     end = max(day(row["valuation_session"]) for row in prices.values())
     fractions = fractional_cash_terms(
         load("fractional-cash", "code"), load("pre-exchange-fractional-cash", "code"),
