@@ -1061,6 +1061,8 @@ def main(argv: list[str] | None = None) -> dict:
                    default=ROOT / "docs/v3-operational-research-comparison.json")
     p.add_argument("--collection-closeout", type=Path,
                    default=ROOT / "docs/v3-data-collection-closeout.json")
+    p.add_argument("--development-scope", type=Path,
+                   default=ROOT / "ops/v30b-development-scope.json")
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
@@ -1076,6 +1078,14 @@ def main(argv: list[str] | None = None) -> dict:
                           operational_comparison=_read_public_json(a.r1d_comparison),
                           collection_closeout=(_read_public_json(a.collection_closeout)
                               if a.collection_closeout.is_file() else None))
+    if a.development_scope.is_file():
+        scope = _read_public_json(a.development_scope)
+        if scope.get("schema") == "v30b-development-scope-v1":
+            report["fixed_development_snapshot"] = {
+                "asof": scope.get("development_cutoff_kst"),
+                "recorded_evidence": scope.get("fixed_snapshot_evidence", {}),
+                "remaining_verification": scope.get("remaining_fixed_snapshot_verification", []),
+            }
     print(json.dumps(report, ensure_ascii=False, sort_keys=True, indent=2))
     if not report["public_summary_valid"]:
         raise SystemExit(2)
