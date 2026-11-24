@@ -1,10 +1,5 @@
 name: Verify frozen annual primary-statement values
 on:
-  push:
-    branches: [v30b-frozen-primary-statements]
-    paths:
-      - v3_frozen_primary_statements.py
-      - .github/workflows/v30b-frozen-primary-statements.yml
   workflow_run:
     workflows: ["V3.0b Historical Annual Disclosure Recovery"]
     types: [completed]
@@ -70,3 +65,61 @@ jobs:
           path: primary-statement-evidence.json
           if-no-files-found: error
           retention-days: 90
+
+  summarize:
+    needs: compare
+    if: success() && (github.event_name == 'workflow_run' || inputs.remaining == true)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Collect first and remaining primary-statement results
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for run in 45396632869 "$GITHUB_RUN_ID"; do
+            gh run download "$run" --pattern 'frozen-primary-statements-*' --dir "inputs/$run"
+          done
+      - name: Verify all distinct offsets and combine metric outcomes
+        run: |
+          python - <<'PY'
+          from collections import Counter
+          from pathlib import Path
+          import json
+
+          cohort = 2267
+          anchor = "2025-11-13"
+          cursor = 0
+          statuses = Counter()
+          fields = {name: Counter() for name in ("assets", "liabilities", "equity", "operating_income", "revenue")}
+          issuers = set()
+          pins = ["2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
+                  "991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c",
+                  "41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4"]
+          batches = [json.loads(p.read_bytes()) for p in Path("inputs").rglob("primary-statement-evidence.json")]
+          for row in sorted(batches, key=lambda r: r["start"]):
+              outcomes = row["outcomes"]
+              if (row["anchor"] != anchor or row["pinned_sources_sha256"] != pins
+                      or row["start"] != cursor or row["end"] <= cursor
+                      or row["end"] - cursor != row["issuers"] or row["issuers"] != sum(row["statuses"].values())
+                      or len(outcomes) != row["statuses"].get("compared", 0) or issuers.intersection(outcomes)):
+                  raise ValueError("overlapping_or_inconsistent_batch")
+              for name, totals in fields.items():
+                  recounted = Counter(outcome["fields"][name] for outcome in outcomes.values())
+                  if recounted != row["primary_statement_fields"][name]:
+                      raise ValueError("inconsistent_primary_statement_count")
+                  totals.update(recounted)
+              issuers.update(outcomes)
+              statuses.update(row["statuses"])
+              cursor = row["end"]
+          if cursor != cohort:
+              raise ValueError("missing_final_issuer_range")
+          report = {"anchor": anchor, "issuers": cursor, "statuses": statuses, "primary_statement_fields": fields}
+          print(json.dumps(report, sort_keys=True))
+          Path("primary-statement-totals.json").write_text(json.dumps(report, indent=2, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen-primary-statement-totals
+          path: primary-statement-totals.json
+          if-no-files-found: error
