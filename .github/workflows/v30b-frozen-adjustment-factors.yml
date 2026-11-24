@@ -79,12 +79,18 @@ jobs:
               return official_days[key]
 
           def official_factor_bounds(code, days, prior, listing):
-              market = end_rows[code]["Market"]
-              market = "KOSDAQ" if market == "KOSDAQ GLOBAL" else market
               hashes = []
               official = []
               for day, raw_close in zip(days, (prior, listing), strict=True):
-                  rows, digest = official_day(market, day)
+                  if day.strftime("%Y%m%d") == "20261113":
+                      market = end_rows[code]["Market"]
+                  else:
+                      quote = pq.read_table(sources[day.year], columns=["Market"], filters=[
+                          ("Code", "=", code), ("Date", "=", day)]).to_pylist()
+                      if len(quote) != 1:
+                          raise ValueError("market_on_anchor_date_unresolved")
+                      market = quote[0]["Market"]
+                  rows, digest = official_day("KOSDAQ" if market == "KOSDAQ GLOBAL" else market, day)
                   matches = [rows[code]] if code in rows and rows[code].get("BAS_DD") == day.strftime("%Y%m%d") else []
                   if len(matches) != 1 or int(matches[0]["TDD_CLSPRC"]) != raw_close:
                       raise ValueError("official_price_anchor_mismatch")
@@ -170,8 +176,8 @@ jobs:
                           if date in sessions:
                               raise ValueError("duplicate_raw_session")
                           sessions[date] = int(quote["Close"])
-              final = end_rows[code]
-              if int(final["Volume"]) > 0 and int(final["Close"]) > 0:
+              final = end_rows.get(code)
+              if final and int(final["Volume"]) > 0 and int(final["Close"]) > 0:
                   sessions["20261113"] = int(final["Close"])
               links = Counter()
               dates = sorted(sessions)
@@ -189,7 +195,8 @@ jobs:
                   pair = [datetime.strptime(day, "%Y%m%d") for day in (first, last)]
                   factor, _ = official_factor_bounds(code, pair, r1, r2)
                   links["krx_reference_match" if low <= factor <= high else "krx_reference_differs"] += 1
-              detail["year_path"] = {"raw_traded_sessions": len(dates),
+              detail["year_path"] = {"first_observed_trade": dates[0], "last_observed_trade": dates[-1],
+                                     "present_in_endpoint_roster": final is not None, "raw_traded_sessions": len(dates),
                                      "adjusted_positive_closes_on_traded_sessions": sum(d in prices for d in dates),
                                      "adjacent_traded_session_pairs": links}
               outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
