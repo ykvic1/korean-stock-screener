@@ -10,7 +10,7 @@ on:
     # 21:30 on multiple recently observed sessions (e.g. 23:19 on Nov 10).
     # This reduces the risk of hashing a still-changing after-market source.
     - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: prior weekday data
-    - cron: '30 20 * * 1-5' # 05:30 KST Tue-Sat: recover unpublished data
+    - cron: '30 22 * * 1-5' # 07:30 KST Tue-Sat: recover unpublished data
   # Run in the next day's early hours after BOTH KRX and NXT evening
   # sessions. Scheduling later lets the daily provider settle, but does NOT
   # turn FChart prices into certified
