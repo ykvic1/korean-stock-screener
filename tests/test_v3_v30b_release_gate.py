@@ -11,6 +11,8 @@ from pathlib import Path
 import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS, fixed_exchange_ratios_reconciled,
+                                    fixed_np_consolidation_reconciled,
+                                    _secondary_scorecard_counts_bounded_by_matched_fcf,
                                     fixed_primary_statements_reconciled, fixed_market_roster_reconciled,
                                     fixed_operating_membership_reconciled,
                                     issuer_csv_reconciles,
@@ -30,6 +32,19 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_fixed_np_replay_uses_post_consolidation_units(self):
+        ops = ROOT / "ops"
+        scope = json.loads((ops / "v30b-development-scope.json").read_text(encoding="utf-8"))
+        review = scope["fixed_snapshot_evidence"]["expanded_verification_followup"]["np_post_merger_consolidation"]
+        with (ops / "v3-performance-share-adjustments-20251113.csv").open(encoding="utf-8", newline="") as stream:
+            actions = list(csv.DictReader(stream))
+        with (ops / "v3-performance-price-replay-20251113.csv").open(encoding="utf-8", newline="") as stream:
+            replay = list(csv.DictReader(stream))
+        self.assertTrue(fixed_np_consolidation_reconciled(review, actions, replay))
+        delivery = next(row for row in replay if row["code"] == "299900" and row["method"] == "stock_delivery_mark")
+        delivery["units_per_entry_share"] = review["preconsolidation_shares_per_old_share"]
+        self.assertFalse(fixed_np_consolidation_reconciled(review, actions, replay))
+
     def test_fixed_exchange_ratios_match_ledger_and_detect_edits(self):
         ops = ROOT / "ops"
         scope = json.loads((ops / "v30b-development-scope.json").read_text(encoding="utf-8"))
@@ -147,14 +162,10 @@ class V30bReadinessTests(unittest.TestCase):
                 self.assertIn("public_snapshot_asof_mismatch", audit["blocker_codes"])
             if observed.get("listed_total") != scorecard.get("listed_total"):
                 self.assertIn("listed_universe_mismatch", audit["blocker_codes"])
-        elif any(
-                observed["observed_issuer_counts"][key] !=
-                scorecard["provisional_numeric_issuer_counts"][key]
-                for key in ("technical", "momentum", "volume")):
-            # Even matching as-of dates are insufficient if an independent
-            # secondary scorecard was replayed with no technical or momentum
-            # source. The research audit must reject that mismatched chain,
-            # never certify it just because the date and issuer count match.
+        elif not _secondary_scorecard_counts_bounded_by_matched_fcf(
+                observed, scorecard["provisional_numeric_issuer_counts"]):
+            # Same-day source publications can differ until both reports include
+            # the same factors. Only receipt-matched FCF can explain an allowed gap.
             self.assertFalse(audit["public_summary_valid"])
             self.assertIn("area_count_or_source_mismatch", audit["blocker_codes"])
         else:

@@ -570,6 +570,24 @@
             "notice_url": "https://kind.krx.co.kr/external/2026/04/08/001319/20260408003691/11344.htm"
           }
         ]
+      },
+      "np_post_merger_consolidation": {
+        "predecessor_code": "299900",
+        "successor_code": "291230",
+        "merger_on": "2026-07-14",
+        "registration_application_scheduled_on": "2026-07-15",
+        "listing_on": "2026-08-14",
+        "preconsolidation_shares_per_old_share": "0.5774514",
+        "consolidation_new_units": 1,
+        "consolidation_old_units": 5,
+        "proportional_units_per_old_share": "0.11549028",
+        "disclosed_rounded_units_per_old_share": "0.1154903",
+        "fractional_cash_reference": "Successor first listing-day KRX close",
+        "fractional_cash_individual_payment_verified": false,
+        "merger_notice_url": "https://kind.krx.co.kr/external/2026/07/15/000296/20260715000950/10810.htm",
+        "consolidation_notice_url": "https://kind.krx.co.kr/external/2026/05/29/000973/20260529001618/00591.htm",
+        "post_event_report_url": "https://samara.kr/disclosure/20261111000406",
+        "scope": "Proportional share path only. The notices describe both merger-allotment and consolidation fractions. Individual lot allocation, pricing units and cash transfers have not been independently reconciled."
       }
     }
   },
