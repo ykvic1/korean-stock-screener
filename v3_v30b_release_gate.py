@@ -1061,6 +1061,31 @@ def fixed_market_roster_reconciled(scope, archive):
     )
 
 
+def fixed_primary_statements_reconciled(receipts, totals):
+    """Reconcile the receipt and account counts; this checks coverage accounting only."""
+    statuses = totals.get("statuses")
+    fields = totals.get("primary_statement_fields")
+    if not isinstance(statuses, dict) or not isinstance(fields, dict):
+        return False
+    allowed = {"matched", "different_value", "no_matching_primary_row",
+               "stored_value_missing", "ambiguous_or_unusable"}
+    if (set(statuses) != {"compared", "original_document_unresolved", "historical_and_saved_receipt_differ"}
+            or set(fields) != {"assets", "liabilities", "equity", "revenue", "operating_income"}
+            or any(type(n) is not int or n < 0 for n in statuses.values())):
+        return False
+    issuers = totals.get("issuers")
+    return (
+        totals.get("anchor") == receipts.get("anchor") == "2025-11-13"
+        and type(issuers) is int and issuers > 0
+        and issuers == receipts.get("issuers_checked") == sum(statuses.values())
+        and receipts.get("original_receipt_outcomes", {}).get("prior_document_zip_verified")
+        == statuses["compared"] + statuses["historical_and_saved_receipt_differ"]
+        and all(isinstance(row, dict) and row.keys() <= allowed
+                and all(type(n) is int and n >= 0 for n in row.values())
+                and sum(row.values()) == statuses["compared"] for row in fields.values())
+    )
+
+
 def main(argv: list[str] | None = None) -> dict:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--observed", type=Path,
@@ -1111,6 +1136,15 @@ def main(argv: list[str] | None = None) -> dict:
             report["gates"]["fixed_historical_raw_market_roster_reconciled"] = raw_roster_ok
             if not raw_roster_ok:
                 report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_raw_market_roster_unreconciled"})
+            followup = scope.get("fixed_snapshot_evidence", {}).get("expanded_verification_followup", {})
+            totals_path = a.development_scope.with_name("v30b-fixed-pit-primary-statement-totals.json")
+            totals = _read_public_json(totals_path) if totals_path.is_file() else {}
+            reconciled = fixed_primary_statements_reconciled(followup.get("completed_original_receipt_cohort", {}), totals)
+            report["gates"]["fixed_primary_statement_coverage_reconciled"] = reconciled
+            if reconciled:
+                report["fixed_primary_statement_comparison"] = totals
+            elif "primary_statement_totals" in followup:
+                report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_primary_statement_counts_unreconciled"})
             report["fixed_development_snapshot"] = {
                 "asof": scope.get("development_cutoff_kst"),
                 "recorded_evidence": scope.get("fixed_snapshot_evidence", {}),
