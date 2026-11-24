@@ -12,6 +12,7 @@ import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
                                     fixed_primary_statements_reconciled, fixed_market_roster_reconciled,
+                                    fixed_operating_membership_reconciled,
                                     issuer_csv_reconciles,
                                     issuer_catalog_reconciles,
                                     issuer_fcf_preview_reconciles,
@@ -29,6 +30,15 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_membership_reconciliation_catches_later_delisted_omissions(self):
+        ops = ROOT / "ops"
+        scope = json.loads((ops / "v30b-development-scope.json").read_text())
+        proof = scope["fixed_snapshot_evidence"]["historical_raw_market_roster"]["official_daily_operating_membership"]
+        reference = json.loads((ops / "v3-performance-operating-scope-20251113.json").read_text())
+        self.assertTrue(fixed_operating_membership_reconciled(proof, reference))
+        proof["matching_later_delisted_in_scope"] -= 1
+        self.assertFalse(fixed_operating_membership_reconciled(proof, reference))
+
     def test_frozen_statement_counts_preserve_missing_inputs(self):
         ops = ROOT / "ops"
         scope = json.loads((ops / "v30b-development-scope.json").read_text())
