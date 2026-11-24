@@ -33,7 +33,7 @@ jobs:
           from pathlib import Path
 
           import pyarrow.parquet as pq
-          from official_probe.clients import KRXClient
+          from official_probe.clients import KRXClient, KRXProbeError
           from screener import market_snapshot
           from v3_historical_market_coverage import ledger_rows, ROOT
           from v3_historical_annual_receipt_recovery import PINNED_HASHES
@@ -53,7 +53,14 @@ jobs:
           try:
               for market, route in (("KOSPI", "sto/stk_isu_base_info"), ("KOSDAQ", "sto/ksq_isu_base_info")):
                   rows, raw = client.daily_market(market, day)
-                  master, master_raw = client._daily_rows(route, market, day)
+                  try:
+                      master, master_raw = client._daily_rows(route, market, day)
+                  except KRXProbeError as error:
+                      if error.reason not in {"http_unauthorized", "http_forbidden"}:
+                          raise
+                      result[market] = {"master_available": False, "reason": error.reason,
+                                        "http_status": error.http_status}
+                      continue
                   check = audit_market_master(trade_rows=rows, trade_raw=raw, master_rows=master,
                                               master_raw=master_raw, market=market, asof=day)
                   counts = Counter()
@@ -71,7 +78,7 @@ jobs:
                       if code in delisted and same_name:
                           counts["later_delisted_name_match"] += 1
                       types[(other.get("SECUGRP_NM") or "missing", other.get("KIND_STKCERT_TP_NM") or "missing")] += 1
-                  result[market] = {"master_join": check, "operating_identities": counts,
+                  result[market] = {"master_available": True, "master_join": check, "operating_identities": counts,
                                     "included_security_types": [{"group": g, "type": t, "issuers": n}
                                                                 for (g, t), n in sorted(types.items())]}
           finally:
