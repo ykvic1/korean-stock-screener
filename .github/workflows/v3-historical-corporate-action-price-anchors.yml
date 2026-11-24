@@ -2,11 +2,16 @@ name: V3.0b Historical Corporate Action Price Anchors
 
 on:
   push:
-    branches: [main]
+    branches: [main, v30b-fixed-snapshot-verification-expansion]
     paths:
       - v3_historical_corporate_action_price_anchors.py
       - .github/workflows/v3-historical-corporate-action-price-anchors.yml
   workflow_dispatch:
+    inputs:
+      additional_offset:
+        description: Offset into reviewed actions beyond the original sample
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -23,7 +28,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        batch: [split_and_reduction, january_exchanges, february_and_april_exchanges, july_and_august_exchanges, treasury_delivery_and_consolidation]
+        batch: ${{ fromJSON((github.ref_name == 'v30b-fixed-snapshot-verification-expansion' || inputs.additional_offset != '') && '["additional"]' || '["split_and_reduction","january_exchanges","february_and_april_exchanges","july_and_august_exchanges","treasury_delivery_and_consolidation"]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -43,6 +48,11 @@ jobs:
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
           PILOT_BATCH: ${{ matrix.batch }}
+          ADDITIONAL_OFFSET: ${{ inputs.additional_offset }}
         run: |
           set -euo pipefail
-          python v3_historical_corporate_action_price_anchors.py --batch "$PILOT_BATCH" "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv"
+          args=(--batch "$PILOT_BATCH")
+          if [[ "$PILOT_BATCH" == additional ]]; then
+            args=(--additional-offset "${ADDITIONAL_OFFSET:-0}")
+          fi
+          python v3_historical_corporate_action_price_anchors.py "${args[@]}" "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv"
