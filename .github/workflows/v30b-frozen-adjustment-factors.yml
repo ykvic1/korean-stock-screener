@@ -69,7 +69,8 @@ jobs:
               response.raise_for_status()
               if len(response.content) > 2_000_000:
                   raise ValueError("oversize_adjusted_response")
-              channel = ET.fromstring(response.content).find("chartdata")
+              xml = response.content.decode("cp949")
+              channel = ET.fromstring(re.sub(r"^<\?xml[^?]*\?>", "", xml.lstrip())).find("chartdata")
               prices = {}
               if channel is not None and channel.get("symbol") == code:
                   for item in channel.findall("item"):
