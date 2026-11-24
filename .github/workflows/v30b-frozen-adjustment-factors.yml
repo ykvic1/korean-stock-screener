@@ -1,7 +1,7 @@
 name: Compare frozen split and consolidation factors
 on:
   push:
-    branches: [v30b-krx-reopening-factors]
+    branches: [v30b-frozen-adjusted-close-paths]
     paths: [.github/workflows/v30b-frozen-adjustment-factors.yml]
   workflow_dispatch:
 permissions:
@@ -22,6 +22,7 @@ jobs:
         run: |
           curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o "$RUNNER_TEMP/2025.parquet"
           curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o "$RUNNER_TEMP/2026.parquet"
+          curl -fsSL --retry 2 --max-time 60 https://raw.githubusercontent.com/FinanceData/fdr_krx_data_cache/05a17038b3cddf7a6f48105913e46fd37d96a21e/data/listing/krx/2026-11-13.csv -o "$RUNNER_TEMP/endpoint.csv"
       - name: Compare holder unit changes with independent adjusted close pairs
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
@@ -50,6 +51,12 @@ jobs:
                   raise ValueError("raw_price_source_changed")
               sources[year] = path
 
+          endpoint = Path(os.environ["RUNNER_TEMP"]) / "endpoint.csv"
+          if sha256(endpoint.read_bytes()).hexdigest() != baseline["public_inputs_sha256"][2]:
+              raise ValueError("endpoint_hash_changed")
+          with endpoint.open(encoding="utf-8-sig", newline="") as stream:
+              end_rows = {r["Code"]: r for r in csv.DictReader(stream)}
+
           def raw_price(code, day, column):
               table = pq.read_table(sources[day.year], columns=[column, "Volume"],
                                     filters=[("Code", "=", code), ("Date", "=", day)])
@@ -58,19 +65,37 @@ jobs:
                   raise ValueError("missing_officially_crosschecked_trade_anchor")
               return int(rows[0][column])
 
+          official_days = {}
+
+          def official_day(market, day):
+              key = market, day
+              if key not in official_days:
+                  if len(official_days) >= 60:
+                      raise ValueError("unexpected_number_of_reference_changes")
+                  rows, payload = client.daily_market(market, day.date().isoformat())
+                  official_days[key] = {r["ISU_CD"]: r for r in rows}, sha256(payload).hexdigest()
+                  if len(official_days[key][0]) != len(rows):
+                      raise ValueError("ambiguous_official_identity")
+              return official_days[key]
+
           def official_factor_bounds(code, days, prior, listing):
-              row = pq.read_table(sources[days[1].year], columns=["Market"], filters=[
-                  ("Code", "=", code), ("Date", "=", days[1])]).to_pylist()[0]
-              market = "KOSDAQ" if row["Market"] == "KOSDAQ GLOBAL" else row["Market"]
               hashes = []
               official = []
               for day, raw_close in zip(days, (prior, listing), strict=True):
-                  rows, payload = client.daily_market(market, day.date().isoformat())
-                  matches = [r for r in rows if r.get("ISU_CD") == code and r.get("BAS_DD") == day.strftime("%Y%m%d")]
+                  if day.strftime("%Y%m%d") == "20261113":
+                      market = end_rows[code]["Market"]
+                  else:
+                      quote = pq.read_table(sources[day.year], columns=["Market"], filters=[
+                          ("Code", "=", code), ("Date", "=", day)]).to_pylist()
+                      if len(quote) != 1:
+                          raise ValueError("market_on_anchor_date_unresolved")
+                      market = quote[0]["Market"]
+                  rows, digest = official_day("KOSDAQ" if market == "KOSDAQ GLOBAL" else market, day)
+                  matches = [rows[code]] if code in rows and rows[code].get("BAS_DD") == day.strftime("%Y%m%d") else []
                   if len(matches) != 1 or int(matches[0]["TDD_CLSPRC"]) != raw_close:
                       raise ValueError("official_price_anchor_mismatch")
                   official.append(matches[0])
-                  hashes.append(sha256(payload).hexdigest())
+                  hashes.append(digest)
               row = official[-1]
               if not re.fullmatch(r"[+-]?[0-9]+", str(row.get("CMPPREVDD_PRC", ""))):
                   raise ValueError("unusable_official_price_change")
@@ -90,8 +115,8 @@ jobs:
               days = [datetime.fromisoformat(event[key]) for key in ("prior_trade_on", "listing_on")]
               raw_before, raw_after = [raw_price(code, day, "Close") for day in days]
               response = requests.get("https://fchart.stock.naver.com/sise.nhn",
-                                      params={"symbol": code, "timeframe": "day", "startTime": days[0].strftime("%Y%m%d"),
-                                              "endTime": days[1].strftime("%Y%m%d"), "requestType": "1"},
+                                      params={"symbol": code, "timeframe": "day", "startTime": "20251113",
+                                              "endTime": "20261113", "requestType": "1"},
                                       timeout=(8, 25))
               response.raise_for_status()
               if len(response.content) > 2_000_000:
@@ -140,10 +165,54 @@ jobs:
                       if lower <= official_factor <= upper else "different_factor")
                   state = ("exact" if observed == expected else "within_rounding"
                            if lower <= expected <= upper else "different_factor")
+              sessions = {}
+              for path in sources.values():
+                  series = pq.read_table(path, columns=["Date", "Close", "Volume"],
+                                         filters=[("Code", "=", code), ("Date", ">=", datetime(2025, 11, 13)),
+                                                  ("Date", "<", datetime(2026, 11, 13))])
+                  for quote in series.to_pylist():
+                      if quote["Volume"] > 0 and quote["Close"] > 0:
+                          date = quote["Date"].strftime("%Y%m%d")
+                          if date in sessions:
+                              raise ValueError("duplicate_raw_session")
+                          sessions[date] = int(quote["Close"])
+              final = end_rows.get(code)
+              if final and int(final["Volume"]) > 0 and int(final["Close"]) > 0:
+                  sessions["20261113"] = int(final["Close"])
+              links = Counter()
+              differences = []
+              dates = sorted(sessions)
+              for first, last in zip(dates, dates[1:]):
+                  v1, v2 = prices.get(first), prices.get(last)
+                  if v1 is None or v2 is None:
+                      links["missing_adjusted_anchor"] += 1
+                      continue
+                  r1, r2 = sessions[first], sessions[last]
+                  low = Fraction((2*v1-1)*r2, (2*v2+1)*r1)
+                  high = Fraction((2*v1+1)*r2, (2*v2-1)*r1)
+                  if low <= 1 <= high:
+                      links["consistent_with_unchanged_scale"] += 1
+                      continue
+                  pair = [datetime.strptime(day, "%Y%m%d") for day in (first, last)]
+                  factor, _ = official_factor_bounds(code, pair, r1, r2)
+                  if low <= factor <= high:
+                      links["krx_reference_match"] += 1
+                  else:
+                      links["krx_reference_differs"] += 1
+                      implied = Fraction(v1*r2, v2*r1)
+                      differences.append({"prior": first, "current": last,
+                                          "official_scale_unchanged": factor == 1,
+                                          "relative_gap_basis_points": round(float(10000*(implied/factor - 1)), 3),
+                                          "same_unadjusted_prior": v1 == r1, "same_unadjusted_current": v2 == r2})
+              detail["year_path"] = {"first_observed_trade": dates[0], "last_observed_trade": dates[-1],
+                                     "present_in_endpoint_roster": final is not None, "raw_traded_sessions": len(dates),
+                                     "adjusted_positive_closes_on_traded_sessions": sum(d in prices for d in dates),
+                                     "adjacent_traded_session_pairs": links, "unresolved_pairs": differences}
               outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
                                "adjusted_response_sha256": sha256(response.content).hexdigest()})
           client.session.close()
           result = {"source": "Naver historical chart", "event_count": len(events), "outcomes": outcomes,
+                    "official_market_day_sha256": {f"{market}_{day:%Y%m%d}": item[1] for (market, day), item in official_days.items()},
                     "counts": dict(Counter(item["state"] for item in outcomes)),
                     "official_adjusted_history_verified": False}
           print(json.dumps(result))
