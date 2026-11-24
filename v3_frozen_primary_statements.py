@@ -1,4 +1,4 @@
-"""Compare FY2024 primary-statement rows with frozen, receipt-matched values."""
+"""Compare FY2022–FY2024 primary-statement amounts with frozen values."""
 import argparse
 from collections import Counter, defaultdict
 from hashlib import sha256
@@ -20,7 +20,10 @@ CONCEPTS = {
 }
 
 
-def compare(rows, corp, receipt, scope, saved):
+COMPARATIVE_COLUMNS = {"2023": "frmtrm_amount", "2022": "bfefrmtrm_amount"}
+
+
+def compare(rows, corp, receipt, scope, saved, *, amount_column="thstrm_amount"):
     candidates = defaultdict(list)
     for row in rows:
         if (row.get("rcept_no") != receipt or row.get("corp_code") != corp
@@ -30,7 +33,7 @@ def compare(rows, corp, receipt, scope, saved):
         statement = row.get("sj_div")
         metric = CONCEPTS.get(("IS" if statement == "CIS" else statement, row.get("account_id")))
         if metric:
-            amount = _amount(row.get("thstrm_amount")) if _explicit_krw_currency(row.get("currency")) else None
+            amount = _amount(row.get(amount_column)) if _explicit_krw_currency(row.get("currency")) else None
             candidates[metric].append(amount)
     result = {}
     for metric in FIELDS:
@@ -82,6 +85,8 @@ def main():
     statuses = Counter()
     by_metric = {metric: Counter() for metric in FIELDS}
     outcomes = {}
+    comparative_metrics = {year: {metric: Counter() for metric in FIELDS}
+                           for year in COMPARATIVE_COLUMNS}
     try:
         master = client._research_get("corp_mapping_zip", DART_BASE + "corpCode.xml",
                                       params={"crtfc_key": os.environ["DART_API_KEY"]}, limit=25_000_000)
@@ -93,7 +98,8 @@ def main():
                 continue
             if not RECEIPT.fullmatch(receipt or "") or receipt[:8] >= CUTOFF:
                 raise ValueError("unexpected_historical_receipt_date")
-            annual = history[code]["years"]["2024"]
+            years = history[code]["years"]
+            annual = years["2024"]
             scope = "CFS" if "CFS" in annual else "OFS"
             saved = annual[scope]
             if saved["receipt_id"] != receipt:
@@ -107,14 +113,27 @@ def main():
                                    reprt_code="11011", fs_div=scope)
             rows = response["list"]
             result = compare(rows, corp, receipt, scope, saved["values"])
-            outcomes[code] = {"receipt": receipt, "scope": scope, "fields": result}
+            comparative = {}
+            for year, column in COMPARATIVE_COLUMNS.items():
+                earlier = years.get(year, {}).get(scope, {})
+                earlier_receipt = earlier.get("receipt_id")
+                if not RECEIPT.fullmatch(earlier_receipt or "") or earlier_receipt[:8] >= CUTOFF:
+                    fields = dict.fromkeys(FIELDS, "stored_receipt_unavailable_at_anchor")
+                else:
+                    fields = compare(rows, corp, receipt, scope, earlier["values"], amount_column=column)
+                comparative[year] = fields
+                for metric, state in fields.items():
+                    comparative_metrics[year][metric][state] += 1
+            outcomes[code] = {"receipt": receipt, "scope": scope, "fields": result,
+                              "comparative_fields": comparative}
             statuses["compared"] += 1
             for metric, state in result.items():
                 by_metric[metric][state] += 1
     finally:
         client.session.close()
     summary = {"anchor": "2025-11-13", "start": args.start, "end": args.end,
-               "issuers": len(records), "statuses": statuses, "primary_statement_fields": by_metric}
+               "issuers": len(records), "statuses": statuses, "primary_statement_fields": by_metric,
+               "comparative_primary_statement_fields": comparative_metrics}
     print(json.dumps(summary, sort_keys=True))
     Path("primary-statement-evidence.json").write_text(json.dumps(
         {**summary, "outcomes": outcomes, "pinned_sources_sha256": PINNED_HASHES}, sort_keys=True))

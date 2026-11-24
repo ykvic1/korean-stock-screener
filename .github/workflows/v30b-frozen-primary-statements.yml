@@ -5,6 +5,10 @@ on:
     types: [completed]
   workflow_dispatch:
     inputs:
+      all_comparatives:
+        description: Recheck all frozen issuers and summarize FY2022–FY2023 comparison values
+        type: boolean
+        default: false
       remaining:
         description: Check offsets from 425 through 2250
         type: boolean
@@ -23,7 +27,7 @@ jobs:
       fail-fast: false
       max-parallel: 3
       matrix:
-        start: ${{ fromJSON((github.event_name == 'workflow_run' || inputs.remaining == true) && '[425,525,625,725,825,925,1025,1125,1225,1325,1425,1525,1625,1725,1825,1925,2025,2125,2225]' || '[0,100,200,300,400]') }}
+        start: ${{ fromJSON(inputs.all_comparatives == true && '[0,100,200,300,400,425,525,625,725,825,925,1025,1125,1225,1325,1425,1525,1625,1725,1825,1925,2025,2125,2225]' || (github.event_name == 'workflow_run' || inputs.remaining == true) && '[425,525,625,725,825,925,1025,1125,1225,1325,1425,1525,1625,1725,1825,1925,2025,2125,2225]' || '[0,100,200,300,400]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -68,7 +72,7 @@ jobs:
 
   summarize:
     needs: compare
-    if: success() && (github.event_name == 'workflow_run' || inputs.remaining == true)
+    if: success() && (github.event_name == 'workflow_run' || inputs.remaining == true || inputs.all_comparatives == true)
     runs-on: ubuntu-latest
     steps:
       - name: Collect first and remaining primary-statement results
@@ -77,21 +81,28 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          for run in 45396632869 "$GITHUB_RUN_ID"; do
+          runs=("$GITHUB_RUN_ID")
+          if [[ "${{ inputs.all_comparatives }}" != true ]]; then runs+=(45396632869); fi
+          for run in "${runs[@]}"; do
             gh run download "$run" --pattern 'frozen-primary-statements-*' --dir "inputs/$run"
           done
       - name: Verify all distinct offsets and combine metric outcomes
+        env:
+          COMPARATIVES: ${{ inputs.all_comparatives }}
         run: |
           python - <<'PY'
           from collections import Counter
           from pathlib import Path
           import json
+          import os
 
           cohort = 2267
           anchor = "2025-11-13"
           cursor = 0
           statuses = Counter()
           fields = {name: Counter() for name in ("assets", "liabilities", "equity", "operating_income", "revenue")}
+          compare_prior = os.environ["COMPARATIVES"] == "true"
+          comparative = {year: {name: Counter() for name in fields} for year in ("2022", "2023")}
           issuers = set()
           pins = ["2bfd93c217eb74263bc5020b23fa6debb6b02531c11eaccc2826639bc191559e",
                   "991b4765f806932fe810d7a21aa7565809517e925da5d7c8d7c99ea462d23a8c",
@@ -109,12 +120,21 @@ jobs:
                   if recounted != row["primary_statement_fields"][name]:
                       raise ValueError("inconsistent_primary_statement_count")
                   totals.update(recounted)
+              if compare_prior:
+                  for year, metrics in comparative.items():
+                      for name, totals in metrics.items():
+                          recounted = Counter(outcome["comparative_fields"][year][name] for outcome in outcomes.values())
+                          if recounted != row["comparative_primary_statement_fields"][year][name]:
+                              raise ValueError("inconsistent_comparative_statement_count")
+                          totals.update(recounted)
               issuers.update(outcomes)
               statuses.update(row["statuses"])
               cursor = row["end"]
           if cursor != cohort:
               raise ValueError("missing_final_issuer_range")
           report = {"anchor": anchor, "issuers": cursor, "statuses": statuses, "primary_statement_fields": fields}
+          if compare_prior:
+              report["comparative_primary_statement_fields"] = comparative
           print(json.dumps(report, sort_keys=True))
           Path("primary-statement-totals.json").write_text(json.dumps(report, indent=2, sort_keys=True))
           PY

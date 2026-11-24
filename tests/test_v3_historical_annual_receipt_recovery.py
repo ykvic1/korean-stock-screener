@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from official_probe.clients import ProbeError
+from v3_frozen_primary_statements import COMPARATIVE_COLUMNS, compare
 from v3_historical_annual_receipt_recovery import choose_version
 
 CORP = "00123456"
@@ -61,3 +62,22 @@ class HistoricalAnnualRecoveryTests(TestCase):
                             "list": [filing(LATER), original]},
                            corp=CORP, code=CODE, market="KOSPI", later=LATER)
         self.assertEqual(choose(original)["status"], "missing_retained_receipt_in_official_list")
+
+
+class FrozenPrimaryStatementComparisonTests(TestCase):
+    def test_original_annual_columns_remain_distinct(self):
+        receipt = "20250319000001"
+        row = {
+            "rcept_no": receipt, "corp_code": CORP, "reprt_code": "11011",
+            "bsns_year": "2024", "fs_div": "CFS", "sj_div": "IS",
+            "account_id": "ifrs-full_Revenue", "currency": "KRW",
+            "thstrm_amount": "300", "frmtrm_amount": "200", "bfefrmtrm_amount": "100",
+        }
+        later = dict(row, rcept_no=LATER, frmtrm_amount="999")
+        for year, amount in (("2023", 200), ("2022", 100)):
+            with self.subTest(year=year):
+                result = compare([later, row], CORP, receipt, "CFS", {"revenue": amount},
+                                 amount_column=COMPARATIVE_COLUMNS[year])
+                self.assertEqual(result["revenue"], "matched")
+        self.assertEqual(compare([row], CORP, receipt, "CFS", {"revenue": 200})["revenue"],
+                         "different_value")
