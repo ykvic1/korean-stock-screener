@@ -180,6 +180,7 @@ jobs:
               if final and int(final["Volume"]) > 0 and int(final["Close"]) > 0:
                   sessions["20261113"] = int(final["Close"])
               links = Counter()
+              differences = []
               dates = sorted(sessions)
               for first, last in zip(dates, dates[1:]):
                   v1, v2 = prices.get(first), prices.get(last)
@@ -194,11 +195,19 @@ jobs:
                       continue
                   pair = [datetime.strptime(day, "%Y%m%d") for day in (first, last)]
                   factor, _ = official_factor_bounds(code, pair, r1, r2)
-                  links["krx_reference_match" if low <= factor <= high else "krx_reference_differs"] += 1
+                  if low <= factor <= high:
+                      links["krx_reference_match"] += 1
+                  else:
+                      links["krx_reference_differs"] += 1
+                      implied = Fraction(v1*r2, v2*r1)
+                      differences.append({"prior": first, "current": last,
+                                          "official_scale_unchanged": factor == 1,
+                                          "relative_gap_basis_points": round(float(10000*(implied/factor - 1)), 3),
+                                          "same_unadjusted_prior": v1 == r1, "same_unadjusted_current": v2 == r2})
               detail["year_path"] = {"first_observed_trade": dates[0], "last_observed_trade": dates[-1],
                                      "present_in_endpoint_roster": final is not None, "raw_traded_sessions": len(dates),
                                      "adjusted_positive_closes_on_traded_sessions": sum(d in prices for d in dates),
-                                     "adjacent_traded_session_pairs": links}
+                                     "adjacent_traded_session_pairs": links, "unresolved_pairs": differences}
               outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
                                "adjusted_response_sha256": sha256(response.content).hexdigest()})
           client.session.close()
