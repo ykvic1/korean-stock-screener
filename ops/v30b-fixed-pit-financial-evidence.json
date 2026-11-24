@@ -26,5 +26,23 @@
   ],
   "new_provider_calls": 0,
   "point_in_time_scores_verified": false,
-  "v30b_release_ready": false
+  "v30b_release_ready": false,
+  "restored_annual_statements_offline_replay": {
+    "restored_issuer_rows": 51,
+    "unique_original_receipts": 51,
+    "original_receipts_through_signal": 51,
+    "later_receipts_after_signal": 51,
+    "source_viewer_receipt_matches": 51,
+    "balance_sheet_years_checked": 153,
+    "balance_sheet_years_reconciled": 153,
+    "joined_to_financial_factor_replay": 51,
+    "all_three_parts_in_replay": 48,
+    "missing_revenue_issuer_rows": 2,
+    "nonpositive_equity_issuer_rows": 1,
+    "replayed_parts": {
+      "balance_sheet_strength": 50,
+      "operating_growth_margin": 49,
+      "sales_to_cap": 49
+    }
+  }
 }
