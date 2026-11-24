@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - ops/v30b-development-scope.json
+      - 'ops/v30b-fixed-pit-*.json'
       - v3_data_collection_closeout.py
       - docs/v3-data-collection-closeout.json
       - v3_operational_publication_audit.py
@@ -37,6 +39,8 @@ on:
     branches: [main]
     paths:
       - v3_v30b_release_gate.py
+      - ops/v30b-development-scope.json
+      - 'ops/v30b-fixed-pit-*.json'
       - v3_data_collection_closeout.py
       - docs/v3-data-collection-closeout.json
       - v3_operational_publication_audit.py
