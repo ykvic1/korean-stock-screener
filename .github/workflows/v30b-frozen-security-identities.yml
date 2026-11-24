@@ -1,9 +1,14 @@
 name: Check frozen KRX security identities
 on:
   push:
-    branches: [v30b-frozen-primary-statements]
+    branches: [v30b-frozen-daily-roster]
     paths: [.github/workflows/v30b-frozen-security-identities.yml]
   workflow_dispatch:
+    inputs:
+      include_master:
+        description: Also compare the separately authorized instrument master
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,6 +27,7 @@ jobs:
         run: curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o "$RUNNER_TEMP/prices.parquet"
       - name: Cross-check official dated security types and delisting identities
         env:
+          INCLUDE_MASTER: ${{ inputs.include_master == true && 'true' || 'false' }}
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
         run: |
           python - <<'PY'
@@ -32,6 +38,7 @@ jobs:
           import os
           from pathlib import Path
 
+          import pandas as pd
           import pyarrow.parquet as pq
           from official_probe.clients import KRXClient, KRXProbeError
           from screener import market_snapshot
@@ -48,11 +55,27 @@ jobs:
           if len(included) != 2573 or len(delisted) != 92:
               raise ValueError("frozen_scope_mismatch")
           result = {}
+          snapshots = []
+          seen = set()
+          source_hashes = {}
           day = "2025-11-13"
           client = KRXClient(os.environ["KRX_API_KEY"])
           try:
               for market, route in (("KOSPI", "sto/stk_isu_base_info"), ("KOSDAQ", "sto/ksq_isu_base_info")):
                   rows, raw = client.daily_market(market, day)
+                  source_hashes[market] = sha256(raw).hexdigest()
+                  for row in rows:
+                      code = row["ISU_CD"]
+                      if row["BAS_DD"] != "20251113" or code in seen:
+                          raise ValueError("official_trade_date_or_identity_mismatch")
+                      seen.add(code)
+                      item = {"Code": code, "Name": row["ISU_NM"], "Market": market}
+                      for target, field in (("Close", "TDD_CLSPRC"), ("Volume", "ACC_TRDVOL"),
+                                            ("Amount", "ACC_TRDVAL"), ("Marcap", "MKTCAP")):
+                          item[target] = str(row[field]).replace(",", "")
+                      snapshots.append(item)
+                  if os.environ["INCLUDE_MASTER"] != "true":
+                      continue
                   try:
                       master, master_raw = client._daily_rows(route, market, day)
                   except KRXProbeError as error:
@@ -83,6 +106,19 @@ jobs:
                                                                 for (g, t), n in sorted(types.items())]}
           finally:
               client.session.close()
+          official_scope = market_snapshot(pd.DataFrame(snapshots))
+          official_ids = {code: (row["market"], row["name"]) for code, row in official_scope.items()}
+          frozen_ids = {code: (row["market"], row["name"]) for code, row in included.items()}
+          official_codes, frozen_codes = set(official_ids), set(frozen_ids)
+          same = {code for code in official_codes & frozen_codes if official_ids[code] == frozen_ids[code]}
+          result["official_daily_operating_roster"] = {
+              "date": day, "official_market_rows": len(seen), "raw_later_delisted_present": len(seen & delisted),
+              "official_selected": len(official_codes), "frozen_selected": len(frozen_codes),
+              "official_only": len(official_codes - frozen_codes), "frozen_only": len(frozen_codes - official_codes),
+              "different_market_or_name": len((official_codes & frozen_codes) - same),
+              "matching_identities": len(same), "matching_later_delisted_in_scope": len(same & delisted),
+              "source_sha256": source_hashes, "operating_roster_reconciled": official_ids == frozen_ids,
+          }
           Path("frozen-security-identities.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
           print(json.dumps(result, ensure_ascii=False))
           PY
