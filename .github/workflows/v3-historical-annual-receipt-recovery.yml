@@ -2,11 +2,16 @@ name: V3.0b Historical Annual Disclosure Recovery
 
 on:
   push:
-    branches: [main]
+    branches: [main, v30b-fixed-snapshot-verification-expansion]
     paths:
       - v3_historical_annual_receipt_recovery.py
       - .github/workflows/v3-historical-annual-receipt-recovery.yml
   workflow_dispatch:
+    inputs:
+      reference_offset:
+        description: Offset into the pinned pre-anchor receipt cohort
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -38,10 +43,18 @@ jobs:
       - name: Identify and validate pre-cutoff body versions from OpenDART
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          REFERENCE_OFFSET: ${{ inputs.reference_offset }}
         run: |
           set -euo pipefail
           temp="$RUNNER_TEMP"
-          python v3_historical_annual_receipt_recovery.py --live "$temp/historical-prices.parquet" "$temp/historical-financial-pin.json" "$temp/historical-catalog-pin.json" > "$temp/historical-annual-receipt-recovery.json"
+          if [[ "$GITHUB_REF_NAME" == v30b-fixed-snapshot-verification-expansion ]]; then
+            REFERENCE_OFFSET="${REFERENCE_OFFSET:-0}"
+          fi
+          args=()
+          if [[ -n "$REFERENCE_OFFSET" ]]; then
+            args+=(--reference-offset "$REFERENCE_OFFSET")
+          fi
+          python v3_historical_annual_receipt_recovery.py --live "${args[@]}" "$temp/historical-prices.parquet" "$temp/historical-financial-pin.json" "$temp/historical-catalog-pin.json" > "$temp/historical-annual-receipt-recovery.json"
       - name: Report recovery counts
         if: always()
         run: |
