@@ -1,0 +1,86 @@
+name: Check frozen KRX security identities
+on:
+  push:
+    branches: [v30b-frozen-primary-statements]
+    paths: [.github/workflows/v30b-frozen-security-identities.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt pyarrow
+      - name: Load frozen public market panel
+        run: curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o "$RUNNER_TEMP/prices.parquet"
+      - name: Cross-check official dated security types and delisting identities
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
+        run: |
+          python - <<'PY'
+          from collections import Counter
+          from datetime import datetime
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+
+          import pyarrow.parquet as pq
+          from official_probe.clients import KRXClient
+          from screener import market_snapshot
+          from v3_historical_market_coverage import ledger_rows, ROOT
+          from v3_historical_annual_receipt_recovery import PINNED_HASHES
+          from v3_krx_issuer_master_audit import audit_market_master
+
+          path = Path(os.environ["RUNNER_TEMP"]) / "prices.parquet"
+          if sha256(path.read_bytes()).hexdigest() != PINNED_HASHES[0]:
+              raise ValueError("frozen_market_hash_mismatch")
+          panel = pq.read_table(path, filters=[("Date", "=", datetime(2025, 11, 13))]).to_pandas()
+          included = market_snapshot(panel)
+          delisted = {r["code"] for r in ledger_rows(ROOT, "delistings") if r["anchor_membership"] == "present"}
+          if len(included) != 2573 or len(delisted) != 92:
+              raise ValueError("frozen_scope_mismatch")
+          result = {}
+          day = "2025-11-13"
+          client = KRXClient(os.environ["KRX_API_KEY"])
+          try:
+              for market, route in (("KOSPI", "sto/stk_isu_base_info"), ("KOSDAQ", "sto/ksq_isu_base_info")):
+                  rows, raw = client.daily_market(market, day)
+                  master, master_raw = client._daily_rows(route, market, day)
+                  check = audit_market_master(trade_rows=rows, trade_raw=raw, master_rows=master,
+                                              master_raw=master_raw, market=market, asof=day)
+                  counts = Counter()
+                  types = Counter()
+                  official = {item["ISU_SRT_CD"]: item for item in master}
+                  for code, item in included.items():
+                      if item["market"] != market:
+                          continue
+                      other = official.get(code)
+                      if not other:
+                          counts["missing_from_master"] += 1
+                          continue
+                      same_name = other.get("ISU_ABBRV") == item["name"]
+                      counts["name_match" if same_name else "different_name"] += 1
+                      if code in delisted and same_name:
+                          counts["later_delisted_name_match"] += 1
+                      types[(other.get("SECUGRP_NM") or "missing", other.get("KIND_STKCERT_TP_NM") or "missing")] += 1
+                  result[market] = {"master_join": check, "operating_identities": counts,
+                                    "included_security_types": [{"group": g, "type": t, "issuers": n}
+                                                                for (g, t), n in sorted(types.items())]}
+          finally:
+              client.session.close()
+          Path("frozen-security-identities.json").write_text(json.dumps(result, ensure_ascii=False, indent=2))
+          print(json.dumps(result, ensure_ascii=False))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frozen-security-identities
+          path: frozen-security-identities.json
+          if-no-files-found: error
