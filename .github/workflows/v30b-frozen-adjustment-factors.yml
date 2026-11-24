@@ -47,13 +47,13 @@ jobs:
                   raise ValueError("raw_price_source_changed")
               sources[year] = path
 
-          def raw_close(code, day):
-              table = pq.read_table(sources[day.year], columns=["Close", "Volume"],
+          def raw_price(code, day, column):
+              table = pq.read_table(sources[day.year], columns=[column, "Volume"],
                                     filters=[("Code", "=", code), ("Date", "=", day)])
               rows = table.to_pylist()
-              if len(rows) != 1 or rows[0]["Volume"] <= 0 or rows[0]["Close"] <= 0:
+              if len(rows) != 1 or rows[0]["Volume"] <= 0 or rows[0][column] <= 0:
                   raise ValueError("missing_officially_crosschecked_trade_anchor")
-              return int(rows[0]["Close"])
+              return int(rows[0][column])
 
           outcomes = []
           with open("ops/v3-performance-share-adjustments-20251113.csv") as stream:
@@ -61,7 +61,7 @@ jobs:
           for event in events:
               code = event["code"]
               days = [datetime.fromisoformat(event[key]) for key in ("prior_trade_on", "listing_on")]
-              raw_before, raw_after = [raw_close(code, day) for day in days]
+              raw_before, raw_after = [raw_price(code, day, "Close") for day in days]
               response = requests.get("https://fchart.stock.naver.com/sise.nhn",
                                       params={"symbol": code, "timeframe": "day", "startTime": days[0].strftime("%Y%m%d"),
                                               "endTime": days[1].strftime("%Y%m%d"), "requestType": "1"},
@@ -91,6 +91,21 @@ jobs:
                   # Two integer adjusted closes can each be rounded by half a won.
                   lower = Fraction((2*before-1)*raw_after, (2*after+1)*raw_before)
                   upper = Fraction((2*before+1)*raw_after, (2*after-1)*raw_before)
+                  reference = None
+                  if code == "028080" and event["listing_on"] == "2026-04-30":
+                      detail["kind_notice"] = "https://kind.krx.co.kr/external/2026/04/29/001058/20260429002274/70795.htm"
+                      reference = 7520
+                  elif code == "121850" and event["listing_on"] == "2025-12-10":
+                      detail["kind_notice"] = "https://kind.krx.co.kr/external/2025/12/09/000506/20251209001663/70793.htm"
+                      # KIND defines the first auction trade within these published limits as the base.
+                      opening = raw_price(code, days[1], "Open")
+                      if 2825 <= opening <= 8480:
+                          reference = opening
+                  if reference is not None:
+                      target = Fraction(reference, raw_before)
+                      detail["notice_reference_factor_match"] = (
+                          "exact" if observed == target else "within_rounding"
+                          if lower <= target <= upper else "different_factor")
                   state = ("exact" if observed == expected else "within_rounding"
                            if lower <= expected <= upper else "different_factor")
               outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
