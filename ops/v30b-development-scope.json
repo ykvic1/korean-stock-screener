@@ -40,6 +40,34 @@
       "excluded_unresolved_inputs": 4,
       "exclusion_scope": "historical_verification_completion_counts",
       "evidence": "ops/v30b-fixed-pit-dart-revenue-body-diagnostic.json"
+    },
+    "historical_financial_sample": {
+      "historical_signal_asof": "2025-11-13",
+      "fiscal_year": 2024,
+      "receipt_and_document_matched": 16,
+      "matching_explicit_scope_candidates_by_account": {
+        "assets": {
+          "all_candidate_values_equal": 16
+        },
+        "equity": {
+          "all_candidate_values_equal": 16
+        },
+        "liabilities": {
+          "all_candidate_values_equal": 16
+        },
+        "operating_income": {
+          "all_candidate_values_equal": 16
+        },
+        "revenue": {
+          "all_candidate_values_equal": 11,
+          "equal_candidate_among_distinct_values": 4,
+          "stored_value_missing": 1
+        }
+      },
+      "primary_statement_scope_verified": false,
+      "scope_comparison_run_id": 45136314884,
+      "evidence": "ops/v30b-fixed-pit-dart-scope-sample.json",
+      "coverage_evidence": "ops/v30b-fixed-pit-financial-evidence.json"
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,
