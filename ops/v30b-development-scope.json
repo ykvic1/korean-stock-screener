@@ -499,6 +499,77 @@
         "last_unresolved_session": "2026-11-13",
         "official_scale_unchanged_for_unresolved_pairs": 39,
         "official_adjusted_history_verified": false
+      },
+      "kind_exchange_ratio_review": {
+        "scope": "Ordinary-share exchange ratios for the 11 stock_exchange entries in the 2025-11-13 settlement ledger. Cash for fractions and later successor actions are outside this comparison.",
+        "rows": [
+          {
+            "code": "006390",
+            "successor_code": "300720",
+            "shares_per_old_share": "1.0028211",
+            "notice_url": "https://kind.krx.co.kr/external/2025/07/17/000464/20250715001056/91769.htm"
+          },
+          {
+            "code": "010620",
+            "successor_code": "329180",
+            "shares_per_old_share": "0.4059146",
+            "notice_url": "https://kind.krx.co.kr/external/2025/09/29/000099/20250929000251/10601.htm"
+          },
+          {
+            "code": "450140",
+            "successor_code": "002020",
+            "shares_per_old_share": "0.0611643",
+            "notice_url": "https://kind.krx.co.kr/external/2025/08/07/000549/20250807001241/11347.htm"
+          },
+          {
+            "code": "042670",
+            "successor_code": "267270",
+            "shares_per_old_share": "0.1621707",
+            "notice_url": "https://kind.krx.co.kr/external/2025/11/14/001552/20251114003444/11013.htm"
+          },
+          {
+            "code": "019440",
+            "successor_code": "058650",
+            "shares_per_old_share": "0.1348985",
+            "notice_url": "https://kind.krx.co.kr/external/2026/02/04/000809/20260204002381/11347.htm"
+          },
+          {
+            "code": "138490",
+            "successor_code": "120110",
+            "shares_per_old_share": "0.1919531",
+            "notice_url": "https://kind.krx.co.kr/external/2025/12/16/000054/20251216000162/10601.htm"
+          },
+          {
+            "code": "057050",
+            "successor_code": "005440",
+            "shares_per_old_share": "6.3571040",
+            "notice_url": "https://kind.krx.co.kr/external/2026/05/22/000379/20260522000966/11347.htm"
+          },
+          {
+            "code": "031440",
+            "successor_code": "139480",
+            "shares_per_old_share": "0.5031313",
+            "notice_url": "https://kind.krx.co.kr/external/2026/03/10/001597/20260310003544/11347.htm"
+          },
+          {
+            "code": "082640",
+            "successor_code": "316140",
+            "shares_per_old_share": "0.2521056",
+            "notice_url": "https://kind.krx.co.kr/external/2026/05/11/000610/20260511001541/10603.htm"
+          },
+          {
+            "code": "028080",
+            "successor_code": "115160",
+            "shares_per_old_share": "0.9646707",
+            "notice_url": "https://kind.krx.co.kr/external/2026/08/05/000461/20260805001293/00591.htm"
+          },
+          {
+            "code": "299900",
+            "successor_code": "291230",
+            "shares_per_old_share": "0.5774514",
+            "notice_url": "https://kind.krx.co.kr/external/2026/04/08/001319/20260408003691/11344.htm"
+          }
+        ]
       }
     }
   },
