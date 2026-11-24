@@ -155,7 +155,7 @@ jobs:
       published: ${{ steps.publish.outputs.published }}
     # An isolated 100-stock worker can fail without discarding all successful
     # batch results. Account for missing whole jobs as UNATTEMPTED, not zero.
-    if: ${{ always() && needs.prepare.result == 'success' }}
+    if: ${{ always() && needs.prepare.result == 'success' && needs.prepare.outputs.already_published != 'true' }}
     permissions:
       contents: write
     runs-on: ubuntu-latest
