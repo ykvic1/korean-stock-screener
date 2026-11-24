@@ -77,5 +77,15 @@
     "official_close_run_id": 45288320284,
     "catalog_and_official_close_asof": "2026-11-23",
     "trigger": "workflow_dispatch"
+  },
+  "first_operations_scheduled_score_replay": {
+    "asof": "2026-11-23",
+    "run_id": 45301313050,
+    "job_id": 138134235852,
+    "trigger": "schedule",
+    "available_100_count": 1417,
+    "available_90_count": 2233,
+    "below_90_count": 359,
+    "upstream_inputs_from_manual_recovery": true
   }
 }
