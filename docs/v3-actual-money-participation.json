@@ -155558,7 +155558,7 @@
   "retained_prior_money_issuers": 2,
   "schema": "v3-personal-actual-money-participation-six-0.1",
   "single_day_money_component_points": 0,
-  "source_catalog_sha256": "d2d37be1b727c6be5289fad721deed0a1c67a7f2bbcfa52668dd052be935eb7b",
+  "source_catalog_sha256": "274c5a967173c226a21880bd6de4c9423da59f37f150eba92bb468bfa402b740",
   "source_checkpoint_sha256": {
     "0": "3cbca1d9645682c93b7176d0a676a50c3fd64baa2a24832fd63013efadc6152e",
     "1": "e6024e0f63d3e768b04363ae5b9a29159217204e7b448015738e507917bc2cab",
@@ -155566,7 +155566,7 @@
   },
   "source_daily_repair_index_sha256": "fd3febe4a15d2dc633f420dac58865a05fd4299163b96e6bd2228dc55fe85f06",
   "source_dates_are_independent_completed_periods": true,
-  "source_private_revision": "868bba857f29760df70cb22555d7a0f4fca96c96",
+  "source_private_revision": "6ac3eef4c3c44dd59acf6e7f04ced08595d28e4b",
   "source_weekly_repair_index_sha256": "615de41924437b582e76ce7fc482d4aba7952fae69825db5606da898df387b78",
   "weekly_repair_observation": {
     "added_issuer_weeks": 4147,
