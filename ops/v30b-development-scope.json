@@ -12,8 +12,8 @@
     "forward_outcomes_workflow": ".github/workflows/v3-forward-entry.yml"
   },
   "remaining_fixed_snapshot_verification": [
-    "Historical point-in-time issuer and financial coverage",
-    "Historical corporate-action evidence beyond the completed fixed pre-touch LOW sample"
+    "Historical financial inputs outside the receipt-matched FY2024 primary-statement coverage",
+    "Historical corporate-action and adjusted-price coverage outside the verified cases"
   ],
   "forward_performance_required_for_release": false,
   "performance_validated": false,
@@ -91,7 +91,25 @@
       "identity_mismatches": 0,
       "independent_operating_classification_verified": false,
       "evidence": "ops/v3-historical-close-archive-audit-20251113.json",
-      "audit_run": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077"
+      "audit_run": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077",
+      "official_daily_operating_membership": {
+        "run_id": 45502200015,
+        "date": "2025-11-13",
+        "official_market_rows": 2761,
+        "raw_later_delisted_present": 92,
+        "official_selected": 2573,
+        "frozen_selected": 2573,
+        "official_only": 0,
+        "frozen_only": 0,
+        "different_market_or_name": 0,
+        "matching_identities": 2573,
+        "matching_later_delisted_in_scope": 59,
+        "source_sha256": {
+          "KOSPI": "04cc7728b2395d9caa74f77a5ec741aace2155d7f792f58bdf78ab7435b1f85a",
+          "KOSDAQ": "10cadfa8a814986da88b6b28437676ab6e655754b772682264760170c5fa7d45"
+        },
+        "operating_roster_reconciled": true
+      }
     },
     "expanded_verification_pilot": {
       "historical_annual_disclosures": {
