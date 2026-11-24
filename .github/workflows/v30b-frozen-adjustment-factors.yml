@@ -1,0 +1,103 @@
+name: Compare frozen split and consolidation factors
+on:
+  push:
+    branches: [v30b-frozen-primary-statements]
+    paths: [.github/workflows/v30b-frozen-adjustment-factors.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pandas pyarrow requests
+      - name: Download pinned unadjusted prices
+        run: |
+          curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o "$RUNNER_TEMP/2025.parquet"
+          curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o "$RUNNER_TEMP/2026.parquet"
+      - name: Compare holder unit changes with independent adjusted close pairs
+        run: |
+          python - <<'PY'
+          import csv
+          from collections import Counter
+          from datetime import datetime
+          from fractions import Fraction
+          from hashlib import sha256
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import xml.etree.ElementTree as ET
+
+          import pyarrow.parquet as pq
+          import requests
+
+          baseline = json.loads(Path("ops/v3-historical-close-archive-audit-20251113.json").read_text())
+          sources = {}
+          for year, digest in zip((2025, 2026), baseline["public_inputs_sha256"][:2], strict=True):
+              path = Path(os.environ["RUNNER_TEMP"]) / f"{year}.parquet"
+              if sha256(path.read_bytes()).hexdigest() != digest:
+                  raise ValueError("raw_price_source_changed")
+              sources[year] = path
+
+          def raw_close(code, day):
+              table = pq.read_table(sources[day.year], columns=["Close", "Volume"],
+                                    filters=[("Code", "=", code), ("Date", "=", day)])
+              rows = table.to_pylist()
+              if len(rows) != 1 or rows[0]["Volume"] <= 0 or rows[0]["Close"] <= 0:
+                  raise ValueError("missing_officially_crosschecked_trade_anchor")
+              return int(rows[0]["Close"])
+
+          outcomes = []
+          with open("ops/v3-performance-share-adjustments-20251113.csv") as stream:
+              events = list(csv.DictReader(stream))
+          for event in events:
+              code = event["code"]
+              days = [datetime.fromisoformat(event[key]) for key in ("prior_trade_on", "listing_on")]
+              raw_before, raw_after = [raw_close(code, day) for day in days]
+              response = requests.get("https://fchart.stock.naver.com/sise.nhn",
+                                      params={"symbol": code, "timeframe": "day", "startTime": days[0].strftime("%Y%m%d"),
+                                              "endTime": days[1].strftime("%Y%m%d"), "requestType": "1"},
+                                      timeout=(8, 25))
+              response.raise_for_status()
+              if len(response.content) > 2_000_000:
+                  raise ValueError("oversize_adjusted_response")
+              channel = ET.fromstring(response.content).find("chartdata")
+              prices = {}
+              if channel is not None and channel.get("symbol") == code:
+                  for item in channel.findall("item"):
+                      parts = item.get("data", "").split("|")
+                      if len(parts) >= 6 and re.fullmatch(r"[0-9]+", parts[4]) and int(parts[4]) > 0:
+                          if parts[0] in prices:
+                              raise ValueError("duplicate_adjusted_session")
+                          prices[parts[0]] = int(parts[4])
+              before, after = [prices.get(day.strftime("%Y%m%d")) for day in days]
+              state = "adjusted_anchor_unavailable"
+              if before and after:
+                  expected = Fraction(int(event["old_units"]), int(event["new_units"]))
+                  observed = Fraction(before * raw_after, after * raw_before)
+                  # Two integer adjusted closes can each be rounded by half a won.
+                  lower = Fraction((2*before-1)*raw_after, (2*after+1)*raw_before)
+                  upper = Fraction((2*before+1)*raw_after, (2*after-1)*raw_before)
+                  state = ("exact" if observed == expected else "within_rounding"
+                           if lower <= expected <= upper else "different_factor")
+              outcomes.append({"event_date": event["listing_on"], "state": state,
+                               "adjusted_response_sha256": sha256(response.content).hexdigest()})
+          result = {"source": "Naver historical chart", "event_count": len(events), "outcomes": outcomes,
+                    "counts": dict(Counter(item["state"] for item in outcomes)),
+                    "official_adjusted_history_verified": False}
+          print(json.dumps(result))
+          Path("adjustment-factor-comparison.json").write_text(json.dumps(result, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adjustment-factor-comparison
+          path: adjustment-factor-comparison.json
+          if-no-files-found: error
