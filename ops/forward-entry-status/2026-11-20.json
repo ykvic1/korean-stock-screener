@@ -19,6 +19,367 @@
   "issuer_continuity_certified": false,
   "adjusted_entry_prices_certified": false,
   "performance_validated": false,
-  "status": "waiting_for_official_publish_window",
-  "official_publish_candidate_utc": "2026-11-23T23:00:00+00:00"
+  "status": "official_openings_archived_privately",
+  "retrieved_at_utc": "2026-11-24T07:06:42.842254+00:00",
+  "krx_market_source_sha256": {
+    "KOSPI": "170a102097d55290d32b9ad67d996d218601b39afd3f2d3b80de2527e9cba857",
+    "KOSDAQ": "6351aee787d00c9ccee00eb30b2cb734422f77b800243e74e58602a55a243972"
+  },
+  "entry_status_counts": {
+    "unranked": 22,
+    "absent": 0,
+    "identity_unresolved": 0,
+    "not_traded": 107,
+    "open_unavailable": 0,
+    "official_open_observed": 2463
+  },
+  "entry_daily_crosscheck": {
+    "status": "matched",
+    "observed_openings_checked": 2463,
+    "mismatched_openings": 0,
+    "entry_source_sha256": {
+      "KOSPI": "170a102097d55290d32b9ad67d996d218601b39afd3f2d3b80de2527e9cba857",
+      "KOSDAQ": "6351aee787d00c9ccee00eb30b2cb734422f77b800243e74e58602a55a243972"
+    },
+    "daily_source_sha256": {
+      "KOSPI": "170a102097d55290d32b9ad67d996d218601b39afd3f2d3b80de2527e9cba857",
+      "KOSDAQ": "6351aee787d00c9ccee00eb30b2cb734422f77b800243e74e58602a55a243972"
+    },
+    "corporate_actions_certified": false,
+    "performance_validated": false,
+    "official_ma_references": {
+      "schema": "v3-forward-official-ma-reference-3",
+      "score_asof": "2026-11-20",
+      "entry_session": "2026-11-23",
+      "basis": "official_krx_closing_sma_to_official_entry_ohlc",
+      "archived_history_sessions": 60,
+      "history_start": "2026-08-25",
+      "reviewed_ma_notices_sha256": "e60d052b8ce98afcc9cc31568392b510a30e8dbf59d6cd80e3a7bacb13ff5da9",
+      "history_sources_sha256": "57362a741d34e4f71662d84fe313743d99e2c441259b8cd1cdfea826e1dd5b61",
+      "intervening_sessions": [],
+      "intervening_source_sha256": {},
+      "signal_source_sha256": {
+        "KOSPI": "5fd825ff4625bf7bad474a405cca60ef7678f8b3577def1f4ed82752bd2a2e70",
+        "KOSDAQ": "69f0ac5ff440ee4e6cf6ada34e7b31fabdee6345615646cc73ea757145433b2a"
+      },
+      "entry_source_sha256": {
+        "KOSPI": "170a102097d55290d32b9ad67d996d218601b39afd3f2d3b80de2527e9cba857",
+        "KOSDAQ": "6351aee787d00c9ccee00eb30b2cb734422f77b800243e74e58602a55a243972"
+      },
+      "score_impact": 0,
+      "full_corporate_action_history_certified": false,
+      "performance_validated": false,
+      "status": "compared",
+      "groups": {
+        "top20": {
+          "matched_openings": 20,
+          "using_reviewed_share_continuity": {
+            "20": 2,
+            "60": 4
+          },
+          "20": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 0,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 0,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
+            "price_basis_discontinuous": 0,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 6,
+            "open_at_or_below_average": 2,
+            "intraday_average_touched": 7,
+            "average_not_touched": 5
+          },
+          "60": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 0,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 0,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
+            "price_basis_discontinuous": 0,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 6,
+            "open_at_or_below_average": 2,
+            "intraday_average_touched": 5,
+            "average_not_touched": 7
+          }
+        },
+        "top100": {
+          "matched_openings": 100,
+          "using_reviewed_share_continuity": {
+            "20": 5,
+            "60": 15
+          },
+          "20": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 0,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 0,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
+            "price_basis_discontinuous": 0,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 35,
+            "open_at_or_below_average": 8,
+            "intraday_average_touched": 18,
+            "average_not_touched": 39
+          },
+          "60": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 0,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 1,
+            "share_count_changed": 0,
+            "reviewed_share_basis_unresolved": 0,
+            "price_basis_discontinuous": 0,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 30,
+            "open_at_or_below_average": 10,
+            "intraday_average_touched": 17,
+            "average_not_touched": 42
+          }
+        },
+        "all_ranked": {
+          "matched_openings": 2463,
+          "using_reviewed_share_continuity": {
+            "20": 105,
+            "60": 259
+          },
+          "20": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 8,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 0,
+            "issuer_identity_changed": 3,
+            "share_count_changed": 46,
+            "reviewed_share_basis_unresolved": 1,
+            "price_basis_discontinuous": 1,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 1903,
+            "open_at_or_below_average": 119,
+            "intraday_average_touched": 194,
+            "average_not_touched": 188
+          },
+          "60": {
+            "signal_trade_unavailable": 0,
+            "signal_basis_unresolved": 8,
+            "reviewed_entry_action": 0,
+            "history_session_missing": 0,
+            "issuer_history_missing": 3,
+            "issuer_identity_changed": 15,
+            "share_count_changed": 149,
+            "reviewed_share_basis_unresolved": 2,
+            "price_basis_discontinuous": 7,
+            "trade_state_unavailable": 0,
+            "pre_entry_issuer_unresolved": 0,
+            "pre_entry_share_basis_unresolved": 0,
+            "pre_entry_price_basis_discontinuous": 0,
+            "average_at_or_above_signal_close": 1967,
+            "open_at_or_below_average": 44,
+            "intraday_average_touched": 107,
+            "average_not_touched": 161
+          }
+        }
+      }
+    },
+    "structural_reference_status": "compared",
+    "structural_reference_basis": {
+      "signal_published_market_sha256": "7dc63386598cb0f615ebc259a0c30f8d872f315959fda173b8970aa5fd00aea8",
+      "signal_krx_source_sha256": {
+        "KOSPI": "5fd825ff4625bf7bad474a405cca60ef7678f8b3577def1f4ed82752bd2a2e70",
+        "KOSDAQ": "69f0ac5ff440ee4e6cf6ada34e7b31fabdee6345615646cc73ea757145433b2a"
+      },
+      "reviewed_entry_notices_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "corporate_actions_certified": false,
+      "stop_execution_validated": false
+    },
+    "entry_session_path": {
+      "schema": "v3-forward-entry-session-path-4",
+      "session": "2026-11-23",
+      "basis": "official_open_to_same_session_ohlc",
+      "groups": {
+        "top20": {
+          "selected_count": 20,
+          "observed_count": 20,
+          "missing_entry_counts": {
+            "unranked": 0,
+            "absent": 0,
+            "identity_unresolved": 0,
+            "not_traded": 0,
+            "open_unavailable": 0
+          },
+          "worst_low_return_pct": -14.3921,
+          "median_low_return_pct": -3.1906,
+          "median_high_return_pct": 0.7335,
+          "median_close_return_pct": -2.1057,
+          "negative_close_count": 16,
+          "structural_reference_counts": {
+            "reference_unavailable": 0,
+            "signal_basis_unmatched": 19,
+            "share_basis_unresolved": 0,
+            "open_at_or_below_reference": 0,
+            "intraday_reference_touched": 0,
+            "reference_not_touched": 1
+          },
+          "same_market_rank_comparison": {
+            "reference_min_rank": 21,
+            "reference_max_rank": 100,
+            "weight_basis": "frozen_candidate_market_mix",
+            "markets": {
+              "KOSDAQ": {
+                "candidate": {
+                  "selected_count": 6,
+                  "confirmed_opening_count": 6,
+                  "valued_count": 6,
+                  "negative_return_count": 4
+                },
+                "reference": {
+                  "selected_count": 42,
+                  "confirmed_opening_count": 42,
+                  "valued_count": 42,
+                  "negative_return_count": 23
+                }
+              },
+              "KOSPI": {
+                "candidate": {
+                  "selected_count": 14,
+                  "confirmed_opening_count": 14,
+                  "valued_count": 14,
+                  "negative_return_count": 12
+                },
+                "reference": {
+                  "selected_count": 38,
+                  "confirmed_opening_count": 38,
+                  "valued_count": 38,
+                  "negative_return_count": 30
+                }
+              }
+            },
+            "observed_mean_return_spread_pct_points": -1.0698,
+            "loss_rate_spread_bounds_pct_points": [
+              8.3082,
+              8.3083
+            ]
+          }
+        },
+        "top100": {
+          "selected_count": 100,
+          "observed_count": 100,
+          "missing_entry_counts": {
+            "unranked": 0,
+            "absent": 0,
+            "identity_unresolved": 0,
+            "not_traded": 0,
+            "open_unavailable": 0
+          },
+          "worst_low_return_pct": -14.3921,
+          "median_low_return_pct": -3.2345,
+          "median_high_return_pct": 1.4682,
+          "median_close_return_pct": -1.2208,
+          "negative_close_count": 69,
+          "structural_reference_counts": {
+            "reference_unavailable": 0,
+            "signal_basis_unmatched": 93,
+            "share_basis_unresolved": 0,
+            "open_at_or_below_reference": 0,
+            "intraday_reference_touched": 0,
+            "reference_not_touched": 7
+          },
+          "same_market_rank_comparison": {
+            "reference_min_rank": 101,
+            "reference_max_rank": null,
+            "weight_basis": "frozen_candidate_market_mix",
+            "markets": {
+              "KOSDAQ": {
+                "candidate": {
+                  "selected_count": 48,
+                  "confirmed_opening_count": 48,
+                  "valued_count": 48,
+                  "negative_return_count": 27
+                },
+                "reference": {
+                  "selected_count": 1694,
+                  "confirmed_opening_count": 1613,
+                  "valued_count": 1613,
+                  "negative_return_count": 950
+                }
+              },
+              "KOSPI": {
+                "candidate": {
+                  "selected_count": 52,
+                  "confirmed_opening_count": 52,
+                  "valued_count": 52,
+                  "negative_return_count": 42
+                },
+                "reference": {
+                  "selected_count": 776,
+                  "confirmed_opening_count": 750,
+                  "valued_count": 750,
+                  "negative_return_count": 549
+                }
+              }
+            },
+            "observed_mean_return_spread_pct_points": -0.0993,
+            "loss_rate_spread_bounds_pct_points": [
+              2.6656,
+              2.6657
+            ]
+          }
+        },
+        "all_ranked": {
+          "selected_count": 2570,
+          "observed_count": 2463,
+          "missing_entry_counts": {
+            "unranked": 0,
+            "absent": 0,
+            "identity_unresolved": 0,
+            "not_traded": 107,
+            "open_unavailable": 0
+          },
+          "worst_low_return_pct": -29.374,
+          "median_low_return_pct": -3.7624,
+          "median_high_return_pct": 1.7375,
+          "median_close_return_pct": -1.0891,
+          "negative_close_count": 1568,
+          "structural_reference_counts": {
+            "reference_unavailable": 643,
+            "signal_basis_unmatched": 1595,
+            "share_basis_unresolved": 1,
+            "open_at_or_below_reference": 11,
+            "intraday_reference_touched": 78,
+            "reference_not_touched": 135
+          }
+        }
+      },
+      "fees_and_taxes_included": false,
+      "performance_validated": false
+    }
+  },
+  "last_entry_daily_crosscheck_at_utc": "2026-11-24T07:06:23.844913+00:00"
 }
