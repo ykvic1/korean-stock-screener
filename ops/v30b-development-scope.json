@@ -372,6 +372,92 @@
           }
         },
         "primary_statement_scope_verified": false
+      },
+      "completed_original_receipt_cohort": {
+        "anchor": "2025-11-13",
+        "issuers_checked": 2267,
+        "original_receipt_outcomes": {
+          "prior_document_zip_verified": 2123,
+          "original_chain_unresolved": 43,
+          "official_receipt_identity_or_format_unresolved": 38,
+          "no_body_filed_by_cutoff": 34,
+          "multiple_bodies_on_last_prior_day": 29
+        },
+        "final_recovery_run_id": 45349779494,
+        "unique_issuer_reconciliation_run_id": 45398445156,
+        "numeric_values_verified_by_receipt_recovery": false
+      },
+      "reviewed_krx_price_and_listed_share_anchors": {
+        "run_id": 45394468345,
+        "events_checked": 10,
+        "both_anchors_matched": 10
+      },
+      "independent_adjustment_factor_comparison": {
+        "run_id": 45398091683,
+        "source": "Naver historical chart and KIND reopening notices",
+        "events_checked": 5,
+        "holder_ratio_exact": 3,
+        "additional_notice_reference_exact": 1,
+        "additional_notice_reference_within_one_won_rounding": 1,
+        "official_adjusted_history_verified": false,
+        "observations": [
+          {
+            "event_date": "2025-12-15",
+            "state": "exact",
+            "expected_multiplier": "1/5",
+            "observed_multiplier": "1/5",
+            "prior_matches_unadjusted": false,
+            "listing_matches_unadjusted": true,
+            "adjusted_response_sha256": "9c9cef1abbb7ab635daf4895b92250d2462cf43703c4d27d6626d313c4be0b7d"
+          },
+          {
+            "event_date": "2025-12-10",
+            "state": "different_factor",
+            "expected_multiplier": "10",
+            "observed_multiplier": "673359/54353",
+            "prior_matches_unadjusted": false,
+            "listing_matches_unadjusted": false,
+            "kind_notice": "https://kind.krx.co.kr/external/2025/12/09/000506/20251209001663/70793.htm",
+            "notice_reference_factor_match": "within_rounding",
+            "adjusted_response_sha256": "e09e16730317ae9fbb403ad7afc7c12b5d4ef1ac5e541d5fd384f75fdc8a1b46"
+          },
+          {
+            "event_date": "2026-05-12",
+            "state": "exact",
+            "expected_multiplier": "2",
+            "observed_multiplier": "2",
+            "prior_matches_unadjusted": false,
+            "listing_matches_unadjusted": true,
+            "adjusted_response_sha256": "d084fa3ff419f81cc95867186203396bd74ba0c7bab33d1e5c5075c7b6c48a97"
+          },
+          {
+            "event_date": "2026-04-30",
+            "state": "different_factor",
+            "expected_multiplier": "5",
+            "observed_multiplier": "7520/1503",
+            "prior_matches_unadjusted": false,
+            "listing_matches_unadjusted": true,
+            "kind_notice": "https://kind.krx.co.kr/external/2026/04/29/001058/20260429002274/70795.htm",
+            "notice_reference_factor_match": "exact",
+            "adjusted_response_sha256": "bb0ea60a36b56696e67e6362d7266d027e3ab4752d9c4e274b578c808bfbe267"
+          },
+          {
+            "event_date": "2026-08-14",
+            "state": "exact",
+            "expected_multiplier": "5",
+            "observed_multiplier": "5",
+            "prior_matches_unadjusted": false,
+            "listing_matches_unadjusted": true,
+            "adjusted_response_sha256": "a82a265b314f1ebe36784d51e510a32281ceb745cea569886832fd0638a5d73e"
+          }
+        ]
+      },
+      "dated_krx_master_access": {
+        "session": "2025-11-13",
+        "run_id": 45397190803,
+        "KOSPI": 401,
+        "KOSDAQ": 401,
+        "independent_operating_classification_verified": false
       }
     }
   },
