@@ -1,7 +1,7 @@
 name: Compare frozen split and consolidation factors
 on:
   push:
-    branches: [v30b-frozen-primary-statements]
+    branches: [v30b-krx-reopening-factors]
     paths: [.github/workflows/v30b-frozen-adjustment-factors.yml]
   workflow_dispatch:
 permissions:
@@ -23,6 +23,8 @@ jobs:
           curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/93713f5a0a80ff29dc10e5aba9c8a51353e0e1b4/data/marcap-2025.parquet -o "$RUNNER_TEMP/2025.parquet"
           curl -fsSL --retry 2 --max-time 90 https://raw.githubusercontent.com/FinanceData/marcap/24a2bec363aaad0ba2e3494966108995d196702d/data/marcap-2026.parquet -o "$RUNNER_TEMP/2026.parquet"
       - name: Compare holder unit changes with independent adjusted close pairs
+        env:
+          KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
         run: |
           python - <<'PY'
           import csv
@@ -38,6 +40,7 @@ jobs:
 
           import pyarrow.parquet as pq
           import requests
+          from official_probe.clients import KRXClient
 
           baseline = json.loads(Path("ops/v3-historical-close-archive-audit-20251113.json").read_text())
           sources = {}
@@ -55,6 +58,30 @@ jobs:
                   raise ValueError("missing_officially_crosschecked_trade_anchor")
               return int(rows[0][column])
 
+          def official_factor_bounds(code, days, prior, listing):
+              row = pq.read_table(sources[days[1].year], columns=["Market"], filters=[
+                  ("Code", "=", code), ("Date", "=", days[1])]).to_pylist()[0]
+              market = "KOSDAQ" if row["Market"] == "KOSDAQ GLOBAL" else row["Market"]
+              hashes = []
+              official = []
+              for day, raw_close in zip(days, (prior, listing), strict=True):
+                  rows, payload = client.daily_market(market, day.date().isoformat())
+                  matches = [r for r in rows if r.get("ISU_CD") == code and r.get("BAS_DD") == day.strftime("%Y%m%d")]
+                  if len(matches) != 1 or int(matches[0]["TDD_CLSPRC"]) != raw_close:
+                      raise ValueError("official_price_anchor_mismatch")
+                  official.append(matches[0])
+                  hashes.append(sha256(payload).hexdigest())
+              row = official[-1]
+              if not re.fullmatch(r"[+-]?[0-9]+", str(row.get("CMPPREVDD_PRC", ""))):
+                  raise ValueError("unusable_official_price_change")
+              change = int(row["CMPPREVDD_PRC"])
+              base = listing - change
+              # Independent consistency check against KRX's published two-decimal percentage.
+              if base <= 0 or abs(Fraction(str(row["FLUC_RT"])) - Fraction(100 * change, base)) > Fraction(1, 100):
+                  raise ValueError("official_change_and_rate_inconsistent")
+              return Fraction(base, prior), hashes
+
+          client = KRXClient(os.environ["KRX_API_KEY"])
           outcomes = []
           with open("ops/v3-performance-share-adjustments-20251113.csv") as stream:
               events = list(csv.DictReader(stream))
@@ -106,10 +133,16 @@ jobs:
                       detail["notice_reference_factor_match"] = (
                           "exact" if observed == target else "within_rounding"
                           if lower <= target <= upper else "different_factor")
+                  official_factor, hashes = official_factor_bounds(code, days, raw_before, raw_after)
+                  detail["official_daily_source_sha256"] = hashes
+                  detail["official_daily_reference_factor_match"] = (
+                      "exact" if observed == official_factor else "within_rounding"
+                      if lower <= official_factor <= upper else "different_factor")
                   state = ("exact" if observed == expected else "within_rounding"
                            if lower <= expected <= upper else "different_factor")
               outcomes.append({"event_date": event["listing_on"], "state": state, **detail,
                                "adjusted_response_sha256": sha256(response.content).hexdigest()})
+          client.session.close()
           result = {"source": "Naver historical chart", "event_count": len(events), "outcomes": outcomes,
                     "counts": dict(Counter(item["state"] for item in outcomes)),
                     "official_adjusted_history_verified": False}
