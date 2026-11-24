@@ -53,6 +53,6 @@ jobs:
           set -euo pipefail
           args=(--batch "$PILOT_BATCH")
           if [[ "$PILOT_BATCH" == additional ]]; then
-            args=(--additional-offset "${ADDITIONAL_OFFSET:-0}")
+            args=(--additional-offset "${ADDITIONAL_OFFSET:-2}")
           fi
           python v3_historical_corporate_action_price_anchors.py "${args[@]}" "$RUNNER_TEMP/pilot-2025.parquet" "$RUNNER_TEMP/pilot-2026.parquet" "$RUNNER_TEMP/pilot-2026-11-13.csv"
