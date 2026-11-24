@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           temp="$RUNNER_TEMP"
           if [[ "$GITHUB_REF_NAME" == v30b-fixed-snapshot-verification-expansion ]]; then
-            REFERENCE_OFFSET="${REFERENCE_OFFSET:-0}"
+            REFERENCE_OFFSET="${REFERENCE_OFFSET:-25}"
           fi
           args=()
           if [[ -n "$REFERENCE_OFFSET" ]]; then
