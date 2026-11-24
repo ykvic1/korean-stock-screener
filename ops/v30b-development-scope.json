@@ -131,6 +131,17 @@
       ],
       "historical_annual_disclosure_batches": [
         {
+          "offset": 25,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 1,
+            "prior_document_zip_verified": 23
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45336398969
+        },
+        {
           "run_id": 45333054049,
           "offset": 50,
           "counts": {
@@ -160,6 +171,113 @@
             "original_chain_unresolved": 2,
             "prior_document_zip_verified": 23
           }
+        },
+        {
+          "offset": 125,
+          "counts": {
+            "original_chain_unresolved": 2,
+            "prior_document_zip_verified": 23
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45333054049
+        },
+        {
+          "offset": 150,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 2,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 175,
+          "counts": {
+            "no_body_filed_by_cutoff": 2,
+            "official_receipt_identity_or_format_unresolved": 1,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 200,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 225,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 250,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 275,
+          "counts": {
+            "no_body_filed_by_cutoff": 2,
+            "original_chain_unresolved": 3,
+            "prior_document_zip_verified": 20
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 300,
+          "counts": {
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 325,
+          "counts": {
+            "official_receipt_identity_or_format_unresolved": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 350,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 2,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
         }
       ],
       "share_action_path_replay": {
