@@ -11,6 +11,7 @@ from pathlib import Path
 import unittest
 
 from v3_v30b_release_gate import (assess_v30b, main, AREA_WEIGHTS,
+                                    fixed_market_roster_reconciled,
                                     issuer_csv_reconciles,
                                     issuer_catalog_reconciles,
                                     issuer_fcf_preview_reconciles,
@@ -28,6 +29,15 @@ def public_inputs():
 
 
 class V30bReadinessTests(unittest.TestCase):
+    def test_frozen_roster_requires_agreement_with_official_archive(self):
+        ops = ROOT / "ops"
+        scope = json.loads((ops / "v30b-development-scope.json").read_text())
+        archive = json.loads((ops / "v3-historical-close-archive-audit-20251113.json").read_text())
+        self.assertTrue(fixed_market_roster_reconciled(scope, archive))
+        self.assertFalse(fixed_market_roster_reconciled(scope, {}))
+        archive["totals"]["market"]["exact_close"] -= 1
+        self.assertFalse(fixed_market_roster_reconciled(scope, archive))
+
     def test_alphanumeric_identity_is_reconciled_with_catalog(self):
         docs = ROOT / "docs"
         report = json.loads((docs / "v3-operational-research-scores.json").read_text())
