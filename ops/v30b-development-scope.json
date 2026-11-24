@@ -92,6 +92,287 @@
       "independent_operating_classification_verified": false,
       "evidence": "ops/v3-historical-close-archive-audit-20251113.json",
       "audit_run": "https://github.com/ykvic1/korean-stock-screener/actions/runs/44005440077"
+    },
+    "expanded_verification_pilot": {
+      "historical_annual_disclosures": {
+        "run_id": 45332003874,
+        "historical_signal_asof": "2025-11-13",
+        "eligible_pinned_cohort": 2267,
+        "offset": 0,
+        "attempted": 25,
+        "prior_document_zip_verified": 24,
+        "original_chain_unresolved": 1,
+        "numeric_financial_inputs_restored": 0
+      },
+      "corporate_actions": {
+        "run_id": 45332054066,
+        "offset": 0,
+        "reviewed_events_checked": 2,
+        "both_official_anchors_matched": 2,
+        "adjusted_price_history_verified": false
+      }
+    },
+    "expanded_verification_followup": {
+      "corporate_action_anchor_batches": [
+        {
+          "offset": 2,
+          "run_id": 45333008487,
+          "reviewed_events_checked": 2,
+          "both_official_anchors_matched": 2,
+          "adjusted_price_history_verified": false
+        },
+        {
+          "offset": 4,
+          "run_id": 45333683389,
+          "reviewed_events_checked": 1,
+          "both_official_anchors_matched": 1,
+          "adjusted_price_history_verified": false
+        }
+      ],
+      "historical_annual_disclosure_batches": [
+        {
+          "offset": 25,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 1,
+            "prior_document_zip_verified": 23
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45336398969
+        },
+        {
+          "run_id": 45333054049,
+          "offset": 50,
+          "counts": {
+            "official_receipt_identity_or_format_unresolved": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25
+        },
+        {
+          "run_id": 45333054049,
+          "offset": 75,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "official_receipt_identity_or_format_unresolved": 1,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 23
+          }
+        },
+        {
+          "run_id": 45333054049,
+          "offset": 100,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "original_chain_unresolved": 2,
+            "prior_document_zip_verified": 23
+          }
+        },
+        {
+          "offset": 125,
+          "counts": {
+            "original_chain_unresolved": 2,
+            "prior_document_zip_verified": 23
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45333054049
+        },
+        {
+          "offset": 150,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 2,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 175,
+          "counts": {
+            "no_body_filed_by_cutoff": 2,
+            "official_receipt_identity_or_format_unresolved": 1,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 200,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 225,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 250,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 275,
+          "counts": {
+            "no_body_filed_by_cutoff": 2,
+            "original_chain_unresolved": 3,
+            "prior_document_zip_verified": 20
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 300,
+          "counts": {
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 325,
+          "counts": {
+            "official_receipt_identity_or_format_unresolved": 1,
+            "prior_document_zip_verified": 24
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "offset": 350,
+          "counts": {
+            "no_body_filed_by_cutoff": 1,
+            "official_receipt_identity_or_format_unresolved": 2,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 21
+          },
+          "attempted": 25,
+          "results": 25,
+          "run_id": 45334311942
+        },
+        {
+          "run_id": 45334311942,
+          "offset": 375,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 2,
+            "no_body_filed_by_cutoff": 1,
+            "prior_document_zip_verified": 22
+          }
+        },
+        {
+          "run_id": 45334311942,
+          "offset": 400,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "multiple_bodies_on_last_prior_day": 1,
+            "prior_document_zip_verified": 24
+          }
+        }
+      ],
+      "share_action_path_replay": {
+        "run_id": 45335901319,
+        "matched_events": 1212,
+        "incorporated_into_path": 906,
+        "saved_report_recomputed_exactly": true,
+        "official_adjusted_history_verified": false
+      },
+      "expanded_xbrl_comparison": {
+        "run_id": 45339585270,
+        "job_id": 138259753352,
+        "issuer_count": 16,
+        "counts": {
+          "prior_receipt_and_document_matched": 16
+        },
+        "archive_counts": {
+          "parsed": 16
+        },
+        "account_value_outcomes": {
+          "assets": {
+            "all_candidate_values_equal": 16
+          },
+          "equity": {
+            "all_candidate_values_equal": 16
+          },
+          "liabilities": {
+            "all_candidate_values_equal": 16
+          },
+          "operating_income": {
+            "all_candidate_values_equal": 14,
+            "no_matching_concept_period_unit_candidate": 2
+          },
+          "revenue": {
+            "all_candidate_values_equal": 13,
+            "equal_candidate_among_distinct_values": 1,
+            "stored_value_missing": 2
+          }
+        },
+        "primary_statement_scope_verified": false
+      },
+      "numeric_market_offset_16": {
+        "run_id": 45340315939,
+        "market_offset": 16,
+        "issuer_count": 16,
+        "counts": {
+          "prior_receipt_and_document_matched": 16
+        },
+        "archive_counts": {
+          "archive_unavailable_or_unsupported": 1,
+          "parsed": 15
+        },
+        "account_value_outcomes": {
+          "assets": {
+            "all_candidate_values_equal": 15
+          },
+          "equity": {
+            "all_candidate_values_equal": 15
+          },
+          "liabilities": {
+            "all_candidate_values_equal": 15
+          },
+          "operating_income": {
+            "all_candidate_values_equal": 14,
+            "no_matching_concept_period_unit_candidate": 1
+          },
+          "revenue": {
+            "all_candidate_values_equal": 10,
+            "equal_candidate_among_distinct_values": 2,
+            "stored_value_missing": 3
+          }
+        },
+        "primary_statement_scope_verified": false
+      }
     }
   },
   "krx_regular_session_reference_comparison_required_for_release": false,

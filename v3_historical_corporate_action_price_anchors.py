@@ -55,10 +55,22 @@ def stage_outcome(public, official, code, shares):
     return 'matched'
 
 
-def audit(batch, panels, client):
+def audit(batch, panels, client, *, additional_offset=None):
     ledgers = {key: {row['code']: row for row in ledger_rows(ROOT, key)}
                for key in ('share-adjustments', 'successor-listings')}
-    events = [event_anchors(key, ledgers[key][code]) for key, code in BATCHES[batch]]
+    if additional_offset is None:
+        selected = BATCHES[batch]
+    else:
+        covered = {event for batch_events in BATCHES.values() for event in batch_events}
+        candidates = sorted(
+            (key, code) for key, rows in ledgers.items() for code, notice in rows.items()
+            if (key, code) not in covered
+            and all(session in panels for session, _ in event_anchors(key, notice)[1])
+        )
+        if not 0 <= additional_offset < len(candidates):
+            raise ValueError('additional offset is outside the available anchor cohort')
+        selected = candidates[additional_offset:additional_offset + 2]
+    events = [event_anchors(key, ledgers[key][code]) for key, code in selected]
     sessions = sorted({session for _, anchors in events for session, _ in anchors})
     validate_dates([session.isoformat() for session in sessions])
     results = {}
@@ -92,6 +104,7 @@ def audit(batch, panels, client):
     return {
         'schema': 'v3-historical-corporate-action-price-anchors-v1',
         'batch': batch,
+        'additional_offset': additional_offset,
         'event_count': len(events),
         'both_official_anchors_matched': both,
         'anchor_outcomes': outcomes,
@@ -106,12 +119,15 @@ def audit(batch, panels, client):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('sources', nargs=3, type=Path)
-    parser.add_argument('--batch', choices=BATCHES, required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument('--batch', choices=BATCHES)
+    selection.add_argument('--additional-offset', type=int)
     args = parser.parse_args()
     key = os.environ.get('KRX_API_KEY', '')
     if not key.strip():
         raise SystemExit('official_krx_key_unavailable')
-    result = audit(args.batch, read_panels(args.sources), KRXClient(key))
+    result = audit(args.batch, read_panels(args.sources), KRXClient(key),
+                   additional_offset=args.additional_offset)
     print(json.dumps(result, sort_keys=True))
     if result['failed_sessions'] or result['both_official_anchors_matched'] != result['event_count']:
         raise SystemExit(1)

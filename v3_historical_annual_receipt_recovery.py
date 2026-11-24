@@ -26,6 +26,7 @@ PINNED_HASHES = (
     "41e82e39460d38091c5eeeefe3d20c72f51a7a36651e810efbaf1dcadde303f4",
 )
 TARGETS = 51
+MAX_REFERENCE_BATCH = 25
 WORKERS = 4
 CUTOFF = SIGNAL.strftime("%Y%m%d")
 START = "20240101"
@@ -35,7 +36,7 @@ TITLE = re.compile(r"(?P<prefix>(?:\s*\[[^\[\]]+\])*)\s*사업보고서\s*"
 CLASSES = {"KOSPI": "Y", "KOSDAQ": "K"}
 
 
-def load_targets(prices, financial, catalog):
+def load_targets(prices, financial, catalog, *, reference_batch=False):
     import pyarrow.parquet as pq
 
     for path, expected in zip((prices, financial, catalog), PINNED_HASHES, strict=True):
@@ -55,7 +56,12 @@ def load_targets(prices, financial, catalog):
             continue
         years = statements["records"].get(code, {}).get("years", {})
         receipts = {scope: record.get("receipt_id") for scope, record in years.get("2024", {}).items()}
-        if not any(RECEIPT.fullmatch(value or "") and value[:8] > CUTOFF
+        if reference_batch:
+            if len(set(receipts.values())) != 1 or not all(
+                    RECEIPT.fullmatch(value or "") and START <= value[:8] < CUTOFF
+                    for value in receipts.values()):
+                continue
+        elif not any(RECEIPT.fullmatch(value or "") and value[:8] > CUTOFF
                    for value in receipts.values()):
             continue
         require(code not in targets and len(set(receipts.values())) == 1
@@ -63,6 +69,8 @@ def load_targets(prices, financial, catalog):
         targets[code] = {"name": name, "market": market,
                          "retained_later_receipt": next(iter(receipts.values())),
                          "retained_scopes": sorted(receipts)}
+    if reference_batch:
+        return dict(sorted(targets.items()))
     require(Counter(row["market"] for row in targets.values()) == {"KOSPI": 15, "KOSDAQ": 36}
             and len(targets) == TARGETS, "historical_annual_target_census_mismatch")
     return dict(sorted(targets.items()))
@@ -84,7 +92,8 @@ def _period(title):
     return f"{match['year']}-{int(match['month']):02d}", kind
 
 
-def choose_version(response, *, corp, code, market, later):
+def choose_version(response, *, corp, code, market, later, end_date=None):
+    end_date = end_date or later[:8]
     result = {"status": "missing_retained_receipt_in_official_list", "versions": [],
               "report_period": None, "selected_receipt": None}
     if response.get("status") == "013":
@@ -103,7 +112,7 @@ def choose_version(response, *, corp, code, market, later):
         receipt, received = row.get("rcept_no"), row.get("rcept_dt")
         title = row.get("report_nm")
         if (not isinstance(receipt, str) or not RECEIPT.fullmatch(receipt)
-                or received != receipt[:8] or not START <= received <= later[:8]
+                or received != receipt[:8] or not START <= received <= end_date
                 or receipt in listings or row.get("corp_code") != corp
                 or row.get("stock_code") != code or row.get("corp_cls") != CLASSES[market]
                 or not isinstance(title, str)):
@@ -160,10 +169,12 @@ def recover_one(client, code, record, corp):
     if not corp:
         return {**record, "status": "issuer_mapping_unavailable"}
     later = record["retained_later_receipt"]
-    response = client._api("list.json", corp_code=corp, bgn_de=START, end_de=later[:8],
+    end_date = max(CUTOFF, later[:8])
+    response = client._api("list.json", corp_code=corp, bgn_de=START, end_de=end_date,
                            pblntf_ty="A", pblntf_detail_ty="A001", last_reprt_at="N",
                            page_no=1, page_count=100)
-    selected = choose_version(response, corp=corp, code=code, market=record["market"], later=later)
+    selected = choose_version(response, corp=corp, code=code, market=record["market"], later=later,
+                              end_date=end_date)
     row = {**record, **selected}
     if selected["selected_receipt"]:
         evidence = verify_document(client, selected["selected_receipt"])
@@ -235,8 +246,17 @@ def main():
     parser.add_argument("financial", type=Path)
     parser.add_argument("catalog", type=Path)
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--reference-offset", type=int)
     args = parser.parse_args()
-    targets = load_targets(args.prices, args.financial, args.catalog)
+    reference_batch = args.reference_offset is not None
+    targets = load_targets(args.prices, args.financial, args.catalog,
+                           reference_batch=reference_batch)
+    cohort_size = len(targets)
+    if reference_batch:
+        if not 0 <= args.reference_offset < cohort_size:
+            parser.error("reference offset is outside the pinned cohort")
+        start = args.reference_offset
+        targets = dict(list(targets.items())[start:start + MAX_REFERENCE_BATCH])
     records, calls, failure = targets, 0, None
     if args.live:
         try:
@@ -246,6 +266,7 @@ def main():
     report = {
         "schema": SCHEMA, "anchor": SIGNAL.isoformat(), "financial_pin": PIN_DAY,
         "pinned_sources_sha256": list(PINNED_HASHES), "target_count": len(targets),
+        "reference_offset": args.reference_offset, "eligible_cohort_size": cohort_size,
         "live": args.live, "official_requests": calls, "provider_or_contract_failure": failure,
         "target_by_market": dict(Counter(row["market"] for row in targets.values())),
         "counts": dict(Counter(row["status"] for row in records.values())) if args.live else {},
