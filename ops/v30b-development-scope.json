@@ -120,6 +120,13 @@
           "reviewed_events_checked": 2,
           "both_official_anchors_matched": 2,
           "adjusted_price_history_verified": false
+        },
+        {
+          "offset": 4,
+          "run_id": 45333683389,
+          "reviewed_events_checked": 1,
+          "both_official_anchors_matched": 1,
+          "adjusted_price_history_verified": false
         }
       ],
       "historical_annual_disclosure_batches": [
@@ -132,6 +139,17 @@
           },
           "attempted": 25,
           "results": 25
+        },
+        {
+          "run_id": 45333054049,
+          "offset": 75,
+          "attempted": 25,
+          "results": 25,
+          "counts": {
+            "official_receipt_identity_or_format_unresolved": 1,
+            "original_chain_unresolved": 1,
+            "prior_document_zip_verified": 23
+          }
         }
       ]
     }
