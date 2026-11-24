@@ -1105,6 +1105,30 @@ def fixed_exchange_ratios_reconciled(review, ledger):
         return False
 
 
+def fixed_np_consolidation_reconciled(review, share_actions, price_replay):
+    """Check the proportionate share path against the independently disclosed terms."""
+    try:
+        code, successor = review["predecessor_code"], review["successor_code"]
+        listing = review["listing_on"]
+        actions = [row for row in share_actions if row["code"] == successor and row["listing_on"] == listing]
+        deliveries = [row for row in price_replay if row["code"] == code and row["method"] == "stock_delivery_mark"]
+        if len(actions) != 1 or not deliveries:
+            return False
+        action = actions[0]
+        new = int(action["new_units"])
+        old = int(action["old_units"])
+        units = Decimal(review["preconsolidation_shares_per_old_share"]) * new / old
+        rounded = Decimal(review["disclosed_rounded_units_per_old_share"])
+        return (new == review["consolidation_new_units"] and old == review["consolidation_old_units"]
+                and units == Decimal(review["proportional_units_per_old_share"])
+                and units.quantize(Decimal("0.0000001")) == rounded
+                and all(row["observed_code"] == successor
+                        and row["observation_on"] >= listing
+                        and Decimal(row["units_per_entry_share"]) == units for row in deliveries))
+    except (InvalidOperation, ValueError, TypeError, KeyError, ZeroDivisionError):
+        return False
+
+
 def fixed_primary_statements_reconciled(receipts, totals):
     """Reconcile the receipt and account counts; this checks coverage accounting only."""
     statuses = totals.get("statuses")
@@ -1199,6 +1223,19 @@ def main(argv: list[str] | None = None) -> dict:
                 report["gates"]["fixed_exchange_ratios_reconciled"] = exchange_ok
                 if not exchange_ok:
                     report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_exchange_ratios_unreconciled"})
+            consolidation = followup.get("np_post_merger_consolidation")
+            if consolidation is not None:
+                actions_path = a.development_scope.with_name("v3-performance-share-adjustments-20251113.csv")
+                replay_path = a.development_scope.with_name("v3-performance-price-replay-20251113.csv")
+                consolidation_ok = False
+                if actions_path.is_file() and replay_path.is_file():
+                    with actions_path.open(encoding="utf-8-sig", newline="") as actions, \
+                            replay_path.open(encoding="utf-8-sig", newline="") as replay:
+                        consolidation_ok = fixed_np_consolidation_reconciled(
+                            consolidation, csv.DictReader(actions), csv.DictReader(replay))
+                report["gates"]["fixed_np_proportional_consolidation_reconciled"] = consolidation_ok
+                if not consolidation_ok:
+                    report["blocker_codes"] = sorted(set(report["blocker_codes"]) | {"fixed_np_consolidation_unreconciled"})
             totals_path = a.development_scope.with_name("v30b-fixed-pit-primary-statement-totals.json")
             totals = _read_public_json(totals_path) if totals_path.is_file() else {}
             reconciled = fixed_primary_statements_reconciled(followup.get("completed_original_receipt_cohort", {}), totals)
