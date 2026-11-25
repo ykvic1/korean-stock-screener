@@ -27,6 +27,51 @@ def component(point, maximum, reason):
             "source_review_pending": missing > .00001 and reason != SHORT_PRICE_HISTORY}
 
 
+def cashflow_terminal_reviews(report, gap, issuer_evidence):
+    """Close attempted account gaps only; no assumption about missing raw CFO/CAPEX."""
+    from v3_dart_cashflow_gap_audit import CODE_BY_CLASS
+    if (gap.get("asof") != CUTOFF or issuer_evidence.get("asof") != CUTOFF
+        or gap.get("source_eligible_unfetched_company_years") != 0
+        or gap.get("listed_issuer_count") != report["listed_total"]
+        or issuer_evidence.get("listed_total") != report["listed_total"]
+        or not gap.get("source_cashflow_sha256")
+        or gap["source_cashflow_sha256"] != issuer_evidence.get("source_cashflow_sha256")
+        or issuer_evidence.get("source_receipt_scope_checked") is not True
+        or issuer_evidence.get("fiscal_years") != [2023, 2024, 2025]):
+        raise ValueError("unreconciled_fixed_cashflow_evidence")
+    records = issuer_evidence["records"]
+    allowed = set(CODE_BY_CLASS.values()) | {"N"}
+    counts = Counter()
+    for code, row in records.items():
+        if code not in report["rows"] or len(row) != 4 or row[0] not in ("CFS", "OFS") or not set(row[1:]) <= allowed:
+            raise ValueError("invalid_fixed_cashflow_issuer_record")
+        counts.update(row[1:])
+    if (any(counts[symbol] != gap["categories"][name] for name, symbol in CODE_BY_CLASS.items())
+        or sum(counts[symbol] for symbol in CODE_BY_CLASS.values()) != gap["attempted_company_years"]
+        or len(records) != gap["issuers_with_saved_cashflow_years"]):
+        raise ValueError("fixed_cashflow_classification_count_mismatch")
+    missing = {"X", "C", "B", "P", "I"}
+    reviews = {}
+    for code, row in records.items():
+        for area, key, statuses in (
+            ("financial", "cashflow_fcf_persistence", row[1:]),
+            ("valuation", "fcf_yield", row[-1:])):
+            # N denotes uncollected and U unmatched receipt. Neither is an
+            # attempted missing-account conclusion. Keep such gaps pending.
+            if not set(statuses) & missing or set(statuses) & {"N", "U"}:
+                continue
+            point = report["rows"][code]["parts"][area].get(key)
+            maximum = R1D_PART_LIMITS[area][key]
+            weight = round(maximum - (point[1] if point else 0), 6)
+            if weight <= .00001:
+                continue
+            reviews[":".join((code, area, key))] = {
+                "asof": CUTOFF, "missing_weight": weight,
+                "status": "source_missing_after_attempt",
+                "evidence": "fixed annual FCF account audit: " + row[0] + ":" + "".join(statuses)}
+    return reviews
+
+
 def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, reviews=None):
     if not (report["asof"] == comparison["asof"] == catalog["date"] == frozen_catalog["date"] == CUTOFF):
         raise ValueError("development_cutoff_mismatch")
@@ -45,6 +90,7 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, rev
         raise ValueError('invalid_gap_reviews')
     used_reviews = set()
     reasons = Counter()
+    dispositions = Counter()
     pending_issuers = 0
     full = 0
     rows = {}
@@ -72,6 +118,7 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, rev
                 parts[area][key] = part
                 if part["reason"]:
                     reasons[part["reason"]] += 1
+                    dispositions["pending" if part["source_review_pending"] else "terminal_zero"] += 1
         flat = [p for ps in parts.values() for p in ps.values()]
         observed = round(sum(p["observed_weight"] for p in flat), 6)
         missing = round(sum(p["zero_fallback_weight"] for p in flat), 6)
@@ -93,7 +140,8 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, rev
             "source_digest": report["source_digest"], "listed_total": len(rows),
             "all_100_point_budgets_accounted": True, "full_observed_issuers": full,
             "pending_source_review_issuers": pending_issuers,
-            "gap_reason_counts": dict(reasons), "missing_inputs_are_not_fabricated": True,
+            "gap_reason_counts": dict(reasons), "gap_disposition_counts": dict(dispositions),
+            "missing_inputs_are_not_fabricated": True,
             "missing_component_earned_points": 0, "fixed_data_review_complete": pending_issuers == 0,
             "daily_ingestion_separate": True, "provider_calls": 0, "rows": rows}
 
@@ -112,10 +160,17 @@ def main():
         if sha256((a.docs / name).read_bytes()).hexdigest() != digest:
             raise ValueError("fixed_source_digest_mismatch")
     legacy = a.docs / "v3-near-100-evidence-priority.json"
+    reviews = cashflow_terminal_reviews(report, read("v3-dart-cashflow-gap-summary.json"),
+                                       read("v3-dart-cashflow-issuer-evidence.json"))
+    if a.reviews and a.reviews.is_file():
+        manual = json.loads(a.reviews.read_text())
+        if set(manual) & set(reviews):
+            raise ValueError("duplicate_gap_disposition")
+        reviews.update(manual)
     result = build(report, read("v3-operational-research-comparison.json"),
                    read("v22-market-catalog.json"), json.loads(a.frozen_catalog.read_text()),
                    json.loads(legacy.read_text()) if legacy.is_file() else None,
-                   json.loads(a.reviews.read_text()) if a.reviews and a.reviews.is_file() else None)
+                   reviews)
     a.out.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")
     print(json.dumps({k:v for k,v in result.items() if k != "rows"}, ensure_ascii=False))
 
