@@ -21,6 +21,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: korea-stock-screener-industry-price-observed
@@ -65,6 +66,7 @@ jobs:
         if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
         run: python v3_industry_price_rotation_research.py --mode write
       - name: Publish aggregates only, retry rebase with full source recheck
+        id: industry_publish
         if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') }}
         run: |
           set -euo pipefail
@@ -80,6 +82,7 @@ jobs:
               if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
               python v3_industry_price_rotation_research.py --mode verify
               if git push origin HEAD:main; then
+                echo "published=true" >> "$GITHUB_OUTPUT"
                 echo "audited_industry_relative_strength_published"
                 break
               fi
@@ -89,6 +92,22 @@ jobs:
               fi
             done
           fi
+      - name: Dispatch changed saved-source industry followups
+        if: steps.industry_publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Existing scheduled workflows remain the fallback. Never call a provider.
+          if ! pending=$(python v32_industry_followup.py price); then
+            echo "::warning::Industry followup preflight failed; scheduled retry remains"
+            exit 0
+          fi
+          while IFS= read -r workflow; do
+            [[ -n "$workflow" ]] || continue
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main -f mode=write ||
+              echo "::warning::Industry followup dispatch failed; scheduled retry remains"
+          done <<< "$pending"
       - name: Verify saved publication only upon manual request
         if: ${{ steps.gate.outputs.ready == 'true' && github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: python v3_industry_price_rotation_research.py --mode verify
