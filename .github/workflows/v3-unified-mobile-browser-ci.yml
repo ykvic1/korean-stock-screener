@@ -7,6 +7,10 @@ on:
       - 'v3_operational_research_score.py'
       - 'docs/index.html'
       - 'docs/workspace.html'
+      - 'docs/performance.html'
+      - 'docs/v31-performance.js'
+      - 'docs/v31-performance.css'
+      - 'tests/test_v31_performance.cjs'
       - 'docs/workspace.js'
       - 'docs/v3-data-readiness.js'
       - 'docs/v3-coverage-gate.js'
@@ -97,6 +101,8 @@ jobs:
           name: v3-unified-mobile-browser-${{ github.run_id }}
           path: |
             verification/unified-mobile.png
+            verification/unified-mobile-live.png
+            verification/v31-performance-mobile.png
             verification/unified-mobile-result.json
             verification/unified-mobile-export.xlsx
           if-no-files-found: warn
