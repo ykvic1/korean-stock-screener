@@ -237,6 +237,30 @@ class ActualMoneyTests(unittest.TestCase):
                 m.collect(store, asof=catalog['date'], catalog=catalog, source_revision='a' * 40,
                           days=days, digest='a' * 64, forward_days=forward, week_loader=week_days)
 
+    def test_fixed_cutoff_replay_ignores_future_completed_week(self):
+        store, days, forward, catalog = fixture()
+        with patch.object(m, 'finished_calendar_cutoff', return_value='2026-11-09'):
+            baseline = m.collect(store, asof=catalog['date'], catalog=catalog,
+                source_revision='a'*40, days=days, digest='a'*64,
+                forward_days=forward, week_loader=week_days)
+            with patch('builtins.print'):
+                weeks_collect(store, Client(), asof='2026-11-09', max_weeks=1, day_loader=week_days)
+            replay = m.collect(store, asof=catalog['date'], catalog=catalog,
+                source_revision='b'*40, days=days, digest='a'*64,
+                forward_days=forward, week_loader=week_days, fixed_cutoff=True)
+        self.assertEqual(replay['calendar_week_end'], baseline['calendar_week_end'])
+        self.assertEqual(replay['records'], baseline['records'])
+        self.assertEqual(replay['component_records'], baseline['component_records'])
+
+    def test_fixed_cutoff_trims_verified_future_daily_cohort(self):
+        store, days, forward, catalog = fixture()
+        before = {p:store.get_content(p) for p in (m.CHECKPOINT,m.FORWARD,m.WEEKLY)}
+        with patch.object(m, 'finished_calendar_cutoff', return_value='2026-11-05'):
+            windows, _, _ = m.read_daily_history(store, asof='2026-11-03', before=before,
+                days=days, digest='a'*64, forward_days=forward, fixed_cutoff=True)
+        self.assertEqual(len(windows),96)
+        self.assertTrue(all(w[-1] <= '2026-11-03' for w in windows))
+
     def test_publish_preserves_existing_scores_while_catalog_catches_up(self):
         for reason in ('money_catalog_behind_daily_archive', 'money_catalog_behind_weekly_archive'):
             with self.subTest(reason=reason), tempfile.TemporaryDirectory() as directory:
