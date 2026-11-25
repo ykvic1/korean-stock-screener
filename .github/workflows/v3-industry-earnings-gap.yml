@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: korea-stock-screener-industry-gap
@@ -72,6 +73,7 @@ jobs:
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
         run: python v3_industry_earnings_gap_audit.py --mode write
       - name: Publish grouped real industry profit breadth and audited gap queue (no raw values)
+        id: industry_publish
         if: ${{ (github.event_name != 'workflow_dispatch' || inputs.mode == 'write') && steps.market_gate.outputs.ready == 'true' }}
         run: |
           set -euo pipefail
@@ -89,6 +91,7 @@ jobs:
               if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
               python v3_industry_earnings_gap_audit.py --mode verify
               if git push origin HEAD:main; then
+                echo "published=true" >> "$GITHUB_OUTPUT"
                 echo "verified_saved_industry_profit_gap_published"
                 break
               fi
@@ -98,6 +101,22 @@ jobs:
               fi
             done
           fi
+      - name: Dispatch changed saved-source industry followups
+        if: steps.industry_publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Existing scheduled workflows remain the fallback. Never call a provider.
+          if ! pending=$(python v32_industry_followup.py earnings); then
+            echo "::warning::Industry followup preflight failed; scheduled retry remains"
+            exit 0
+          fi
+          while IFS= read -r workflow; do
+            [[ -n "$workflow" ]] || continue
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main -f mode=write ||
+              echo "::warning::Industry followup dispatch failed; scheduled retry remains"
+          done <<< "$pending"
       - name: Read-only current evidence verification
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' && steps.market_gate.outputs.ready == 'true' }}
         run: python v3_industry_earnings_gap_audit.py --mode verify

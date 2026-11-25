@@ -12,6 +12,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: korea-stock-screener-dart-company-profiles
   cancel-in-progress: false
@@ -50,6 +51,7 @@ jobs:
           set -euo pipefail
           python v3_dart_industry_earnings_sample.py --mode write-if-ready
       - name: Save only observed industry classifications and corresponding earnings evidence
+        id: industry_publish
         if: ${{ github.event_name != 'workflow_dispatch' }}
         run: |
           git config user.name "github-actions[bot]"
@@ -68,6 +70,7 @@ jobs:
               python v3_dart_industry_codes.py --mode verify
               python v3_dart_industry_earnings_sample.py --mode verify-if-ready
               if git push origin HEAD:main; then
+                echo "published=true" >> "$GITHUB_OUTPUT"
                 echo "verified_company_profiles_published"
                 break
               fi
@@ -77,3 +80,19 @@ jobs:
               fi
             done
           fi
+      - name: Dispatch changed saved-source industry followups
+        if: steps.industry_publish.outputs.published == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Existing scheduled workflows remain the fallback. Never call a provider.
+          if ! pending=$(python v32_industry_followup.py classification); then
+            echo "::warning::Industry followup preflight failed; scheduled retry remains"
+            exit 0
+          fi
+          while IFS= read -r workflow; do
+            [[ -n "$workflow" ]] || continue
+            gh workflow run "$workflow" --repo "$GITHUB_REPOSITORY" --ref main -f mode=write ||
+              echo "::warning::Industry followup dispatch failed; scheduled retry remains"
+          done <<< "$pending"
