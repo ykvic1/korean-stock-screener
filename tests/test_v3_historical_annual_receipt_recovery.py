@@ -81,3 +81,26 @@ class FrozenPrimaryStatementComparisonTests(TestCase):
                 self.assertEqual(result["revenue"], "matched")
         self.assertEqual(compare([row], CORP, receipt, "CFS", {"revenue": 200})["revenue"],
                          "different_value")
+
+
+class FrozenComparativeEvidenceContractTests(TestCase):
+    def test_saved_comparative_counts_reconcile_without_certification(self):
+        import json
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        data = json.loads((root / "ops/v30b-fixed-pit-comparative-primary-statement-totals.json").read_text())
+        self.assertEqual(data["anchor"], "2025-11-13")
+        self.assertEqual(data["development_cutoff"], "2026-11-20")
+        self.assertEqual(data["issuers"], 2267)
+        self.assertEqual(sum(data["statuses"].values()), data["issuers"])
+        compared = data["statuses"]["compared"]
+        self.assertEqual(compared, 2122)
+        self.assertEqual(set(data["comparative_primary_statement_fields"]), {"2022", "2023"})
+        for fields in [data["primary_statement_fields"], *data["comparative_primary_statement_fields"].values()]:
+            self.assertEqual(set(fields), {"assets", "liabilities", "equity", "operating_income", "revenue"})
+            for outcomes in fields.values():
+                self.assertEqual(sum(outcomes.values()), compared)
+                self.assertTrue(all(type(n) is int and n >= 0 for n in outcomes.values()))
+        self.assertGreater(data["comparative_primary_statement_fields"]["2022"]["operating_income"]["different_value"], 0)
+        self.assertFalse(data["historical_point_in_time_certified"])
+        self.assertEqual(data["new_provider_calls"], 0)
