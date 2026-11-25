@@ -163,6 +163,13 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                         'loss_rate_spread_bounds_pct_points': [-100, 0],
                     },
                 }}})
+                with patch(f'{module}.index_benchmark.reference', return_value={'KOSPI': 2, 'KOSDAQ': None}) as reader:
+                    indexed = pages_results(root, readiness, now, refresh_index=True)
+                    benchmark = indexed['horizons']['1']['latest']['index_benchmark']
+                    self.assertEqual(benchmark['groups']['top3']['observed_mean_excess_return_pct_points'], 3)
+                    self.assertEqual(benchmark['status'], 'partial_secondary_reference')
+                    pages_results(root, readiness, now, refresh_index=True)
+                    reader.assert_called_once()
                 self.assertNotIn('000001', json.dumps(published))
                 changed = readiness['cohorts'][score_day]['horizons']['1']
                 changed['target_date'] = '2026-12-15'
