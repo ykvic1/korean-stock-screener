@@ -1,0 +1,80 @@
+name: Audit saved original-receipt public coverage
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audit-public-income-coverage-once.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3'
+      - name: Compare authenticated DART original-receipt observations offline
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from collections import Counter
+          from pathlib import Path
+
+          from v3_dart_bulk_history import research_parts
+          from v3_dart_original_revenue_recovery import OUTPUT, REVIEWED, overlay
+
+          root = Path('docs')
+          def read(name):
+              return json.loads((root / name).read_bytes())
+
+          catalog = read('v22-market-catalog.json')
+          history = read('v3-dart-bulk-history.json')
+          book = read('v3-dart-book-reference.json')
+          stored = read('v3-dart-bulk-provisional.json')
+          before = research_parts(history, catalog, book)
+          assert before == stored, 'public fiscal source does not reproduce'
+          enriched, source_codes = overlay(catalog, history, read(OUTPUT), reviewed=read(REVIEWED))
+          after = research_parts(enriched, catalog, book)
+          old_rows = {row['code']: row for row in before['rows']}
+          new_rows = {row['code']: row for row in after['rows']}
+          with (root / 'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig', newline='') as file:
+              public = {row['종목코드']: row for row in csv.DictReader(file)}
+          assert len(public) == catalog['listed_total']
+          gains = Counter()
+          losses = Counter()
+          per_issuer = Counter()
+          metrics = {
+              'revenue_cagr_3y_pct': 4,
+              'operating_margin_3y_pct': 4,
+              'liabilities_to_assets_pct': 4,
+              'operating_roa_3y_pct': 4,
+              'sales_to_market_cap': 5,
+          }
+          for code in source_codes:
+              old = old_rows.get(code, {}).get('unverified_components', {})
+              new = new_rows.get(code, {}).get('unverified_components', {})
+              for field, weight in metrics.items():
+                  x = old.get(field, {}).get('candidate_points')
+                  y = new.get(field, {}).get('candidate_points')
+                  if x is None and y is not None:
+                      gains[field] += 1
+                      per_issuer[code] += weight
+                  if x is not None and y is None:
+                      losses[field] += 1
+          crossed = Counter()
+          for code, added in per_issuer.items():
+              current = float(public[code]['산출가능배점_100점중'] or 0)
+              assert current + added <= 100
+              for threshold in (90, 95, 100):
+                  if current < threshold <= current + added:
+                      crossed[threshold] += 1
+          print('PUBLIC_SOURCE_PROBE=' + json.dumps({
+              'asof': catalog['date'], 'listed': len(public), 'verified_source_issuers': len(source_codes),
+              'candidate_component_gains': gains, 'candidate_component_losses': losses,
+              'candidate_issuers': len(per_issuer), 'candidate_available_weight_sum': sum(per_issuer.values()),
+              'candidate_threshold_crossings': crossed, 'provider_calls': 0,
+          }, sort_keys=True))
+          PY
