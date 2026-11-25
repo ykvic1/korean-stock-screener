@@ -128,6 +128,15 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                                  {'status': 'selected', 'compared_with_score_asof': None})
                 published = pages_results(root, readiness, now)
                 self.assertFalse(published['performance_validated'])
+                summary = published['horizons']['1']['latest'].pop('v31_summary')
+                self.assertEqual(summary['top3']['selected_count'], 1)
+                self.assertEqual(summary['top3']['observed_win_rate_bounds_pct'], [100, 100])
+                self.assertEqual(summary['top30']['observed_win_rate_bounds_pct'], [50, 100])
+                self.assertIsNone(summary['top30']['observed_mean_gain_loss_ratio'])
+                self.assertEqual(summary['40to60']['valued_count'], 1)
+                self.assertEqual(summary['below40']['unvalued_confirmed_openings_count'], 1)
+                self.assertEqual(summary['80plus']['selected_count'], 0)
+                self.assertIsNone(summary['80plus']['observed_mean_return_pct'])
                 self.assertEqual(published['horizons'], {'1': {'published_window_count': 1, 'latest': {
                     'score_asof': score_day, 'entry_session': days[0], 'evaluation_session': days[-1],
                     'confirmed_opening_count': 1, 'valued_count': 1, 'median_terminal_return_pct': 5,
