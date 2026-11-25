@@ -1,6 +1,7 @@
 /* Read-only, source-dated V3 coverage: never convert missing data into scores. */
 (function () {
   'use strict';
+  if(document.getElementById('liveScoreSort'))return;
   const SOURCE_FILES = [
     'v3-current-observed-all-listed-summary.json',
     'v3-real-source-six-area-coverage.json',
