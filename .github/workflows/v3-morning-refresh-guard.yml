@@ -1,0 +1,100 @@
+name: V3 Morning Full-Market Refresh Guard
+
+on:
+  schedule:
+    - cron: '10 18 * * 1-5' # 03:10 KST Tue-Sat
+    - cron: '10 20 * * 1-5' # 05:10 KST Tue-Sat
+    - cron: '10 21 * * 1-5' # 06:10 KST Tue-Sat
+  workflow_run:
+    workflows: [Rolling OpenDART Annual Book Reference - Current Listed]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-morning-refresh-guard.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: v3-morning-full-market-refresh-guard
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    if: >-
+      ${{ github.event_name != 'workflow_run' ||
+          (github.event.workflow_run.event == 'schedule' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check prior KRX session, not an intraday quote
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          pip install 'exchange-calendars==4.13.1'
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timedelta
+          from pathlib import Path
+          from zoneinfo import ZoneInfo
+          import exchange_calendars as xcals
+          now = datetime.now(ZoneInfo("Asia/Seoul"))
+          # Ignore unrelated overnight/weekend and daytime upstream events.
+          if os.environ["EVENT_NAME"] in ("schedule", "workflow_run") and not (2 <= now.hour < 9):
+              raise SystemExit(0)
+          day = (now.date() - timedelta(days=1)).isoformat()
+          target = str(xcals.get_calendar("XKRX").date_to_session(day, direction="previous").date())
+          dates = [json.loads(Path(p).read_text(encoding="utf-8"))["date"]
+                   for p in ("docs/data.json", "docs/v22-market-catalog.json")]
+          print(f"Expected session={target}, saved dates={dates}")
+          if any(d > target for d in dates):
+              print("Newer snapshot present; do not request an older session.")
+              raise SystemExit(0)
+          if all(d == target for d in dates):
+              print("Market snapshot and catalog already current; no duplicate collection.")
+              raise SystemExit(0)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"asof={target}\n")
+          PY
+      - name: Dispatch existing publisher only when missing and idle
+        if: steps.target.outputs.asof != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASOF: ${{ steps.target.outputs.asof }}
+        run: |
+          set -euo pipefail
+          for status in queued in_progress waiting pending requested; do
+            count=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow full-market-batches.yml --status "$status" --limit 1 --json databaseId --jq 'length')
+            if [[ "$count" != "0" ]]; then
+              echo "Existing full-market run is $status; leave it untouched."
+              exit 0
+            fi
+          done
+          # Check main again to avoid dispatching on a stale checkout.
+          for path in docs/data.json docs/v22-market-catalog.json; do
+            date=$(gh api "repos/$GITHUB_REPOSITORY/contents/$path?ref=main" -H 'Accept: application/vnd.github.raw+json' | jq -er '.date')
+            if [[ "$date" > "$ASOF" ]]; then
+              echo "Newer source published; no backfill."
+              exit 0
+            fi
+            if [[ "$date" != "$ASOF" ]]; then stale=true; fi
+          done
+          if [[ "${stale:-false}" != true ]]; then
+            echo "Market snapshot and catalog updated since checkout."
+            exit 0
+          fi
+          gh workflow run full-market-batches.yml --repo "$GITHUB_REPOSITORY" --ref main -f asof="$ASOF" -f mode=publish
+          echo "Requested existing publication for $ASOF; dispatch is not publication success."
