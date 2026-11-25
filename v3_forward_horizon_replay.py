@@ -19,6 +19,7 @@ from v3_forward_observed_readiness import READY, build, read_archived_days
 from v3_forward_price_replay import replay_price_path
 from v3_forward_rank_comparison import add_rank_comparisons
 from v3_forward_factor_validation import frozen_score, summarize as summarize_factors
+import v3_forward_index_benchmark as index_benchmark
 from v3_forward_settlements import load_settlements
 from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
@@ -28,7 +29,7 @@ from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
-SCHEMA = 'v3-forward-horizon-price-outcome-13'
+SCHEMA = 'v3-forward-horizon-price-outcome-14'
 
 
 def loss_rate_bounds(negative, unvalued, opened):
@@ -163,6 +164,13 @@ def v31_summary(members, openings, outcomes):
         opened = sum(openings[c][0] == 'official_open_observed' for c in codes)
         valued = [outcomes[c]['terminal_return_pct'] for c in codes
                   if outcomes[c]['status'] in ('observed_price_path', 'observed_delisting_settlement')]
+        breakdown = {}
+        for market in index_benchmark.MARKETS:
+            values = [outcomes[c]['terminal_return_pct'] for c in codes
+                      if members[c][1] == market and outcomes[c]['status'] in
+                      ('observed_price_path', 'observed_delisting_settlement')]
+            breakdown[market] = {'valued_count': len(values),
+                                 'observed_mean_return_pct': round(fmean(values), 4) if values else None}
         wins = [x for x in valued if x > 0]
         losses = [x for x in valued if x < 0]
         paths = [outcomes[c] for c in codes if outcomes[c]['status'] == 'observed_price_path']
@@ -173,6 +181,7 @@ def v31_summary(members, openings, outcomes):
             'positive_count': len(wins), 'negative_count': len(losses),
             'flat_count': len(valued) - len(wins) - len(losses),
             'observed_mean_return_pct': round(fmean(valued), 4) if valued else None,
+            'market_breakdown': breakdown,
             'observed_win_rate_bounds_pct': loss_rate_bounds(len(wins), opened - len(valued), opened),
             'observed_mean_gain_loss_ratio': round(fmean(wins) / abs(fmean(losses)), 4)
             if wins and losses else None,
@@ -433,17 +442,43 @@ def return_gap_counts(group):
     return result
 
 
-def pages_results(root, readiness, now):
+def pages_results(root, readiness, now, *, refresh_index=False):
     """Publish top-20 aggregates for currently selected, archive-ready windows."""
     horizons = {}
     cohorts = readiness['cohorts']
     selected = ready_windows(cohorts, selected_only=True)
+    attempted = False
     for (score_day, months), inputs in window_inputs(root, now, cohorts, selected):
         cohort = cohorts[score_day]
         path = root / OUT / score_day / f'{months}m.json'
         outcome = load_current_outcome(path, outcome_identity(score_day, months, cohort, inputs))
         if outcome is None:
             continue
+        benchmark = outcome.get('index_benchmark')
+        entry, evaluation = outcome['entry_session'], outcome['evaluation_session_candidate']
+        if (not isinstance(benchmark, dict)
+                or benchmark.get('source') != index_benchmark.SOURCE
+                or benchmark.get('entry_session') != entry
+                or benchmark.get('evaluation_session') != evaluation
+                or not isinstance(benchmark.get('index_return_pct'), dict)):
+            benchmark = None
+        today = now.astimezone(KST).date().isoformat()
+        prior = benchmark['index_return_pct'] if benchmark else {}
+        complete = all(index_benchmark.finite(prior.get(m)) and prior[m] > -100
+                       for m in index_benchmark.MARKETS)
+        if refresh_index and not attempted and not complete and (
+                not benchmark or benchmark.get('last_attempt_on') != today):
+            attempted = True
+            refs = index_benchmark.reference(entry, evaluation, previous=prior)
+            benchmark = index_benchmark.summarize(outcome['groups']['v31_summary'],
+                                                   refs, entry, evaluation, today)
+            outcome['index_benchmark'] = benchmark
+            path.write_text(json.dumps(outcome, indent=2, allow_nan=False) + '\n', encoding='utf-8')
+        if benchmark:
+            # Rebuild derived spreads from saved reference returns and verified group summary.
+            benchmark = index_benchmark.summarize(outcome['groups']['v31_summary'],
+                                                   benchmark['index_return_pct'],
+                                                   entry, evaluation, benchmark.get('last_attempt_on'))
         top = outcome['groups']['top20']
         coverage = top['terminal_return_coverage']
         observed = horizons.setdefault(str(months), {'published_window_count': 0, 'latest': None})
@@ -463,6 +498,7 @@ def pages_results(root, readiness, now):
             'return_gap_counts': return_gap_counts(top),
             'v31_summary': outcome['groups']['v31_summary'],
             'factor_validation': outcome['groups']['factor_validation'],
+            'index_benchmark': benchmark,
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
             'horizons': horizons}
@@ -473,6 +509,6 @@ if __name__ == '__main__':
     now = datetime.now(timezone.utc)
     readiness = build(root, now)
     result = replay_next(root, now, private_storage, readiness=readiness)
-    public = json.dumps(pages_results(root, readiness, now), indent=2, allow_nan=False) + '\n'
+    public = json.dumps(pages_results(root, readiness, now, refresh_index=True), indent=2, allow_nan=False) + '\n'
     (root / PAGES_RESULTS).write_text(public, encoding='utf-8')
     print(json.dumps(result))
