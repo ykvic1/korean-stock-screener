@@ -508,6 +508,9 @@
         "first_unresolved_session": "2026-09-14",
         "last_unresolved_session": "2026-11-13",
         "official_scale_unchanged_for_unresolved_pairs": 39,
+        "evidence": "ops/v30b-frozen-adjusted-path-evidence.json",
+        "issuer_paths_without_unresolved_pairs": 4,
+        "unresolved_pairs_require_alternative_price_source_not_assumed_actions": true,
         "official_adjusted_history_verified": false
       },
       "kind_exchange_ratio_review": {
