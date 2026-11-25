@@ -98,6 +98,7 @@ jobs:
           node tests/test_v3_stop_evidence.cjs
           node tests/test_v3_unified_workspace.cjs
           node tests/test_v31_performance.cjs
+          node tests/test_v32_market_sector.cjs
       - name: v3 user-facing paper-beta page and browser logic (offline)
         run: |
           node --check docs/v3-beta.js
