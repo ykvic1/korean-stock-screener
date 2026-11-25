@@ -197,7 +197,7 @@ def rounded_score_total(values):
 
 
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
-             industry_source=None,price_replay=None,money_source=None):
+             industry_source=None,price_replay=None,money_source=None,*,fiscal_source_dir=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
     # An older WEEKLY research cohort may be omitted when the official
     # market/DART annual ledgers already agree today. Its stale scores never
@@ -208,6 +208,13 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     listed=audit["listed_total"]
     members={r["code"]:r for r in catalog["rows"]}
     raw_parts={r["code"]:r for r in parts["rows"]}
+    if fiscal_source_dir is not None:
+        # Reuse the primary publisher\'s receipt checks and supplements.
+        # Import lazily: the primary module shares our price helpers.
+        from v3_current_observed_scorecard import load_financial_source
+        replayed_fiscal,_=load_financial_source(fiscal_source_dir,catalog,
+            history=history,parts=parts,weekly=weekly)
+        raw_parts=replayed_fiscal or {}
     # Reuse only same-day v2.2 price-derived volume/OBV fields.
     # An independent live investor-identity API is NOT required.
     volume_source=observed_volume(market,catalog,money_source=money_source)
@@ -458,7 +465,7 @@ def main(argv=None):
     money_path=d/MONEY_OUTPUT
     money=read(money_path.name) if money_path.is_file() else None
     rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf,
-                          industry,replay,money_source=money)
+                          industry,replay,money_source=money,fiscal_source_dir=d)
     content=to_csv(rows,summary)
     dest=d/"v3-all-listed-scores.csv"
     report=d/"v3-all-listed-scorecard-summary.json"
