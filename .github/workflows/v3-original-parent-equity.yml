@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       remaining: ${{ steps.work.outputs.remaining }}
+      ready: ${{ steps.work.outputs.ready }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,18 +37,28 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, subprocess
-          result=json.loads(subprocess.check_output([
-              'python','v3_dart_xbrl_parent_equity.py','--mode','dry-run'],text=True))
+          run=subprocess.run([
+              'python','v3_dart_xbrl_parent_equity.py','--mode','dry-run'],
+              text=True, stdout=subprocess.PIPE)
+          result=json.loads(run.stdout)
+          if run.returncode:
+              print(json.dumps({'status':result.get('status'),'reason':result.get('reason')}))
+              raise SystemExit(run.returncode)
           remaining=result.get('remaining')
-          if type(remaining) is not int or remaining<0 or result.get('provider_calls')!=0:
+          deferred=(result.get('status')=='waiting_same_day_parent_equity_priority'
+              and remaining is None and result.get('queue_evaluated') is False
+              and result.get('previous_evidence_preserved') is True)
+          if result.get('provider_calls')!=0 or (not deferred and
+              (type(remaining) is not int or remaining<0)):
               raise SystemExit('untrusted_parent_equity_work_plan')
           with open(os.environ['GITHUB_OUTPUT'],'a') as out:
-              out.write(f'remaining={remaining}\n')
-          print(json.dumps({'unreviewed_parent_equity_remaining':remaining,'provider_calls':0}))
+              out.write(f'remaining={remaining}\nready={str(not deferred).lower()}\n')
+          print(json.dumps({'unreviewed_parent_equity_remaining':remaining,'provider_calls':0,
+                            'status':'source_lag_deferred' if deferred else 'ready'}))
           PY
   recover:
     needs: offline
-    if: github.event_name != 'pull_request' && needs.offline.outputs.remaining != '0'
+    if: github.event_name != 'pull_request' && needs.offline.outputs.ready == 'true' && needs.offline.outputs.remaining != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:

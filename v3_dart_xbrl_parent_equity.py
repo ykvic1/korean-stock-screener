@@ -137,6 +137,14 @@ def main():
     reviews=read(FILE) if review_target.exists() else {'schema':base.REVIEW_SCHEMA,'records':{}}
     base.verify(saved,catalog,book,cash);base.verify_reviews(reviews,catalog)
     if a.mode=='verify':print(json.dumps({'verified':len(saved['records']),'source_reviews':len(reviews['records']),'provider_calls':0}));return
+    base.verify_reviews(api_reviews,catalog)
+    if not base.priority_ready(report,comparison,catalog,book,cash):
+        print(json.dumps({'status':'waiting_same_day_parent_equity_priority',
+            'market_asof':catalog['date'],'score_asof':report['asof'],
+            'book_asof':book['asof'],'cashflow_asof':cash['asof'],
+            'remaining':None,'provider_calls':0,'reviewed':0,'new_recoveries':0,
+            'queue_evaluated':False,'previous_evidence_preserved':True}))
+        return
     queue=choices(catalog,book,cash,report,comparison,saved,api_reviews,reviews)
     output={'remaining':len(queue),'selected':min(12,len(queue)),'reviewed':0,'new_recoveries':0,'provider_calls':0,'source_readers':4,'reasons':{}}
     if a.mode!='live' or not queue:print(json.dumps(output,sort_keys=True));return

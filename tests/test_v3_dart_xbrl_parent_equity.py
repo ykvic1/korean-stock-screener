@@ -76,3 +76,39 @@ class OriginalParentEquityTests(unittest.TestCase):
         self.assertIn('v3-dart-parent-equity-original-reviews.json',text)
         self.assertIn('head_repository.full_name == github.repository',text)
         self.assertNotIn('python -m unittest',text)
+
+    def test_original_reader_defers_validated_lag_without_evaluating_queue(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from contextlib import redirect_stdout
+        from io import StringIO
+        catalog,book,cash,_,code,annual=data()
+        report={'asof':catalog['date']}
+        cash=copy.deepcopy(cash)
+        cash['asof']='2026-11-23'
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            documents={
+                'v22-market-catalog.json':catalog,
+                'v3-dart-book-reference.json':book,
+                'v3-dart-cashflow-reference.json':cash,
+                'v3-operational-research-scores.json':report,
+                'v3-operational-research-comparison.json':{},
+            }
+            for name,value in documents.items():
+                (root/name).write_text(json.dumps(value))
+            out=StringIO()
+            with patch.object(m,'Path',return_value=root), \
+                 patch.object(m.base,'priority_ready',return_value=False), \
+                 patch.object(m.base,'verify'), \
+                 patch.object(m.base,'verify_reviews'), \
+                 patch.object(m,'choices',side_effect=AssertionError('queue must not run')), \
+                 patch('sys.argv',['reader','--mode','dry-run']),redirect_stdout(out):
+                m.main()
+            status=json.loads(out.getvalue())
+            self.assertIsNone(status['remaining'])
+            self.assertEqual(status['provider_calls'],0)
+            self.assertFalse(status['queue_evaluated'])
+            self.assertTrue(status['previous_evidence_preserved'])
