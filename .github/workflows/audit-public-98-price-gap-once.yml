@@ -20,7 +20,9 @@ jobs:
           V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
         run: |
           python - <<'PY'
-          import os,json,csv
+          import csv
+          import json
+          import os
           from pathlib import Path
           from collections import Counter,defaultdict
           from v3_regular_close_indicators import PRIVATE_REPO,archive_path,read_day,PrivateGitStorage
@@ -32,20 +34,35 @@ jobs:
           day=catalog['date']
           source=read('v3-regular-close-indicators.json')
           official=admitted_rows(source,catalog)
-          assert official and source['asof']==day
+          if not official or source['asof'] != day:
+              raise SystemExit('official_indicators_do_not_match_catalog_date')
           market=read('data.json')
-          assert market['date']==day
+          if market['date'] != day:
+              raise SystemExit('price_data_does_not_match_catalog_date')
           stocks={s['code']:s for s in market['stocks']}
           with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig') as stream:
-              rows={r['종목코드']:r for r in csv.DictReader(stream)}
-          assert len(rows)==catalog['listed_total'] and all(r['가격자료기준일']==day for r in rows.values())
+              csv_rows = list(csv.DictReader(stream))
+          rows = {row['종목코드']: row for row in csv_rows}
+          if (len(csv_rows) != len(rows) or len(rows) != catalog['listed_total']
+                  or set(rows) != {member['code'] for member in catalog['rows']}
+                  or any(row['가격자료기준일'] != day for row in rows.values())):
+              raise SystemExit('public_scorecard_does_not_match_catalog')
+
+          def observed_weight(row, column, maximum):
+              raw = row[column]
+              # An empty CSV field has no observed allocation for this component.
+              value = 0 if raw == '' else int(raw)
+              if not 0 <= value <= maximum:
+                  raise SystemExit('invalid_public_component_weight')
+              return value
           if os.getenv('V3_PRIVATE_ARCHIVE_REPO')!=PRIVATE_REPO:
               raise SystemExit('private_archive_not_available')
           storage=PrivateGitStorage(PRIVATE_REPO,os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))
           storage.verify_private()
           blob,_=storage.get_content(archive_path(day))
           panel=read_day(blob,day)
-          assert panel is not None
+          if panel is None:
+              raise SystemExit('official_regular_close_panel_missing')
           groups=defaultdict(Counter)
           for m in catalog['rows']:
               code=m['code']
@@ -53,7 +70,17 @@ jobs:
               identity=record is not None and record[0]==m['market'] and normalized_name(record[1])==normalized_name(m['name'])
               state=('traded' if record[5] is True else 'zero_trades' if record[5] is False else 'unknown') if identity else 'identity_unmatched'
               s=rows[code]
-              pricegap=60-sum(int(s[k]) for k in ('거래량_OBV_산출배점','기술_산출배점','모멘텀_산출배점'))
+              volume = observed_weight(s, '거래량_OBV_산출배점', 20)
+              technical = observed_weight(s, '기술_산출배점', 25)
+              momentum = observed_weight(s, '모멘텀_산출배점', 15)
+              financial = observed_weight(s, '재무_산출배점', 20)
+              valuation = observed_weight(s, '가치_산출배점', 20)
+              total_weight = int(s['산출가능배점_100점중'])
+              if (s['시장'] != m['market'] or s['종목명'] != m['name']
+                      or volume + technical + momentum + financial + valuation != total_weight
+                      or total_weight + int(s['미확보배점_100점중']) != 100):
+                  raise SystemExit('public_scorecard_identity_or_weight_mismatch')
+              pricegap = 60 - volume - technical - momentum
               group=m['price_history_status']
               g=groups[group]
               g['issuers']+=1
@@ -65,7 +92,7 @@ jobs:
                   for threshold in (20,60,90,121,200,260):
                       if receipt.get('continuous_sessions',0)>=threshold:
                           g['close_continuity_at_least_'+str(threshold)]+=1
-              if code in stocks and int(s['모멘텀_산출배점'])==8:
+              if code in stocks and momentum == 8:
                   g['priced_missing_path7']+=1
                   if receipt.get('continuous_sessions',0)>=121 and identity and record[5] is True and stocks[code].get('price')==record[2]:
                       g['path7_same_close_121_candidate']+=1
