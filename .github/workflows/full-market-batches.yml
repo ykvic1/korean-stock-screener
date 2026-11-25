@@ -9,7 +9,7 @@ on:
     # PRIOR KST calendar day. Actual source daily CSVs were refreshed after
     # 21:30 on multiple recently observed sessions (e.g. 23:19 on Nov 10).
     # This reduces the risk of hashing a still-changing after-market source.
-    - cron: '20 15 * * 1-5' # 00:20 KST Tue-Sat: prior weekday data
+    - cron: '5 16 * * 1-5' # 01:05 KST Tue-Sat: prior weekday data
     - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: recovery
     - cron: '30 22 * * 1-5' # 07:30 KST Tue-Sat: recover unpublished data
   # Run in the next day's early hours after BOTH KRX and NXT evening
