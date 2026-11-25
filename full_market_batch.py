@@ -625,6 +625,7 @@ def publish(*, manifest: dict, parts_dir: Path,
             "history_deferred": merged["deferred"],
             "history_scan_complete": merged["market_scan_complete"],
             "history_usable": len(current), "index_markets": list(idx),
+            "index_references": idx,
             "optional_listings": optional, "excluded": merged["excluded"],
             "flow_attempted": attempted, "flow_planned": planned,
             "flow_deferred": deferred}

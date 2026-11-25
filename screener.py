@@ -649,7 +649,7 @@ def build_rows(day,cfg):
       'history_deferred':max(0,total-history_attempted),
       'history_scan_complete':history_attempted==total,
       'history_usable':len(valid),
-      'index_markets':list(idx),'optional_listings':optional,
+      'index_markets':list(idx),'index_references':idx,'optional_listings':optional,
       'excluded':excluded,'flow_attempted':collector.attempted,
       'flow_planned':len(attempts),'flow_deferred':flow_deferred}
 
@@ -901,6 +901,9 @@ def web_publish(rows,errors,analysis_day,cfg,meta,xlsx):
          research['screened_count'],research['research_eligible_count'],
          research['research_dossier_count'],research['confirmed_recommendation_count'],
          len(research['daily_changes']['entered']),len(research['daily_changes']['exited']))
+    # Reuse the already retrieved index observations, separate from score data.
+    from v32_market_index_reference import write as write_index_reference
+    write_index_reference(SITE/'v32-market-index-reference.json',out['date'],meta.get('index_references'))
     return out
 
 

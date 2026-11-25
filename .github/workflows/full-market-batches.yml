@@ -221,7 +221,7 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/data.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/v22-coverage.json docs/v3-unscored-path-coverage.json docs/v22-market-catalog.json docs/v22-partial-history.json docs/reports/ docs/archive/
+          git add docs/data.json docs/v32-market-index-reference.json docs/history.json docs/recommendations.json docs/recommendation_history.json docs/v22-coverage.json docs/v3-unscored-path-coverage.json docs/v22-market-catalog.json docs/v22-partial-history.json docs/reports/ docs/archive/
           if ! git diff --cached --quiet; then
             git commit -m "Full-market batch-derived v2 screen"
             # A delayed manual job must not restore an older trading day.
