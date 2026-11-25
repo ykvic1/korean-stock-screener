@@ -111,6 +111,51 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                          ["미확보배점_100점중"],"100")
         self.assertTrue(all(r["정식투자점수"]=="" for r in csv_rows))
 
+    def test_short_history_rsi_requires_admitted_exact_date_and_positive_volume_reference(self):
+        from hashlib import sha256
+        from v3_regular_close_contract import LEGACY_SCHEMA, LEGACY_IMPLEMENTATION
+        market,catalog=small()
+        members={m["code"]:m for m in catalog["rows"]}
+        members["300004"]["listing_zero_volume_reference"]=False
+        members["300005"]["listing_zero_volume_reference"]=True
+        rsi={"rsi14":50,"rsi30_cross_recent":False,
+             "rsi_bullish_divergence_recent":False}
+        def source():
+            return {"schema":LEGACY_SCHEMA,"asof":catalog["date"],
+                    "source":"KRX_OFFICIAL_REGULAR_CLOSE",
+                    "source_catalog_sha256":sha256(json.dumps(
+                        catalog,ensure_ascii=False,sort_keys=True,separators=(",",":")
+                    ).encode()).hexdigest(),
+                    "listed_total":len(members),"requested_sessions":200,
+                    "archived_sessions":200,"implementation_sha256":LEGACY_IMPLEMENTATION,
+                    "full_corporate_action_history_certified":False,
+                    "performance_validated":False,
+                    "rows":{c:{"name":members[c]["name"],"market":members[c]["market"],
+                               "continuous_sessions":90,"daily_rsi":rsi}
+                            for c in ("300004","300005","300003")}}
+        volume,price=volume_build(market,catalog),price_build(market,catalog)
+        baseline,base_report=generate(market,catalog,volume,price)
+        rows,report=generate(market,catalog,volume,price,regular_close_source=source())
+        before={r["code"]:r for r in baseline}
+        for row in rows:
+            c=row["code"]
+            self.assertEqual(row["available"]-before[c]["available"],2 if c=="300004" else 0)
+            if c=="300004":
+                self.assertEqual(row["factor_available"]["technical"],2)
+                self.assertFalse(row["certified"])
+                self.assertIsNone(row["official_score"])
+            else:
+                self.assertEqual(row,before[c])
+        self.assertEqual(report["regular_close_short_history_rsi_issuers"],1)
+        self.assertEqual(report["regular_close_technical_replayed_issuer_counts"]["daily_rsi"],1)
+        for bad in ("stale","wrong_name","short"):
+            receipt=source()
+            if bad=="stale":receipt["asof"]="2000-01-01"
+            elif bad=="wrong_name":receipt["rows"]["300004"]["name"]="different"
+            else:receipt["rows"]["300004"]["continuous_sessions"]=89
+            self.assertEqual(generate(market,catalog,volume,price,regular_close_source=receipt),
+                             (baseline,base_report))
+
     def test_date_tamper_or_amount_inflation_is_not_accepted(self):
         market,catalog=small()
         v=volume_build(market,catalog)
@@ -689,14 +734,20 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                 self.assertEqual(row["factor_available"]["momentum"],
                                  previous["factor_available"]["momentum"])
                 if row["code"] not in sources[3]["rows"]:
-                    self.assertEqual(row["available"],previous["available"])
+                    member=next(m for m in sources[1]["rows"] if m["code"]==row["code"])
+                    if row["available"]!=previous["available"]:
+                        self.assertEqual(member["price_history_status"],"insufficient_history")
+                        self.assertIs(member["listing_zero_volume_reference"],False)
+                        self.assertEqual(row["available"]-previous["available"],2)
+                        self.assertEqual(row["factor_available"]["technical"],2)
             counts=improved_report["regular_close_technical_replayed_issuer_counts"]
             gained=sum(counts[key]*weight for key,weight in
                        (("daily_rsi",2),("weekly_rsi",3),("weekly_ma120",3)))
             self.assertEqual(report["total_unacquired_weight_issuer_slots"]-
                              improved_report["total_unacquired_weight_issuer_slots"],gained)
             if sources[1]["date"]=="2026-11-24" and official.get("asof")==sources[1]["date"]:
-                self.assertEqual(counts,{"daily_rsi":27,"weekly_rsi":14,"weekly_ma120":14})
+                self.assertEqual(counts,{"daily_rsi":41,"weekly_rsi":14,"weekly_ma120":14})
+                self.assertEqual(improved_report["regular_close_short_history_rsi_issuers"],14)
             stale={**official,"asof":"2000-01-01"}
             stale_rows,stale_report=generate(
                 *sources,path_coverage_receipt=path_receipt,regular_close_source=stale)
