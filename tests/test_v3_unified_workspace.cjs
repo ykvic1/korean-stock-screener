@@ -2612,3 +2612,18 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  for(const key of ['volume','technical','financial','valuation','momentum'])assert.ok(entry.includes('data-score-sort="area:'+key+'"'));
  assert.ok(entry.includes('data-score-sort="ops"'));
 }
+
+// Live loads only sources used by operating scores, quote/risk, OBV and industry.
+{
+ const retained=['data.json','v3-weekly-rotation.json','v3-volume-obv-observed.json','v3-current-price-technical-momentum.json','v3-industry-observed-relative-strength.json','v3-dart-industry-classification.json','v3-operational-research-scores.json','v3-trading-status.json','v3-regular-close-prices.json'];
+ assert.ok(retained.every(unified.liveDataFile));
+ for(const file of ['quant.json','official.json','v3-current-observed-all-listed.csv','v3-issuer-last-observed-factors.json','v3-forward-validation-results.json'])assert.equal(unified.liveDataFile(file),false);
+ const core={stopDistance:()=>10,highRisk:()=>false};
+ const fixture={rows:[{r:{code:'000001',name:'Alpha',market:'KOSPI',v3_operational:{score:60,rank:1,available:90,areas:{volume:{points:5,available:25}}}}},{r:{code:'000002',name:'Beta',market:'KOSDAQ',v3_operational:{score:55,rank:2,available:80,areas:{volume:{points:12,available:25}}}}}]};
+ const expected=unified.rankItems(fixture,core,'all','all','','area:volume');
+ const first=unified.liveRankItems(fixture,core,'all','','area:volume');
+ assert.deepEqual(first,expected);
+ assert.strictEqual(unified.liveRankItems(fixture,core,'KOSPI','','area:volume')[0],first[1]);
+ assert.deepEqual(unified.liveRankItems(fixture,core,'KOSPI','Beta','area:volume',true,true,true).map(x=>x.r.code),['000002']);
+ assert.notStrictEqual(unified.liveRankItems({...fixture},core,'all','','area:volume')[0],first[0]);
+}
