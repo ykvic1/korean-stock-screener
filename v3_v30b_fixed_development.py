@@ -27,7 +27,7 @@ def component(point, maximum, reason):
             "source_review_pending": missing > .00001 and reason != SHORT_PRICE_HISTORY}
 
 
-def build(report, comparison, catalog, frozen_catalog, legacy_priority=None):
+def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, reviews=None):
     if not (report["asof"] == comparison["asof"] == catalog["date"] == frozen_catalog["date"] == CUTOFF):
         raise ValueError("development_cutoff_mismatch")
     def identities(c):
@@ -40,6 +40,10 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None):
     queried = set()
     if legacy_priority and legacy_priority.get("asof") == CUTOFF:
         queried = set(legacy_priority.get("fcf_three_year_previously_queried_missing_account_codes", []))
+    reviews = reviews or {}
+    if not isinstance(reviews, dict):
+        raise ValueError('invalid_gap_reviews')
+    used_reviews = set()
     reasons = Counter()
     pending_issuers = 0
     full = 0
@@ -54,6 +58,17 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None):
                     raise ValueError("post_cutoff_component")
                 reason = category(area, key, members[code].get("price_history_status"), code in queried)
                 part = component(point, maximum, reason)
+                review_key = ":".join((code, area, key))
+                if review_key in reviews:
+                    review = reviews[review_key]
+                    if (not part["source_review_pending"] or review.get("asof") != CUTOFF
+                        or review.get("missing_weight") != part["zero_fallback_weight"]
+                        or review.get("status") not in ("source_missing_after_attempt", "source_error_after_attempt", "insufficient_history_confirmed")
+                        or not isinstance(review.get("evidence"), str) or not review["evidence"].strip()):
+                        raise ValueError("invalid_or_stale_gap_review")
+                    part["source_review_pending"] = False
+                    part["review"] = review
+                    used_reviews.add(review_key)
                 parts[area][key] = part
                 if part["reason"]:
                     reasons[part["reason"]] += 1
@@ -72,12 +87,14 @@ def build(report, comparison, catalog, frozen_catalog, legacy_priority=None):
                       "observed_weight": observed, "zero_fallback_weight": missing,
                       "base": earned, "score": row["score"] if row["score"] is not None else 0,
                       "rank": row["rank"], "source_review_pending": pending, "parts": parts}
+    if used_reviews != set(reviews):
+        raise ValueError("unmatched_gap_review")
     return {"schema": "v30b-fixed-development-gap-ledger-1", "asof": CUTOFF,
             "source_digest": report["source_digest"], "listed_total": len(rows),
             "all_100_point_budgets_accounted": True, "full_observed_issuers": full,
             "pending_source_review_issuers": pending_issuers,
             "gap_reason_counts": dict(reasons), "missing_inputs_are_not_fabricated": True,
-            "missing_component_earned_points": 0, "development_complete": False,
+            "missing_component_earned_points": 0, "fixed_data_review_complete": pending_issuers == 0,
             "daily_ingestion_separate": True, "provider_calls": 0, "rows": rows}
 
 
@@ -86,6 +103,7 @@ def main():
     p.add_argument("--docs", type=Path, required=True)
     p.add_argument("--frozen-catalog", type=Path, required=True)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument("--reviews", type=Path)
     a = p.parse_args()
     def read(name):
         return json.loads((a.docs / name).read_text())
@@ -96,7 +114,8 @@ def main():
     legacy = a.docs / "v3-near-100-evidence-priority.json"
     result = build(report, read("v3-operational-research-comparison.json"),
                    read("v22-market-catalog.json"), json.loads(a.frozen_catalog.read_text()),
-                   json.loads(legacy.read_text()) if legacy.is_file() else None)
+                   json.loads(legacy.read_text()) if legacy.is_file() else None,
+                   json.loads(a.reviews.read_text()) if a.reviews and a.reviews.is_file() else None)
     a.out.write_text(json.dumps(result, ensure_ascii=False, separators=(",", ":")) + "\n")
     print(json.dumps({k:v for k,v in result.items() if k != "rows"}, ensure_ascii=False))
 
