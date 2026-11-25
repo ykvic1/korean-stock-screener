@@ -117,6 +117,23 @@ class AllListedScorecardTests(unittest.TestCase):
         self.assertEqual(report["score_state"],
             "provisional_observed_only_not_investment_grade")
 
+    def test_secondary_fiscal_replay_matches_primary_receipt_verified_rows(self):
+        from v3_current_observed_scorecard import load_financial_source
+        market,catalog,history,parts,weekly,_,_=sources()
+        fiscal,_=load_financial_source(DOCS,catalog,history=history,
+                                       parts=parts,weekly=weekly)
+        rows,report=m.generate(market,catalog,history,parts,weekly,
+                               fiscal_source_dir=DOCS)
+        for row in rows:
+            source=(fiscal or {}).get(row["code"])
+            for area in ("financial","valuation"):
+                expected=(None,0) if source is None else (
+                    source[area+"_candidate_points"],
+                    source[area+"_available_max"])
+                self.assertEqual(row["factors"][area],expected,
+                                 (row["code"],area))
+        self.assertEqual(report["full_six_pillar_certified_count"],0)
+
     def test_current_price_replay_covers_all_actual_saved_price_issuers(self):
         market,catalog,history,parts,weekly,cash,fcf=sources()
         replay=same_day_price_replay(market,catalog)
