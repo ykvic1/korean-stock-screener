@@ -5,6 +5,8 @@ on:
     - cron: '10 18 * * 1-5' # 03:10 KST Tue-Sat
     - cron: '10 20 * * 1-5' # 05:10 KST Tue-Sat
     - cron: '10 21 * * 1-5' # 06:10 KST Tue-Sat
+    - cron: '40 21 * * 1-5' # 06:40 KST Tue-Sat: score recovery
+    - cron: '10 22 * * 1-5' # 07:10 KST Tue-Sat: final premarket score recovery
   workflow_run:
     workflows: [Rolling OpenDART Annual Book Reference - Current Listed]
     types: [completed]
@@ -63,14 +65,12 @@ jobs:
           if any(d > target for d in dates):
               print("Newer snapshot present; do not request an older session.")
               raise SystemExit(0)
-          if all(d == target for d in dates):
-              print("Market snapshot and catalog already current; no duplicate collection.")
-              raise SystemExit(0)
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"asof={target}\n")
+              f.write(f"market_stale={str(any(d != target for d in dates)).lower()}\n")
           PY
       - name: Dispatch existing publisher only when missing and idle
-        if: steps.target.outputs.asof != ''
+        if: steps.target.outputs.asof != '' && steps.target.outputs.market_stale == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           ASOF: ${{ steps.target.outputs.asof }}
@@ -98,3 +98,43 @@ jobs:
           fi
           gh workflow run full-market-batches.yml --repo "$GITHUB_REPOSITORY" --ref main -f asof="$ASOF" -f mode=publish
           echo "Requested existing publication for $ASOF; dispatch is not publication success."
+      - name: Recover stale score ledger or operating ranking without rescanning market
+        if: steps.target.outputs.asof != '' && steps.target.outputs.market_stale == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASOF: ${{ steps.target.outputs.asof }}
+        run: |
+          set -euo pipefail
+          # A single main checkout gives a consistent view of all input dates.
+          market=$(jq -er '.date' docs/data.json)
+          catalog=$(jq -er '.date' docs/v22-market-catalog.json)
+          ledger=$(jq -er '.market_asof' docs/v3-issuer-last-observed-factors.json)
+          score=$(jq -er '.asof' docs/v3-operational-research-scores.json)
+          echo "Market=$market catalog=$catalog ledger=$ledger score=$score target=$ASOF"
+          if [[ "$market" != "$ASOF" || "$catalog" != "$ASOF" || "$score" == "$ASOF" || "$score" > "$ASOF" ]]; then
+            echo "No stale operating score requiring this recovery."
+            exit 0
+          fi
+          # Do not interrupt current data collection or its normal followups.
+          for workflow in full-market-batches.yml v3-current-observed-scorecard.yml v3-operational-research-score.yml v3-regular-close-indicators.yml v3-current-price-replay.yml v3-rolling-dart-annual-book.yml v3-dart-bulk-four-year.yml; do
+            for status in queued in_progress pending waiting requested; do
+              count=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "$workflow" --status "$status" --limit 1 --json databaseId --jq 'length')
+              if [[ "$count" != "0" ]]; then
+                echo "Normal source or score work is $status ($workflow); leave it untouched."
+                exit 0
+              fi
+            done
+          done
+          # Recheck main at dispatch, never use an old checkout to trigger an older report.
+          main_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
+          if [[ "$main_sha" != "$(git rev-parse HEAD)" ]]; then
+            echo "Main changed during check; defer to next guard."
+            exit 0
+          fi
+          if [[ "$ledger" != "$ASOF" ]]; then
+            gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
+            echo "Requested verified ledger replay, which dispatches score recalculation after publication."
+          else
+            gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+            echo "Requested operating score replay; existing source-date gates remain in force."
+          fi
