@@ -18,6 +18,7 @@ from v3_forward_liquidations import OBSERVED as LIQUIDATION_OBSERVED, load_liqui
 from v3_forward_observed_readiness import READY, build, read_archived_days
 from v3_forward_price_replay import replay_price_path
 from v3_forward_rank_comparison import add_rank_comparisons
+from v3_forward_factor_validation import frozen_score, summarize as summarize_factors
 from v3_forward_settlements import load_settlements
 from v3_forward_share_actions import load_forward_actions, normalized_name
 from v3_forward_signal_close import compare_closes, frozen_market
@@ -27,7 +28,7 @@ from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
-SCHEMA = 'v3-forward-horizon-price-outcome-12'
+SCHEMA = 'v3-forward-horizon-price-outcome-13'
 
 
 def loss_rate_bounds(negative, unvalued, opened):
@@ -41,7 +42,7 @@ def loss_rate_bounds(negative, unvalued, opened):
 
 
 def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=None, cases=None,
-                    dividends=None, settlements=None):
+                    dividends=None, settlements=None, factor_scores=None):
     members = observation['rows']
     entry_rows = panels[sessions[0]]['rows']
     outcomes = {}
@@ -138,6 +139,7 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
                   if row['status'] in ('observed_price_path', 'observed_delisting_settlement')}
     add_rank_comparisons(result, members, openings, comparable)
     result['v31_summary'] = v31_summary(members, openings, outcomes)
+    result['factor_validation'] = summarize_factors(observation, openings, comparable, factor_scores)
     return result
 
 
@@ -334,7 +336,10 @@ def load_current_outcome(path, identity):
             or not isinstance(outcome['groups'].get('v31_summary'), dict)
             or set(outcome['groups']['v31_summary']) != {
                 'top3', 'top10', 'top20', 'top30', 'top100',
-                'below40', '40to60', '60to80', '80plus'}):
+                'below40', '40to60', '60to80', '80plus'}
+            or not isinstance(outcome['groups'].get('factor_validation'), dict)
+            or outcome['groups']['factor_validation'].get('status') not in {
+                'frozen_factor_source_unavailable', 'observed_descriptive_only'}):
         return None
     return outcome
 
@@ -387,7 +392,8 @@ def replay_next(root, now, get_storage, *, readiness=None):
             'groups': aggregate_paths(observation, evidence['rows'], days, panels,
                                       inputs['notices'], signal=signal, cases=cases,
                                       dividends=inputs['dividends'],
-                                      settlements=inputs['settlements']),
+                                      settlements=inputs['settlements'],
+                                      factor_scores=frozen_score(root, observation)),
             'cash_distributions_and_costs_included': False,
             'dividend_coverage_complete': False,
             'delisting_settlement_coverage_complete': False,
@@ -456,6 +462,7 @@ def pages_results(root, readiness, now):
             'same_market_rank_comparison': top['same_market_rank_comparison'],
             'return_gap_counts': return_gap_counts(top),
             'v31_summary': outcome['groups']['v31_summary'],
+            'factor_validation': outcome['groups']['factor_validation'],
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
             'horizons': horizons}
