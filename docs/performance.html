@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'">
+<title>V3.1 투자 성과 검증</title><link rel="stylesheet" href="v31-performance.css"><script src="v31-performance.js" defer></script></head>
+<body><main><header><a href="index.html">← 종목 탐색</a><h1>투자 성과 검증</h1><p>V3.1 · 실제 보유기간 관찰 · 투자성과 미인증</p></header>
+<p id="status" role="status">자료 확인 중…</p>
+<section><h2>보유기간별 검증 일정</h2><div class="scroll"><table><thead><tr><th>기간</th><th>최초 목표일</th><th>가격 확보 / 선정 구간</th><th>상태</th></tr></thead><tbody id="schedule"></tbody></table></div></section>
+<section><h2>순위·점수 구간별 실측 성과</h2><label for="period">보유기간</label> <select id="period"><option value="1">1개월</option><option value="2">2개월</option><option value="3">3개월</option><option value="6">6개월</option><option value="12">12개월</option></select>
+<p id="window" role="status"></p><div class="scroll"><table><thead><tr><th>선정 기준</th><th>확인 / 진입 / 선정</th><th>평균 수익률</th><th>승률 범위</th><th>손익비</th><th>최악 하락폭</th></tr></thead><tbody id="results"></tbody></table></div>
+<p class="note">최신 성숙·게시된 대표 구간의 동일가중 관측 수익률입니다. 미확인 진입 결과는 승률 범위에 포함되며, 진입가 대비 최대 하락폭은 실제 가격 경로 확보 종목만 평가합니다. 거래비용 및 모든 배당·기업행위의 완전 반영은 검증되지 않았습니다. 실제 매매 성과가 아닙니다.</p>
+<p class="note">코스피·코스닥 지수 대비 초과수익률과 개별 평가 지표 유효성은 V3.1 후속 검증 항목입니다. 미성숙·미확보 결과를 임의 추정하지 않습니다.</p></section></main></body></html>
