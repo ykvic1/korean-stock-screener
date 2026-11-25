@@ -194,19 +194,19 @@ jobs:
                       ("dart_historical_receipts_completed_months","과거 공시 접수 수집 완료 월"),
                       ("dart_historical_receipts_remaining_months","과거 공시 접수 남은 월"),
                       ("historical_fixed_window_extracted","KRX 연구용 파생 구간 수집"),
-                      ("v30b_release_ready","정식 출시 허용"),
+                      ("v30b_release_ready","기존 독립 투자 인증 출시 게이트 (운영판 완료와 별개)"),
                       ("confirmed_scoring_authorized","정식 투자점수 허용"),
                       ("investment_grade_certified_count","인증 투자점수 종목"),
                       ("external_provider_calls","원천 공급원 추가 호출")):
                       lines.append("- "+label+": **"+str(r.get(key))+"**")
-                  lines.append("#### 미충족/검증 보류 조건")
+                  lines.append("#### 운영 갱신 및 독립 인증 참고 조건 (V3.0b 개발 완료를 재개하지 않음)")
                   codes=r.get("blocker_codes")
                   if type(codes) is not list or not all(type(x) is str for x in codes):
                       raise ValueError("invalid_blocker_codes")
                   for code in codes:
                       lines.append("- `"+code+"`")
                   if r.get("public_summary_valid") is False:
-                      lines.append("공개 자료 불일치는 정상 출시 판정이 아니며 감사 단계는 실패 처리합니다.")
+                      lines.append("공개 자료 불일치는 일일 운영 감사 실패입니다. 11월 20일 고정 개발 판정은 별도 워크플로에서 수행합니다.")
                   lines.append("관측 가능 배점이 100이어도 기업행위·수정주가·시점별 공시·성과검증은 별도 인증 필요.")
               except (ValueError, TypeError, OSError, UnicodeError):
                   lines.append("- 감사 보고서 형식 오류: 확인 필요")
