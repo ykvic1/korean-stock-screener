@@ -359,6 +359,19 @@ def reviewed_fcf_source(catalog,history,cash,direct,reviewed,short_periods):
             for c,v in recovered.items() if len(peers[members[c]])>=30}
 
 
+def load_reviewed_fcf_source(root,market,catalog,history,saved_cash,direct,annual):
+    """Rebuild the public comparative-only supplement from its original inputs."""
+    from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT
+    from v3_operational_research_score import reviewed_short_periods
+    path=Path(root)/REVIEWED_FCF_OUTPUT
+    if direct is None or not path.is_file():
+        return {}
+    return reviewed_fcf_source(
+        catalog,history,retained_current_market_cashflow(market,catalog,history,saved_cash),
+        direct,json.loads(path.read_text(encoding="utf8")),
+        reviewed_short_periods(history,annual,catalog["date"]))
+
+
 def missing_close_technical(parts, receipt):
     """Supplement only missing equivalents from an admitted KRX close receipt."""
     weekly=receipt.get("weekly") or {}
@@ -678,6 +691,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
         "reviewed_comparative_fcf_replayed_issuers":reviewed_fcf_count,
+        "reviewed_comparative_fcf_rows":reviewed_fcf or {},
         "owner_profit_2025_official_receipt_replayed_issuers":owner_profit_replay_issuers,
         "observed_100weight_issuers_with_2025_owner_profit_supplement":full100_from_owner_profit,
         "owner_profit_supplement_investment_grade_certified":False,
@@ -858,12 +872,9 @@ def main(argv=None):
             cashflow,_=candidate
     except (OSError,ValueError,KeyError):
         cashflow=None
-    from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT
-    if cashflow is not None and (root/REVIEWED_FCF_OUTPUT).is_file():
-        from v3_operational_research_score import reviewed_short_periods
-        reviewed_fcf=reviewed_fcf_source(
-            catalog,history,retained_current_market_cashflow(market,catalog,history,saved_cash),
-            cashflow,read(REVIEWED_FCF_OUTPUT),reviewed_short_periods(history,annual, catalog["date"]))
+    if cashflow is not None:
+        reviewed_fcf=load_reviewed_fcf_source(root,market,catalog,history,saved_cash,
+                                               cashflow,annual)
     money_source=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
     volume=(volume_build(market,catalog,money_source=money_source) if args.refresh_derived
             else read("v3-volume-obv-observed.json"))
