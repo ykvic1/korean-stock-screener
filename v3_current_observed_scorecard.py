@@ -348,6 +348,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     observed={r["code"]:r for r in market["stocks"]}
     official_closes=regular_close_rows(regular_close_source,catalog)
     close_technical_counts=dict.fromkeys(("daily_rsi","weekly_rsi","weekly_ma120"),0)
+    short_history_rsi_count=0
     # A DART-derived candidate that no longer belongs to the same-day
     # listed universe must fail closed, not disappear during catalog iteration.
     # Checked before any per-issuer score or availability is published.
@@ -442,6 +443,20 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                     wrapper,asof,listed["market"])
                 if coverage["momentum"]==0:
                     raise LivePartialScorecardError("invalid_replayed_momentum")
+        # A short primary history does not invalidate an independently
+        # admitted, same-date regular-close RSI. Do not extend to zero
+        # listing volume, unknown activity, other exclusions, or other factors.
+        if (code not in observed and p is None and coverage["technical"]==0
+                and listed.get("price_history_status")=="insufficient_history"
+                and listed.get("listing_zero_volume_reference") is False
+                and code in official_closes):
+            rsi=rsi_points(official_closes[code].get("daily_rsi"),
+                           TECHNICAL_WEIGHTS["daily_rsi"])
+            if rsi is not None:
+                values["technical"],coverage["technical"]=_contribution(
+                    rsi,TECHNICAL_WEIGHTS["daily_rsi"],25)
+                short_history_rsi_count+=1
+                close_technical_counts["daily_rsi"]+=1
         income_replayed=False
         if financial is not None and code in financial:
             fiscal=financial[code]
@@ -577,7 +592,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         })
     if (len(output)!=catalog["listed_total"]
         or counts["volume"]!=volume["observed_volume_candidate_issuers"]
-        or counts["technical"]!=price["technical_research_issuer_count"]
+        or counts["technical"]!=price["technical_research_issuer_count"]+short_history_rsi_count
         or counts["momentum"]!=price["momentum_research_issuer_count"]):
         raise LivePartialScorecardError("source_counts_do_not_reconcile")
     observed_area_max={area:max(r["factor_available"][area] for r in output)
@@ -657,6 +672,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             if path_coverage_receipt is not None else None),
         "path_research_subweight_applied_issuer_counts":dict(path_added),
         "regular_close_technical_replayed_issuer_counts":close_technical_counts,
+        "regular_close_short_history_rsi_issuers":short_history_rsi_count,
         "additional_path_investment_grade_points_authorized":0,
         "stop_loss_severity_research_counts":stop_risk_counts,
         "stop_risk_adjustment_is_not_part_of_100point_total":True,
