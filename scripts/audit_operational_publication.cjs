@@ -53,9 +53,14 @@ function audit(docs){
   const composite=operational.composite(r);
   assert.equal(composite.available,source.available,'displayed available');
   assert.equal(composite.earned,source.base,'displayed total');
-  assert.ok(operational.markup(r).includes('잠정 운영점수'),'rendered details');
+  const details=operational.markup(r);
+  assert.ok(details.includes('잠정 운영점수'),'rendered details');
+  for(const pillar of composite.pillars)assert.equal(pillar.candidate,source.areas[pillar.key].points,'area zero fallback display');
+  if(source.available<100)assert.ok(details.includes('미확보 부분의 평가점수는 0점으로 반영합니다.'),'missing score policy');
+  if(operational.missingComponents(v).some(g=>!g.partiallyObserved))assert.ok(details.includes('원천 미확보'),'missing component rendered explicitly');
   if(v.score===null){
-   assert.equal(v.rank,null,'unobserved issuer rank');unobserved++;
+   assert.equal(v.rank,null,'unobserved issuer rank');
+   assert.ok(details.includes('0.0 / 100 (관측 없음·순위 제외)'),'no observation display is zero, no rank');unobserved++;
   }else{
    assert.equal(v.stop_adjustment,0,'stop adjustment removed');ranked++;
   }
