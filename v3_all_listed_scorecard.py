@@ -197,7 +197,8 @@ def rounded_score_total(values):
 
 
 def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
-             industry_source=None,price_replay=None,money_source=None,*,fiscal_source_dir=None):
+             industry_source=None,price_replay=None,money_source=None,*,fiscal_source_dir=None,
+             regular_close_source=None):
     # This audit crosschecks exact issuer/annual/year/market/scoring constraints.
     # An older WEEKLY research cohort may be omitted when the official
     # market/DART annual ledgers already agree today. Its stale scores never
@@ -221,6 +222,11 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
     volume_rows=volume_source["records"]
     replay_rows,replay_state=_verified_price_replay(
         price_replay,market,catalog,day,members)
+    from v3_regular_close_contract import admitted_rows
+    from v3_pattern_composite_score import rsi_points, TECHNICAL_WEIGHTS
+    close_rows=admitted_rows(regular_close_source,catalog)
+    priced={row["code"] for row in market["stocks"]}
+    short_history_rsi_count=0
     industry_codes={}
     industry_ref_status="source_not_available"
     if industry_source is not None:
@@ -324,6 +330,14 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             for area in ("technical","momentum"):
                 if replayed[area][1]>=values[area][1] and replayed[area][1]>0:
                     values[area]=replayed[area]
+        if (code not in priced and code not in replay_rows and values["technical"][1]==0
+                and member.get("price_history_status")=="insufficient_history"
+                and member.get("listing_zero_volume_reference") is False
+                and code in close_rows):
+            rsi=rsi_points(close_rows[code].get("daily_rsi"),TECHNICAL_WEIGHTS["daily_rsi"])
+            if rsi is not None:
+                values["technical"]=_contribution(rsi,TECHNICAL_WEIGHTS["daily_rsi"],25)
+                short_history_rsi_count+=1
         f=fcf_rows.get(code)
         if f and f.get("market")==member["market"] and f.get("asof")==day:
             for area,field,maximum in (
@@ -384,6 +398,7 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
         "industry_code_source_observed":sum(
             r["industry_code"] is not None for r in industry_codes.values()),
         "provisional_numeric_issuer_counts":count,
+        "regular_close_short_history_rsi_issuers":short_history_rsi_count,
         # Counts from the same source-validated snapshot used to calculate
         # the CSV; do not confuse attempted annual requests with 4-year
         # complete filings or receipt-matched FCF with investment certification.
@@ -473,8 +488,11 @@ def main(argv=None):
     replay=read(replay_path.name) if replay_path.is_file() else None
     money_path=d/MONEY_OUTPUT
     money=read(money_path.name) if money_path.is_file() else None
+    close_path=d/"v3-regular-close-indicators.json"
+    close_source=read(close_path.name) if close_path.is_file() else None
     rows,summary=generate(market,catalog,history,parts,weekly,cash,fcf,
-                          industry,replay,money_source=money,fiscal_source_dir=d)
+                          industry,replay,money_source=money,fiscal_source_dir=d,
+                          regular_close_source=close_source)
     content=to_csv(rows,summary)
     dest=d/"v3-all-listed-scores.csv"
     report=d/"v3-all-listed-scorecard-summary.json"
