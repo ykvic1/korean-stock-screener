@@ -661,17 +661,11 @@ def to_csv(rows,summary):
     return "\ufeff"+sink.getvalue()
 
 
-def main(argv=None):
-    parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--docs",default="docs")
-    parser.add_argument("--refresh-derived",action="store_true",
-                        help="Recompute derived volume and price from saved market/catalog in memory")
-    parser.add_argument("--mode",choices=("write","verify"),default="write")
-    args=parser.parse_args(argv)
-    root=Path(args.docs)
+def load_financial_source(root, catalog, *, history=None, parts=None, weekly=None):
+    """Replay the same saved fiscal and supplemental receipts for both CSV publishers."""
+    root=Path(root)
     def read(name):
         return json.loads((root/name).read_text(encoding="utf8"))
-    catalog=read("v22-market-catalog.json")
     annual=None
     try:
         audit=read("v3-real-source-six-area-coverage.json")
@@ -697,10 +691,10 @@ def main(argv=None):
             parent_equity_source=candidate
             parent_equity_cash=read('v3-dart-cashflow-reference.json')
         financial=finance_source(
-            catalog,read("v3-dart-bulk-history.json"),
-            read("v3-dart-bulk-provisional.json"),
+            catalog,(history if history is not None else read("v3-dart-bulk-history.json")),
+            (parts if parts is not None else read("v3-dart-bulk-provisional.json")),
             annual,audit,
-            weekly=(read("v3-weekly-rotation.json")
+            weekly=((weekly if weekly is not None else read("v3-weekly-rotation.json"))
                     if audit.get("market_asof")!=catalog["date"] else None),
             owner_profit_source=profit_source,
             owner_profit_priority=profit_priority,
@@ -710,6 +704,21 @@ def main(argv=None):
         if isinstance(error,LivePartialScorecardError):
             raise
         financial=None
+    return financial,annual
+
+
+def main(argv=None):
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--docs",default="docs")
+    parser.add_argument("--refresh-derived",action="store_true",
+                        help="Recompute derived volume and price from saved market/catalog in memory")
+    parser.add_argument("--mode",choices=("write","verify"),default="write")
+    args=parser.parse_args(argv)
+    root=Path(args.docs)
+    def read(name):
+        return json.loads((root/name).read_text(encoding="utf8"))
+    catalog=read("v22-market-catalog.json")
+    financial,annual=load_financial_source(root,catalog)
     market=read("data.json")
     path_coverage_receipt=(
         read("v3-unscored-path-coverage.json")
