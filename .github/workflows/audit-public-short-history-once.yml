@@ -1,0 +1,74 @@
+name: Audit short-history public coverage once
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audit-public-short-history-once.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Check existing verified close evidence without acquiring or publishing
+        run: |
+          python - <<'PY'
+          import csv, json
+          from collections import Counter
+          from pathlib import Path
+          from v3_regular_close_contract import admitted_rows
+          from v3_current_observed_scorecard import missing_close_technical, TECHNICAL_WEIGHTS
+          root=Path('docs')
+          def read(name):
+              return json.loads((root/name).read_bytes())
+          catalog=read('v22-market-catalog.json')
+          market=read('data.json')
+          source=read('v3-regular-close-indicators.json')
+          official=admitted_rows(source,catalog)
+          assert official and catalog['date']==market['date']==source['asof']
+          with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig',newline='') as f:
+              public={row['종목코드']:row for row in csv.DictReader(f)}
+          assert len(public)==catalog['listed_total']
+          assert set(public)=={row['code'] for row in catalog['rows']}
+          assert all(public[m['code']]['종목명']==m['name'] and public[m['code']]['시장']==m['market'] for m in catalog['rows'])
+          priced={r['code'] for r in market['stocks']}
+          results={}
+          for label, members in (
+              ('short_history_positive_listing_volume',[m for m in catalog['rows'] if m['price_history_status']=='insufficient_history' and m['listing_zero_volume_reference'] is False]),
+              ('zero_listing_volume_excluded',[m for m in catalog['rows'] if m['listing_zero_volume_reference'] is True])):
+              gains=Counter()
+              crossings=Counter()
+              admitted=eligible=weight=0
+              history=Counter()
+              for m in members:
+                  code=m['code']
+                  assert code not in priced
+                  row=official.get(code)
+                  if row is None:
+                      history['no_admitted_row']+=1
+                      continue
+                  admitted+=1
+                  n=row['continuous_sessions']
+                  history['90_or_more' if n>=90 else 'under_90']+=1
+                  assert float(public[code]['기술_산출배점'] or 0)==0
+                  parts=missing_close_technical(dict.fromkeys(TECHNICAL_WEIGHTS),row)
+                  bump=sum(TECHNICAL_WEIGHTS[k] for k in parts)
+                  if not bump:
+                      continue
+                  eligible+=1
+                  weight+=bump
+                  gains.update(parts.keys())
+                  old=int(float(public[code]['산출가능배점_100점중'] or 0))
+                  assert old+bump<=100
+                  for bound in (90,95,100):
+                      if old<bound<=old+bump:
+                          crossings[bound]+=1
+              results[label]={'members':len(members),'admitted':admitted,'history':history,
+                  'candidate_issuers':eligible,'candidate_weight':weight,'parts':gains,'crossings':crossings}
+          print('PUBLIC_SHORT_HISTORY_PROBE='+json.dumps({'asof':catalog['date'],'provider_calls':0,'groups':results},sort_keys=True))
+          PY
