@@ -23,10 +23,14 @@ jobs:
           import csv
           import json
           import os
+          from concurrent.futures import ThreadPoolExecutor
           from pathlib import Path
           from collections import Counter,defaultdict
-          from v3_regular_close_indicators import PRIVATE_REPO,archive_path,read_day,PrivateGitStorage
+          from v3_regular_close_indicators import (
+              LEGACY_DAY_SCHEMA, PRIVATE_REPO, PrivateGitStorage, archive_path, history_dates, read_day,
+          )
           from v3_regular_close_contract import admitted_rows
+          from v3_krx_close_momentum_recovery import SESSIONS, load_bonus_notices, load_face_notices, make_receipt
           from v3_forward_share_actions import normalized_name
           root=Path('docs')
           read=lambda n:json.loads((root/n).read_bytes())
@@ -65,6 +69,7 @@ jobs:
               raise SystemExit('official_regular_close_panel_missing')
           groups = defaultdict(Counter)
           gap = 0
+          replay_candidates = {}
           for m in catalog['rows']:
               code=m['code']
               record=panel['rows'].get(code)
@@ -99,15 +104,66 @@ jobs:
                   g['priced_missing_path7']+=1
                   if receipt.get('continuous_sessions',0)>=121 and identity and record[5] is True and stocks[code].get('price')==record[2]:
                       g['path7_same_close_121_candidate']+=1
+                      replay_candidates[code] = (m, 'priced_same_close')
               if code not in stocks and state=='traded':
                   if receipt.get('continuous_sessions',0)>=121:
                       g['unpriced_traded_121_close_candidate']+=1
+                      replay_candidates[code] = (m, 'unpriced_official_anchor')
+
+          def load_path_rows(session):
+              if session == day:
+                  saved = panel
+                  reads = 0
+              else:
+                  raw, _ = storage.get_content(archive_path(session))
+                  saved = read_day(raw, session)
+                  reads = 1
+                  if saved is None:
+                      raw, _ = storage.get_content(archive_path(session, legacy=True))
+                      saved = read_day(raw, session, schema=LEGACY_DAY_SCHEMA)
+                      reads += 1
+              source_rows = saved['rows'] if saved is not None else {}
+              return {code: source_rows[code] for code in replay_candidates.keys() & source_rows.keys()}, reads
+
+          replay = defaultdict(Counter)
+          archive_reads = 1
+          if replay_candidates:
+              sessions = history_dates(day)[-SESSIONS:]
+              if len(sessions) != SESSIONS or sessions[-1] != day:
+                  raise SystemExit('invalid_momentum_replay_session_window')
+              with ThreadPoolExecutor(max_workers=6) as pool:
+                  history = list(pool.map(load_path_rows, sessions))
+              archive_reads += sum(reads for _, reads in history)
+              face_notices, _ = load_face_notices()
+              bonus_notices = load_bonus_notices()
+              for code, (member, cohort) in replay_candidates.items():
+                  records = [session_rows.get(code) for session_rows, _ in history]
+                  if any(row is None or row[0] != member['market']
+                         or normalized_name(row[1]) != normalized_name(member['name']) for row in records):
+                      replay[cohort]['incomplete_or_unmatched_history'] += 1
+                      continue
+                  if any(len(row) == 6 and row[5] is False and row[2] != row[4] for row in records):
+                      replay[cohort]['changed_close_without_reported_trade'] += 1
+                      continue
+                  result, _ = make_receipt(
+                      [row[2:5] for row in records], asof=day, sessions=sessions,
+                      face_notices={
+                          session: notice for session, notice in face_notices.get(code, {}).items()
+                          if notice.get('market', 'KOSDAQ') == member['market']
+                      },
+                      bonus_notices={
+                          session: notice for session, notice in bonus_notices.get(code, {}).items()
+                          if notice['market'] == member['market']
+                      },
+                  )
+                  replay[cohort][result] += 1
           total=len(rows)*100
           target=total*98//100
           print('PUBLIC_98_PRICE_GAP_PROBE='+json.dumps({
               'asof':day,'listed_total':len(rows),'target_weight':target,
               'current_missing_weight':gap,'required_new_weight':max(0,target-(total-gap)),
-              'groups':groups,'private_archive_reads':1,'provider_calls':0,
+              'groups':groups,'private_archive_reads':archive_reads,'provider_calls':0,
+              'momentum_receipt_replay': replay,
               'official_status_observed_not_suspension_reason':True,
               'new_points_promoted':0,'raw_rows_exported':False},sort_keys=True))
           PY
