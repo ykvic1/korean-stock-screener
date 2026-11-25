@@ -1,0 +1,53 @@
+name: V3.2 one-time two-index reference proof
+on:
+  push:
+    branches: [v32/index-reference-probe-20261125]
+    paths: ['.github/workflows/v32-index-reference-probe.yml']
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/v32-index-reference-probe.yml']
+permissions:
+  contents: read
+concurrency:
+  group: v32-index-reference-probe-once
+  cancel-in-progress: false
+jobs:
+  probe:
+    if: github.repository == 'ykvic1/korean-stock-screener'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'finance-datareader>=0.9.110' 'pandas>=2,<3'
+      - name: Read the existing provider for two indices, exact completed market day only
+        run: |
+          python - <<'PY'
+          import json
+          import math
+          from datetime import datetime,timedelta
+          from pathlib import Path
+          import FinanceDataReader as fdr
+          from v32_market_index_reference import write
+          day=datetime.fromisoformat("2026-11-24")
+          asof=day.date().isoformat()
+          market=json.loads(Path("docs/v3-current-observed-all-listed-summary.json").read_text())
+          assert market["asof"]==asof
+          refs={}
+          for code, name in (("KS11","KOSPI"),("KQ11","KOSDAQ")):
+              try:
+                  df=fdr.DataReader(code,(day-timedelta(days=350)).strftime("%Y-%m-%d"),(day+timedelta(days=1)).strftime("%Y-%m-%d"))
+                  df=df.loc[df.index<=asof].sort_index()
+                  assert len(df)>=121 and df.index.is_unique and df.index[-1].date().isoformat()==asof
+                  close=df["Close"].astype(float).to_numpy()
+                  assert all(math.isfinite(v) and v>0 for v in close)
+                  refs[name]={"date":asof,**{f"r{n}":100*(close[-1]/close[-n-1]-1) for n in (20,60,120)}}
+              except Exception as exc:
+                  print("INDEX_SOURCE_UNAVAILABLE",name,type(exc).__name__)
+          report=write(Path("/tmp/v32-index-reference.json"),asof,refs)
+          report["reference_collection"]={"mode":"one_time_existing_fdr_source","attempted_index_queries":2,"full_market_recollection":False}
+          print("V32_INDEX_PROBE_RESULT="+json.dumps(report,allow_nan=False,separators=(",",":")))
+          assert len(report["markets"])==2,"two exact-date market references required"
+          PY
