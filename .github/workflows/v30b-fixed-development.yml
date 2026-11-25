@@ -1,0 +1,46 @@
+name: V3.0b Fixed Development Data Review
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_v30b_fixed_development.py
+      - tests/test_v3_v30b_fixed_development.py
+      - .github/workflows/v30b-fixed-development.yml
+      - ops/v30b-development-scope.json
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v30b-fixed-development-data-review
+  cancel-in-progress: false
+jobs:
+  fixed-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          ref: v30b-development-data-20261120
+          path: fixed-data
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 6608c3c091c3b7252c926975a87e9af650e41e8a
+          path: original-roster
+          persist-credentials: false
+      - name: Unit tests for zero fallback and gap disposition
+        run: python -m unittest discover -s tests -p 'test_v3_v30b_fixed_development.py' -v
+      - name: Reconcile saved fixed-date sources and account each score component
+        run: |
+          python v3_v30b_fixed_development.py --docs fixed-data/docs --frozen-catalog original-roster/docs/v22-market-catalog.json --reviews fixed-data/ops/v30b-fixed-gap-reviews.json --out "$RUNNER_TEMP/v30b-fixed-development.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: v30b-fixed-development
+          path: ${{ runner.temp }}/v30b-fixed-development.json
+          if-no-files-found: error
