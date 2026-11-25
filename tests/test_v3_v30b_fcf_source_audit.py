@@ -39,7 +39,7 @@ class FCFSourceAuditTests(unittest.TestCase):
                  self.observed.get("asof") != self.preview.get("asof"))):
             self.skipTest("market_day_rolled_before_independent_fcf_sources")
         expected={
-            "financial4":self.preview.get("financial_fcf4_research_candidate_issuer_count"),
+            "financial4":self.preview.get("financial_fcf4_research_candidate_issuer_count")+self.observed.get("reviewed_comparative_fcf_replayed_issuers",0),
             "valuation5":self.preview.get("valuation_fcf5_research_candidate_issuer_count"),
         }
         if (self._testMethodName in positive_live_checks and
@@ -52,7 +52,7 @@ class FCFSourceAuditTests(unittest.TestCase):
         if not observed["asof"] == gap["asof"] == preview["asof"]:
             self.skipTest("separate_saved_FCF_day_not_aligned")
         if observed.get("fcf_observed_issuer_counts") != {
-            "financial4": preview["financial_fcf4_research_candidate_issuer_count"],
+            "financial4": preview["financial_fcf4_research_candidate_issuer_count"]+observed.get("reviewed_comparative_fcf_replayed_issuers",0),
             "valuation5": preview["valuation_fcf5_research_candidate_issuer_count"],
         }:
             self.skipTest("FCF_snapshot_waiting_for_score_replay")
@@ -83,7 +83,7 @@ class FCFSourceAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(FCFReconciliationError,"fcf_source_day_mismatch"):
                 audit_fcf_sources(observed,gap,preview)
             return
-        expected={"financial4":preview["financial_fcf4_research_candidate_issuer_count"],
+        expected={"financial4":preview["financial_fcf4_research_candidate_issuer_count"]+observed.get("reviewed_comparative_fcf_replayed_issuers",0),
                   "valuation5":preview["valuation_fcf5_research_candidate_issuer_count"]}
         if observed.get("fcf_observed_issuer_counts")==expected:
             observed["fcf_observed_issuer_counts"]["financial4"]+=1
@@ -91,6 +91,31 @@ class FCFSourceAuditTests(unittest.TestCase):
         with self.assertRaisesRegex(FCFReconciliationError,"fcf_current_scorecard_count_mismatch"):
             audit_fcf_sources(observed,gap,preview)
         self.assertEqual((observed,gap,preview),before)
+
+    def test_reviewed_comparative_index_is_distinct_from_direct_receipts(self):
+        from v3_v30b_fcf_source_audit import reviewed_fcf_rows
+        day="2026-11-24"
+        review={"code":"000002","market":"KOSPI","asof":day,"points":0.0,
+                "available":4,"reviewed_comparative":True}
+        preview={"rows":[{"code":"000001","market":"KOSPI",
+                          "financial_fcf_assets_available_max":4},
+                         {"code":"000002","market":"KOSPI",
+                          "financial_fcf_assets_available_max":0}]}
+        observed={"asof":day,"listed_total":2,
+                  "reviewed_comparative_fcf_rows":{"000002":review},
+                  "reviewed_comparative_fcf_replayed_issuers":1}
+        self.assertEqual(reviewed_fcf_rows(observed,preview),{"000002":review})
+        for field,value in (("points",4.1),("asof","2026-11-23"),
+                            ("available",3),("market","KOSDAQ"),
+                            ("reviewed_comparative",False)):
+            bad=copy.deepcopy(observed)
+            bad["reviewed_comparative_fcf_rows"]["000002"][field]=value
+            with self.assertRaises(FCFReconciliationError):
+                reviewed_fcf_rows(bad,preview)
+        duplicate=copy.deepcopy(preview)
+        duplicate["rows"][1]["financial_fcf_assets_available_max"]=4
+        with self.assertRaises(FCFReconciliationError):
+            reviewed_fcf_rows(observed,duplicate)
 
     def test_older_fcf_sources_are_rejected_without_any_score(self):
         observed, gap, preview = (copy.deepcopy(self.observed),
