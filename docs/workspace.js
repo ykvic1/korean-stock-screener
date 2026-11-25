@@ -2755,7 +2755,7 @@ function renderCompare(){
    '<div><small>개인용 100점 환산 · 미인증</small><b>'+compareNum(c)+'</b></div>'+
    '<div><small>V3 잠정 합계 · 미검증</small><b>'+
    (c.earned===null?'미산출':c.earned.toFixed(1)+'점')+'</b></div>'+
-   '<div><small>확보 배점</small><b>'+c.available+'/100</b></div></div>'+
+   '<div><small>산출 배점(확보)</small><b>'+c.available+'/100</b></div></div>'+
    '<p class="u-compare-risk">손절 참고: '+
    (risk.distance===null?'미확인':pct(-risk.distance))+' · '+esc(risk.description)+'</p></article>';
  }).join('');
