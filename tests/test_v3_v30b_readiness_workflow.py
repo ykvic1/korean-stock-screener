@@ -23,6 +23,38 @@ class V30bReadinessWorkflowTests(unittest.TestCase):
         self.assertNotIn('gh workflow run v3-current-observed-scorecard.yml', secondary)
         self.assertIn('group: korea-stock-screener-scorecard-publisher', secondary)
 
+    def test_frozen_adjusted_path_evidence_retains_all_unresolved_pairs(self):
+        import csv
+        from collections import Counter
+        from math import isfinite
+        data = json.loads((ROOT / "ops/v30b-frozen-adjusted-path-evidence.json").read_text())
+        with (ROOT / "ops/v3-performance-share-adjustments-20251113.csv").open() as stream:
+            events = {(row["code"], row["listing_on"]) for row in csv.DictReader(stream)}
+        rows = data["outcomes"]
+        self.assertEqual(len(rows), data["event_count"])
+        self.assertEqual({(row["code"], row["event_date"]) for row in rows}, events)
+        total = Counter()
+        unresolved = []
+        for row in rows:
+            path = row["year_path"]
+            counts = path["adjacent_traded_session_pairs"]
+            self.assertEqual(sum(counts.values()), path["raw_traded_sessions"] - 1)
+            self.assertEqual(len(path["unresolved_pairs"]), counts.get("krx_reference_differs", 0))
+            self.assertEqual(path["adjusted_positive_closes_on_traded_sessions"], path["raw_traded_sessions"])
+            self.assertIn(row["official_daily_reference_factor_match"], ("exact", "within_rounding"))
+            total.update(counts)
+            for pair in path["unresolved_pairs"]:
+                self.assertLess(pair["prior"], pair["current"])
+                self.assertTrue(isfinite(pair["relative_gap_basis_points"]))
+                self.assertIs(pair["official_scale_unchanged"], True)
+                unresolved.append((row["code"], pair["prior"], pair["current"]))
+        self.assertEqual(dict(total), data["adjacent_pair_counts"])
+        self.assertEqual(len(set(unresolved)), len(unresolved))
+        self.assertEqual(len(unresolved), 39)
+        self.assertEqual({code for code, _, _ in unresolved}, {"291230"})
+        self.assertFalse(data["official_adjusted_history_verified"])
+        self.assertEqual(data["new_provider_calls"], 0)
+
     def test_daily_watch_is_read_only_and_independent(self):
         content=WORKFLOW.read_text(encoding="utf8")
         self.assertIn("cron: '23 0 * * *'",content)
