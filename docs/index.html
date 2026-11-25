@@ -16,7 +16,7 @@
 <script src="v3-dart-receipt-progress.js" defer></script>
 <script src="v3-data-readiness.js" defer></script>
 <script src="v3-fcf-gap.js" defer></script>
-<script src="v3-live-progress.js?v=v30b-20261112-krx-cause-unproven" defer></script>
+<script src="v3-live-progress.js?v=v30b-20261112-krx-cause-unproven-live-sort1" defer></script>
 </head>
 <body id="unifiedApp" class="u-live-service">
 <header class="u-header">
@@ -34,7 +34,7 @@
    <a href="patch-notes.html">업데이트 기록</a>
   </div>
   <div class="u-live-updates-grid">
-   <div><span>시장 자료 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
+   <div><span>점수 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
    <div><span>90점 이상 배점 확보 종목</span><b id="liveProgressCoverage90">확인 중</b></div>
    <div><span>100점 배점 확보 종목</span><b id="liveProgressCoverage">확인 중</b></div>
    <div class="u-live-legacy"><span>DART 과거 수집</span><b id="liveProgressDart">확인 중</b></div>
@@ -46,7 +46,7 @@
 <p id="operationalModelNote" class="u-research-note">R1 잠정 운영모델 연결 중</p>
 <p id="regularCloseNote" class="u-research-note" role="status" hidden></p>
 <p id="tradeStatusNote" class="u-research-note">거래정지 여부 자료 확인 중</p>
-<p class="u-research-note"><a href="v3-operational-research-scores.csv" download>신규 운영점수 CSV</a> · 기존 점수는 정렬 기준에서 비교할 수 있습니다.</p>
+<p class="u-research-note u-live-legacy"><a href="v3-operational-research-scores.csv" download>현재 점수 CSV</a></p>
 <section class="u-controls" aria-label="종목 검색 및 필터">
   <label class="u-quick-search" for="stockSearch">종목 검색
     <input id="stockSearch" type="search" placeholder="종목명 또는 코드 검색 (예: 삼성전자, 005930)" autocomplete="off" spellcheck="false">
