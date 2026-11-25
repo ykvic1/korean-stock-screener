@@ -169,7 +169,7 @@ def history_shape(values):
     return 'tail_only_missing' if all(missing[first:]) else 'internal_missing'
 
 
-def read_daily_history(store, *, asof, before, days=None, digest=None, forward_days=None):
+def read_daily_history(store, *, asof, before, days=None, digest=None, forward_days=None, fixed_cutoff=False):
     """One shared validation path for scoring and additive money recovery."""
     if days is None:
         days,digest=history_candidates()
@@ -185,6 +185,11 @@ def read_daily_history(store, *, asof, before, days=None, digest=None, forward_d
     if forward_days[:len(days)%5]!=days[5*(len(days)//5):]:
         raise ActualMoneyError('invalid_money_history_forward_boundary')
     fcount=fstate['next_window_index']
+    if fixed_cutoff:
+        # Validate the current manifest and its tail above, then select only
+        # complete cohorts ending on or before the frozen development date.
+        while fcount and forward_days[5*fcount-1] > asof:
+            fcount -= 1
     windows=[forward_days[5*i:5*(i+1)] for i in range(fcount-1,max(-1,fcount-97),-1)]
     windows += [_cohort_at_recent_first(days,i) for i in range(
         min(progress['five_session_cohorts_completed'],96-len(windows)))]
@@ -211,7 +216,7 @@ def read_daily_history(store, *, asof, before, days=None, digest=None, forward_d
 
 
 def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
-            forward_days=None, week_loader=week_days):
+            forward_days=None, week_loader=week_days, fixed_cutoff=False):
     if (store.repository!=PRIVATE_REPO or type(source_revision) is not str
         or len(source_revision)!=40 or any(c not in '0123456789abcdef' for c in source_revision)
         or catalog.get('date')!=asof or type(catalog.get('rows')) is not list):
@@ -222,7 +227,7 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
     repair_before=store.get_content(WEEK_REPAIR)
     repairs=repair_index(repair_before[0])
     windows,daily,daily_blobs=read_daily_history(store,asof=asof,before=before,
-        days=days,digest=digest,forward_days=forward_days)
+        days=days,digest=digest,forward_days=forward_days,fixed_cutoff=fixed_cutoff)
     daily_repair_before=store.get_content(DAILY_REPAIR)
     daily_repairs=daily_repair_index(daily_repair_before[0])
     daily_added=0
@@ -241,7 +246,9 @@ def collect(store, *, asof, catalog, source_revision, days=None, digest=None,
         raise ActualMoneyError('money_calendar_week_checkpoint_tail_changed')
     expected_week_end = closed_week_end(asof)
     if end.isoformat() > expected_week_end:
-        raise ActualMoneyError('money_catalog_behind_weekly_archive')
+        if not fixed_cutoff:
+            raise ActualMoneyError('money_catalog_behind_weekly_archive')
+        end=date.fromisoformat(expected_week_end)
     if end.isoformat() < expected_week_end:
         raise ActualMoneyError('money_calendar_week_source_stale')
     weekly=[]
@@ -394,12 +401,16 @@ def main(argv=None):
     p.add_argument('--private-revision',required=True)
     p.add_argument('--docs',default='docs')
     p.add_argument('--allow-incomplete',action='store_true')
+    p.add_argument('--fixed-development-cutoff',action='store_true')
     args=p.parse_args(argv)
     root=Path(args.docs)
     catalog=json.loads((root/'v22-market-catalog.json').read_text())
+    if args.fixed_development_cutoff and (catalog['date'] != '2026-11-20' or root.resolve() == Path('docs').resolve()):
+        raise ActualMoneyError('fixed_development_catalog_or_output_mismatch')
     store=LocalPrivateSnapshot(args.private_snapshot,os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))
     try:
-        report=collect(store,asof=catalog['date'],catalog=catalog,source_revision=args.private_revision)
+        report=collect(store,asof=catalog['date'],catalog=catalog,source_revision=args.private_revision,
+                       fixed_cutoff=args.fixed_development_cutoff)
     except ActualMoneyError as error:
         waiting={'money_daily_source_not_current_complete_480_sessions',
                  'money_catalog_behind_daily_archive', 'money_catalog_behind_weekly_archive',
