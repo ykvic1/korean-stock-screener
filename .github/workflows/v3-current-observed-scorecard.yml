@@ -46,6 +46,13 @@ on:
       - docs/v3-dart-fcf-research-preview.json
       - docs/v3-dart-reviewed-fcf-comparative.json
       - v3_dart_reviewed_fcf_comparative.py
+      - v3_revenue_growth_evidence.py
+      - v3_dart_revenue_2022.py
+      - v3_dart_revenue_2023_comparative.py
+      - v3_dart_revenue_2024_comparative.py
+      - docs/v3-dart-revenue-2022-supplement.json
+      - docs/v3-dart-revenue-2023-comparative.json
+      - docs/v3-dart-revenue-2024-comparative.json
       - .github/workflows/v3-current-observed-scorecard.yml
   schedule:
     # Read-only saved-source replay: at :11, after preceding hourly :29 DART
