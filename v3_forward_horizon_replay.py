@@ -27,7 +27,7 @@ from v3_score_observation_capture import ARCHIVE
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
-SCHEMA = 'v3-forward-horizon-price-outcome-11'
+SCHEMA = 'v3-forward-horizon-price-outcome-12'
 
 
 def loss_rate_bounds(negative, unvalued, opened):
@@ -137,7 +137,47 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
     comparable = {code: row['terminal_return_pct'] for code, row in outcomes.items()
                   if row['status'] in ('observed_price_path', 'observed_delisting_settlement')}
     add_rank_comparisons(result, members, openings, comparable)
+    result['v31_summary'] = v31_summary(members, openings, outcomes)
     return result
+
+
+def v31_summary(members, openings, outcomes):
+    """Aggregate frozen ranks and fixed score bands, retaining missing outcomes."""
+    from statistics import fmean
+
+    ranked = [code for code in outcomes if members[code][3] is not None]
+    cohorts = {f'top{n}': [c for c in ranked if members[c][3] <= n]
+               for n in (3, 10, 20, 30, 100)}
+    bands = [('below40', None, 40), ('40to60', 40, 60),
+             ('60to80', 60, 80), ('80plus', 80, None)]
+    for label, lo, hi in bands:
+        cohorts[label] = [c for c in ranked
+                          if type(members[c][2]) in (int, float)
+                          and math.isfinite(members[c][2])
+                          and (lo is None or members[c][2] >= lo)
+                          and (hi is None or members[c][2] < hi)]
+    summaries = {}
+    for label, codes in cohorts.items():
+        opened = sum(openings[c][0] == 'official_open_observed' for c in codes)
+        valued = [outcomes[c]['terminal_return_pct'] for c in codes
+                  if outcomes[c]['status'] in ('observed_price_path', 'observed_delisting_settlement')]
+        wins = [x for x in valued if x > 0]
+        losses = [x for x in valued if x < 0]
+        paths = [outcomes[c] for c in codes if outcomes[c]['status'] == 'observed_price_path']
+        downside = [x['mae_pct'] for x in paths if x['mae_pct'] is not None]
+        summaries[label] = {
+            'selected_count': len(codes), 'confirmed_opening_count': opened,
+            'valued_count': len(valued), 'unvalued_confirmed_openings_count': opened - len(valued),
+            'positive_count': len(wins), 'negative_count': len(losses),
+            'flat_count': len(valued) - len(wins) - len(losses),
+            'observed_mean_return_pct': round(fmean(valued), 4) if valued else None,
+            'observed_win_rate_bounds_pct': loss_rate_bounds(len(wins), opened - len(valued), opened),
+            'observed_mean_gain_loss_ratio': round(fmean(wins) / abs(fmean(losses)), 4)
+            if wins and losses else None,
+            'downside_observed_count': len(downside),
+            'worst_entry_relative_mae_pct': min(downside) if downside else None,
+        }
+    return summaries
 
 
 def metric_median(rows, key):
@@ -290,7 +330,11 @@ def load_current_outcome(path, identity):
     if (not isinstance(outcome, dict) or outcome.get('performance_validated') is not False
             or any(outcome.get(key) != value for key, value in identity.items())
             or not isinstance(outcome.get('groups'), dict)
-            or not publishable_top20(outcome['groups'].get('top20'))):
+            or not publishable_top20(outcome['groups'].get('top20'))
+            or not isinstance(outcome['groups'].get('v31_summary'), dict)
+            or set(outcome['groups']['v31_summary']) != {
+                'top3', 'top10', 'top20', 'top30', 'top100',
+                'below40', '40to60', '60to80', '80plus'}):
         return None
     return outcome
 
@@ -411,6 +455,7 @@ def pages_results(root, readiness, now):
             'loss_rate_bounds_pct': coverage['loss_rate_bounds_pct'],
             'same_market_rank_comparison': top['same_market_rank_comparison'],
             'return_gap_counts': return_gap_counts(top),
+            'v31_summary': outcome['groups']['v31_summary'],
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
             'horizons': horizons}
