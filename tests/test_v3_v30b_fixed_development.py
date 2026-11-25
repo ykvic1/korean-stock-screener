@@ -53,3 +53,31 @@ class FixedDevelopmentTests(unittest.TestCase):
         gap["source_eligible_unfetched_company_years"] = 1
         with self.assertRaises(ValueError):
             cashflow_terminal_reviews(report,gap,evidence)
+
+    def test_price_error_review_requires_attempt_and_preserves_observed_parts(self):
+        from v3_v30b_fixed_development import price_error_terminal_reviews
+        day = "2026-11-20"
+        codes = ["000001", "000002", "000003"]
+        members = [{"code": c, "name": c, "market": "KOSPI",
+                    "price_history_status": "price_source_or_validation_error",
+                    "listing_zero_volume_reference": True} for c in codes]
+        trading = {"asof": day, "listed_total": 3, "rows": {
+            c: {"name": c, "market": "KOSPI", "state": "zero_volume"} for c in codes}}
+        market = {"date": day, "examined_count": 3, "collection_errors": [
+            ["000001", "price", "price_zero_latest_volume"],
+            ["000002", "price", "transport_failure"]]}
+        history = {"asof": day, "listed_total": 3, "pending_sessions": 0,
+                   "requested_sessions": 721, "archived_sessions": 721,
+                   "requested_completed_weeks": 154, "archived_completed_weeks": 154}
+        parts = {"volume": {"long_horizon_growth": [1, 6, day]}, "technical": {},
+                 "momentum": {}, "financial": {}, "valuation": {}}
+        report = {"listed_total": 3, "rows": {c: {"parts": parts} for c in codes}}
+        catalog = {"date": day, "rows": members}
+        result = price_error_terminal_reviews(report, catalog, trading, market, history)
+        self.assertTrue(result)
+        self.assertTrue(all(k.startswith("000001:") for k in result))
+        self.assertNotIn("000001:volume:long_horizon_growth", result)
+        self.assertFalse(any(":financial:" in k or ":valuation:" in k for k in result))
+        history["pending_sessions"] = 1
+        with self.assertRaises(ValueError):
+            price_error_terminal_reviews(report, catalog, trading, market, history)
