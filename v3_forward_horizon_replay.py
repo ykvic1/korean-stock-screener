@@ -26,6 +26,7 @@ from v3_forward_signal_close import compare_closes, frozen_market
 from v3_krx_private_github_backfill import PrivateGitStorage
 from v3_krx_regular_close import KST
 from v3_score_observation_capture import ARCHIVE
+from v33_r1e_fcf_exclusions import TOP_SIZES, prepare as prepare_fcf
 
 OUT = Path('ops/forward-price-outcomes')
 PAGES_RESULTS = Path('docs/v3-forward-validation-results.json')
@@ -141,13 +142,12 @@ def aggregate_paths(observation, openings, sessions, panels, notices, *, signal=
     add_rank_comparisons(result, members, openings, comparable)
     result['v31_summary'] = v31_summary(members, openings, outcomes)
     result['factor_validation'] = summarize_factors(observation, openings, comparable, factor_scores)
+    result['v33_fcf_exclusions'] = fcf_exclusion_summary(observation, openings, outcomes, factor_scores)
     return result
 
 
 def v31_summary(members, openings, outcomes):
     """Aggregate frozen ranks and fixed score bands, retaining missing outcomes."""
-    from statistics import fmean
-
     ranked = [code for code in outcomes if members[code][3] is not None]
     cohorts = {f'top{n}': [c for c in ranked if members[c][3] <= n]
                for n in (3, 10, 20, 30, 100)}
@@ -159,6 +159,44 @@ def v31_summary(members, openings, outcomes):
                           and math.isfinite(members[c][2])
                           and (lo is None or members[c][2] >= lo)
                           and (hi is None or members[c][2] < hi)]
+    return summarize_cohorts(members, openings, outcomes, cohorts)
+
+
+def fcf_exclusion_summary(observation, openings, outcomes, factor_scores):
+    """Score all alternatives against the same already-replayed issuer outcomes."""
+    if factor_scores is None:
+        return {'status': 'frozen_factor_source_unavailable'}
+    try:
+        rankings, original = prepare_fcf(factor_scores)
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return {'status': 'frozen_r1e_baseline_unreconciled'}
+
+    members = observation['rows']
+    common = rankings['baseline']
+    return {
+        'status': 'observed_single_window' if common else 'no_common_eligible_issuers',
+        'source_score_sha256': observation['source_score_sha256'],
+        'ranked_count': len(original),
+        'common_eligible_count': len(common),
+        'excluded_ranked_count': len(original) - len(common),
+        'common_eligible_by_market': {
+            market: sum(members[code][1] == market for code in common)
+            for market in index_benchmark.MARKETS
+        },
+        'cash_distributions_and_costs_included': False,
+        'performance_validated': False,
+        'variants': {
+            name: summarize_cohorts(members, openings, outcomes, {
+                f'top{n}': codes[:n] for n in TOP_SIZES if len(codes) >= n
+            })
+            for name, codes in rankings.items()
+        },
+    }
+
+
+def summarize_cohorts(members, openings, outcomes, cohorts):
+    from statistics import fmean
+
     summaries = {}
     for label, codes in cohorts.items():
         opened = sum(openings[c][0] == 'official_open_observed' for c in codes)
@@ -348,7 +386,11 @@ def load_current_outcome(path, identity):
                 'below40', '40to60', '60to80', '80plus'}
             or not isinstance(outcome['groups'].get('factor_validation'), dict)
             or outcome['groups']['factor_validation'].get('status') not in {
-                'frozen_factor_source_unavailable', 'observed_descriptive_only'}):
+                'frozen_factor_source_unavailable', 'observed_descriptive_only'}
+            or not isinstance(outcome['groups'].get('v33_fcf_exclusions'), dict)
+            or outcome['groups']['v33_fcf_exclusions'].get('status') not in {
+                'frozen_factor_source_unavailable', 'frozen_r1e_baseline_unreconciled',
+                'no_common_eligible_issuers', 'observed_single_window'}):
         return None
     return outcome
 
@@ -479,6 +521,13 @@ def pages_results(root, readiness, now, *, refresh_index=False):
             benchmark = index_benchmark.summarize(outcome['groups']['v31_summary'],
                                                    benchmark['index_return_pct'],
                                                    entry, evaluation, benchmark.get('last_attempt_on'))
+        fcf = outcome['groups']['v33_fcf_exclusions']
+        if benchmark and fcf['status'] == 'observed_single_window':
+            fcf = {**fcf, 'index_benchmark': {
+                name: index_benchmark.summarize(groups, benchmark['index_return_pct'],
+                                                entry, evaluation, benchmark.get('last_attempt_on'))['groups']
+                for name, groups in fcf['variants'].items()
+            }}
         top = outcome['groups']['top20']
         coverage = top['terminal_return_coverage']
         observed = horizons.setdefault(str(months), {'published_window_count': 0, 'latest': None})
@@ -498,6 +547,7 @@ def pages_results(root, readiness, now, *, refresh_index=False):
             'return_gap_counts': return_gap_counts(top),
             'v31_summary': outcome['groups']['v31_summary'],
             'factor_validation': outcome['groups']['factor_validation'],
+            'v33_fcf_exclusions': fcf,
             'index_benchmark': benchmark,
         }
     return {'schema': 'v3-forward-validation-results-1', 'performance_validated': False,
