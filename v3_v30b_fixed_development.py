@@ -112,6 +112,62 @@ def price_error_terminal_reviews(report, catalog, trading, market, history_progr
     return reviews
 
 
+def money_terminal_reviews(report, catalog, money, receipt, raw_money, existing):
+    """After successful exact-cutoff replay, close residual unusable money windows.
+
+    Never discard a usable source component not incorporated by the scorer.
+    """
+    from hashlib import sha1
+    from v3_actual_money_contract import usable_records, usable_component_records, closed_week_end
+    from v3_dart_bulk_history import _stable_digest
+    from v3_actual_money_structure import COMPONENT_MAX
+    digest = sha1(b"blob " + str(len(raw_money)).encode() + bytes([0]) + raw_money).hexdigest()
+    if (receipt.get("schema") != "v30b-fixed-money-replay-receipt-1"
+        or receipt.get("asof") != CUTOFF or receipt.get("listed") != report["listed_total"]
+        or receipt.get("workflow_conclusion") != "success"
+        or receipt.get("money_git_blob") != digest
+        or receipt.get("component_weight_losses") != 0 or receipt.get("provider_calls") != 0
+        or money.get("asof") != CUTOFF or catalog.get("date") != CUTOFF
+        or money.get("source_catalog_sha256") != _stable_digest(catalog)
+        or money.get("listed_total") != report["listed_total"]
+        or money.get("daily_cohorts_inspected") != 96 or money.get("calendar_weeks_inspected") != 240
+        or money.get("daily_asof", "9999") > CUTOFF or money.get("weekly_session_end", "9999") > CUTOFF
+        or money.get("calendar_week_end") != closed_week_end(CUTOFF)):
+        raise ValueError("fixed_money_replay_receipt_mismatch")
+    records = usable_records(money, catalog)
+    components = usable_component_records(money, catalog)
+    if (len(records) != money["eligible_issuers"] or len(components) != money["component_eligible_issuers"]
+        or not records or not components):
+        raise ValueError("fixed_money_source_contract_mismatch")
+    reviews = {}
+    limits = {"long_horizon_growth":6, **COMPONENT_MAX}
+    for code, row in report["rows"].items():
+        rec = records.get(code, {})
+        obs = components.get(code, {}).get("component_observations", {})
+        old_structure = rec.get("r1c_structure", {})
+        for key, maximum in limits.items():
+            label = ":".join((code, "volume", key))
+            if label in existing:
+                continue
+            point = row["parts"]["volume"].get(key)
+            observed = point[1] if point else 0
+            weight = round(maximum - observed, 6)
+            if weight <= .00001:
+                continue
+            if key == "long_horizon_growth":
+                usable = 6 if rec or obs.get("growth6") is not None else 0
+            else:
+                pair = obs.get("components", {}).get(key)
+                usable = max(pair[1] if pair else 0,
+                             maximum if old_structure.get("components", {}).get(key) is not None else 0)
+            if usable > observed + .00001:
+                continue
+            reviews[label] = {"asof":CUTOFF, "missing_weight":weight,
+                "status":"source_missing_after_attempt",
+                "evidence":"successful fixed money archive replay; component window/baseline/directional evidence unavailable; run " + str(receipt["workflow_run_id"])}
+    return reviews
+
+
 def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, reviews=None):
     if not (report["asof"] == comparison["asof"] == catalog["date"] == frozen_catalog["date"] == CUTOFF):
         raise ValueError("development_cutoff_mismatch")
@@ -204,6 +260,11 @@ def main():
                                        read("v3-dart-cashflow-issuer-evidence.json"))
     reviews.update(price_error_terminal_reviews(report, read("v22-market-catalog.json"),
         read("v3-trading-status.json"), read("data.json"), read("v3-regular-close-history-progress.json")))
+    money_receipt = a.docs.parent / "ops" / "v30b-fixed-money-replay-receipt.json"
+    if money_receipt.is_file():
+        raw_money = (a.docs / "v3-actual-money-participation.json").read_bytes()
+        reviews.update(money_terminal_reviews(report, read("v22-market-catalog.json"),
+            json.loads(raw_money), json.loads(money_receipt.read_text()), raw_money, reviews))
     if a.reviews and a.reviews.is_file():
         manual = json.loads(a.reviews.read_text())
         if set(manual) & set(reviews):
