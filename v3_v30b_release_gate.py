@@ -591,6 +591,14 @@ def issuer_fcf_preview_reconciles(
                         return False
                     points[label] = numeric
             expected[code] = (item["market"], points)
+        from v3_v30b_fcf_source_audit import reviewed_fcf_rows
+        for code,entry in reviewed_fcf_rows(observed,preview).items():
+            market,points=expected.get(code,(entry["market"],{
+                "FCF자산3년_잠정점수":None,"FCF수익률_잠정점수":None}))
+            if market!=entry["market"] or points["FCF자산3년_잠정점수"] is not None:
+                return False
+            points["FCF자산3년_잠정점수"]=Decimal(str(entry["points"]))
+            expected[code]=(market,points)
 
         reader = csv.DictReader(
             StringIO(csv_text.lstrip("\ufeff"), newline=""), strict=True)
@@ -1183,7 +1191,8 @@ def main(argv: list[str] | None = None) -> dict:
     p.add_argument("--assert-blocked", action="store_true",
                    help="also fail if release/scoring unexpectedly becomes authorized")
     a = p.parse_args(argv)
-    report = assess_v30b(_read_public_json(a.observed),
+    observed=_read_public_json(a.observed)
+    report = assess_v30b(observed,
                           _read_public_json(a.scorecard),
                           _read_public_json(a.history),
                           observed_csv_text=_read_public_csv(a.observed_csv),
@@ -1195,6 +1204,32 @@ def main(argv: list[str] | None = None) -> dict:
                           operational_comparison=_read_public_json(a.r1d_comparison),
                           collection_closeout=(_read_public_json(a.collection_closeout)
                               if a.collection_closeout.is_file() else None))
+    # The public index is not an independent original-receipt proof.
+    # Reproduce the comparative-only points from the saved, verified annual
+    # anchors before accepting a public summary that claims those points.
+    if observed.get("reviewed_comparative_fcf_rows"):
+        from v3_current_observed_scorecard import cashflow_source,load_reviewed_fcf_source
+        try:
+            root=a.observed.parent
+            read=lambda name:json.loads((root/name).read_text(encoding="utf8"))
+            market=read("data.json")
+            catalog=_read_public_json(a.catalog)
+            history=read("v3-dart-bulk-history.json")
+            saved=read("v3-dart-cashflow-reference.json")
+            annual=read("v3-dart-book-reference.json")
+            replay=cashflow_source(market,catalog,history,saved,_read_public_json(a.fcf_preview))
+            reviewed_ok=(replay is not None and load_reviewed_fcf_source(
+                root,market,catalog,history,saved,replay[0],annual)
+                ==observed["reviewed_comparative_fcf_rows"])
+        except (OSError,ValueError,KeyError,TypeError):
+            reviewed_ok=False
+        report["gates"]["reviewed_comparative_fcf_saved_source_reconciled"]=reviewed_ok
+        if not reviewed_ok:
+            report["public_summary_valid"]=False
+            report["gates"]["published_fcf_issuer_subscore_source"]=False
+            report["public_fcf_issuer_subscores_reconciled"]=False
+            report["blocker_codes"]=sorted(set(report["blocker_codes"])|
+                                            {"reviewed_comparative_fcf_saved_source_mismatch"})
     if a.development_scope.is_file():
         scope = _read_public_json(a.development_scope)
         if scope.get("schema") == "v30b-development-scope-v1":
