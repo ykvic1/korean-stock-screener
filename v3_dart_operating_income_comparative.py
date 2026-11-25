@@ -266,12 +266,8 @@ def reviewed_margin(record, item, day):
     return round(margin, 6) if math.isfinite(margin) and abs(margin) < 1e7 else None
 
 
-def margin_parts(catalog,history,supplement=None,*,reviewed=None):
-    """Rebuild three-year margin peer ranks from actual same-scope evidence.
-
-    Keep the score allocation (4 personal points -> 3 R1d points) unchanged.
-    A FY2025 comparison is contemporary source evidence, NOT original-year PIT.
-    """
+def margin_observations(catalog,history,supplement=None,*,reviewed=None):
+    """Return direct and receipt-verified operating margins before rank conversion."""
     expected=expected_sources(catalog,history)
     retained=verified_prior(supplement,expected,catalog['date'])
     by_market={r['code']:r['market'] for r in catalog['rows']}
@@ -314,16 +310,23 @@ def margin_parts(catalog,history,supplement=None,*,reviewed=None):
         if len(amounts)==3 and all(math.isfinite(x) and abs(x)<1e7 for x in amounts):
             margins[code]=round(sum(amounts)/3,6)
             supplemented.add(code)
-    peers={m:sorted(v for c,v in margins.items() if by_market[c]==m)
-           for m in ('KOSPI','KOSDAQ')}
-    parts={code:{'points':round(round(4*_midrank(value,peers[by_market[code]],1),6)*3/4,6),
-                 'available':3,'asof':catalog['date']}
-           for code,value in margins.items() if len(peers[by_market[code]])>=30}
     summary={'provider_calls':0,'three_year_actual_operating_margins':len(margins),
              'verified_2025_comparative_margin_issuers':len(supplemented),
              'investment_score_certified':False,'historical_PIT_source_certified':False}
     if reviewed is not None:
         summary['reviewed_annual_margin_issuers'] = reviewed_count
+    return margins,summary
+
+
+def margin_parts(catalog,history,supplement=None,*,reviewed=None):
+    """Rebuild three-year margin peer ranks with the existing R1e weights."""
+    margins,summary=margin_observations(catalog,history,supplement,reviewed=reviewed)
+    by_market={r['code']:r['market'] for r in catalog['rows']}
+    peers={m:sorted(v for c,v in margins.items() if by_market[c]==m)
+           for m in ('KOSPI','KOSDAQ')}
+    parts={code:{'points':round(round(4*_midrank(value,peers[by_market[code]],1),6)*3/4,6),
+                 'available':3,'asof':catalog['date']}
+           for code,value in margins.items() if len(peers[by_market[code]])>=30}
     return parts,summary
 
 

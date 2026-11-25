@@ -58,6 +58,11 @@ from v3_dart_original_revenue_recovery import (
     overlay as overlay_original_revenue,
 )
 
+from v3_dart_operating_income_comparative import (
+    OUTPUT as COMPARATIVE_MARGIN_OUTPUT, REVIEWED as REVIEWED_MARGIN_OUTPUT,
+    margin_observations,
+)
+
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
               "valuation":20,"momentum":15}
@@ -92,7 +97,8 @@ class LivePartialScorecardError(ValueError):
 def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
                    owner_profit_source=None,owner_profit_priority=None,
                    parent_equity_source=None,parent_equity_cash=None,
-                   original_revenue_source=None,reviewed_revenue_source=None):
+                   original_revenue_source=None,reviewed_revenue_source=None,
+                   comparative_margin_source=None,reviewed_margin_source=None):
     """Use ONLY the already-public audited DART files from this market close.
 
     A lagged seven-day technical rotation must not hide independently current
@@ -226,13 +232,22 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
                 catalog,history,original_revenue_source,reviewed=reviewed_revenue_source)
         except (KeyError,TypeError,ValueError,AttributeError):
             raise LivePartialScorecardError('untrusted_official_original_revenue_evidence') from None
-    if profit_changed or equity_changed or revenue_changed:
+    margin_fallbacks=None
+    if (parts==expected and replay_history['fiscal_years'][-3:]==[2023,2024,2025]
+            and (comparative_margin_source is not None or reviewed_margin_source is not None)):
+        try:
+            margin_fallbacks,_=margin_observations(
+                catalog,replay_history,comparative_margin_source,reviewed=reviewed_margin_source)
+        except (KeyError,TypeError,ValueError,AttributeError):
+            raise LivePartialScorecardError('untrusted_operating_margin_evidence') from None
+    if profit_changed or equity_changed or revenue_changed or margin_fallbacks:
             # Reuse the existing market-wide percentile engine so new
             # profit peers and old peers are normalized consistently.
             # The new book lives in memory only and has a separately
             # audited official 2025 supplemental receipt provenance.
             replayed=research_parts(replay_history,catalog,supplemented,
-                                    include_independent_earnings=owner_profit_source is not None)
+                                    include_independent_earnings=owner_profit_source is not None,
+                                    operating_margin_fallbacks=margin_fallbacks)
             refreshed={r["code"]:r for r in replayed["rows"]}
             if len(refreshed)!=len(replayed["rows"]):
                 raise LivePartialScorecardError(
@@ -717,7 +732,11 @@ def load_financial_source(root, catalog, *, history=None, parts=None, weekly=Non
             original_revenue_source=(read(ORIGINAL_REVENUE_OUTPUT)
                                      if (root/ORIGINAL_REVENUE_OUTPUT).is_file() else None),
             reviewed_revenue_source=(read(REVIEWED_REVENUE_OUTPUT)
-                                     if (root/REVIEWED_REVENUE_OUTPUT).is_file() else None))
+                                     if (root/REVIEWED_REVENUE_OUTPUT).is_file() else None),
+            comparative_margin_source=(read(COMPARATIVE_MARGIN_OUTPUT)
+                                       if (root/COMPARATIVE_MARGIN_OUTPUT).is_file() else None),
+            reviewed_margin_source=(read(REVIEWED_MARGIN_OUTPUT)
+                                    if (root/REVIEWED_MARGIN_OUTPUT).is_file() else None))
     except (OSError,ValueError,KeyError) as error:
         if isinstance(error,LivePartialScorecardError):
             raise

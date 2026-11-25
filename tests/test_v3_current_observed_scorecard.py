@@ -591,6 +591,26 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                     for row in expected_rows:
                         self.assertEqual(with_original[row['code']]['unverified_components'],
                                          row['unverified_components'])
+                if (root/"v3-dart-reviewed-operating-margin.json").is_file() and history["fiscal_years"][-3:]==[2023,2024,2025]:
+                    from v3_dart_operating_income_comparative import OUTPUT as MARGIN, REVIEWED as MARGIN_REVIEWED, margin_parts
+
+                    supplement=json.loads((root/MARGIN).read_bytes())
+                    margin_registry=json.loads((root/MARGIN_REVIEWED).read_bytes())
+                    expected_margins,_=margin_parts(catalog,enriched,supplement,reviewed=margin_registry)
+                    with_margin=finance_source(
+                        catalog,history,parts,annual,audit,weekly=weekly,
+                        original_revenue_source=saved,reviewed_revenue_source=checked,
+                        comparative_margin_source=supplement,reviewed_margin_source=margin_registry)
+                    field="operating_margin_3y_pct"
+                    for code, row in with_original.items():
+                        old=row["unverified_components"][field]
+                        new=with_margin[code]["unverified_components"][field]
+                        if old["candidate_points"] is not None:
+                            self.assertEqual(new["observed_value"],old["observed_value"])
+                        elif code in expected_margins:
+                            self.assertEqual(new["max_points"],4)
+                    self.assertTrue(all(with_margin[code]["unverified_components"][field]["max_points"]==4
+                                        for code in expected_margins))
                 self.assertEqual(history,before)
         fake=copy.deepcopy(expected_audit)
         fake["source_sha256_canonical"]["dart_four_year_archive"]="0"*64
