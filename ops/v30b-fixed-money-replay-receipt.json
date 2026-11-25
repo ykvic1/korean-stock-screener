@@ -1,0 +1,16 @@
+{
+  "schema": "v30b-fixed-money-replay-receipt-1",
+  "asof": "2026-11-20",
+  "listed": 2592,
+  "workflow_run_id": 45529511857,
+  "workflow_job_id": 138921032675,
+  "workflow_conclusion": "success",
+  "published_commit": "363d786a6fc7732591dcb2320cc376b9633eb2a7",
+  "money_git_blob": "4e2c1896e341b3684a465602702b9869b71c25d3",
+  "component_weight_gains": 0,
+  "component_weight_losses": 0,
+  "before_100": 1414,
+  "after_100": 1414,
+  "provider_calls": 0,
+  "scope": "available saved pre-cutoff money archive; not independent source certification"
+}
