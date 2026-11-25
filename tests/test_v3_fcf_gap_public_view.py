@@ -11,13 +11,17 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FcfGapPublicViewTests(unittest.TestCase):
-    def test_both_mobile_public_entries_expose_one_expandable_source_audit(self):
-        for name in ("index.html", "workspace.html"):
+    def test_research_entries_preserve_audit_and_live_skips_hidden_fetch(self):
+        for name in ("index.html", "workspace.html", "research.html"):
             with self.subTest(file=name):
                 html = (ROOT / "docs" / name).read_text(encoding="utf8")
                 self.assertEqual(html.count('id="fcfMissingness"'), 1)
-                self.assertEqual(html.count('src="v3-fcf-gap.js"'), 1)
+                self.assertRegex(html, r'src="v3-fcf-gap\.js(?:\?[^"]+)?"')
                 self.assertIn("3개년 FCF 미확보 원인", html)
+        script = (ROOT / "docs" / "v3-fcf-gap.js").read_text(encoding="utf8")
+        self.assertIn("if(document.getElementById('liveScoreSort'))return;", script)
+        for name in ("workspace.html", "research.html"):
+            self.assertNotIn('id="liveScoreSort"', (ROOT / "docs" / name).read_text(encoding="utf8"))
 
     def test_actual_public_gap_counts_partition_current_market(self):
         d = ROOT / "docs"
