@@ -454,6 +454,65 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
             generate(market,catalog,v,p,financial={"005930":bad},
                      cashflow={"005930":item})
 
+    def test_reviewed_comparative_fcf_missing_only(self):
+        market,catalog=small()
+        v,p=volume_build(market,catalog),price_build(market,catalog)
+        base={"code":"005930","market":"KOSPI","asof":market["date"],
+              "financial_fcf_assets_candidate_points":None,
+              "financial_fcf_assets_available_max":0,
+              "valuation_fcf_yield_candidate_points":2.0,
+              "valuation_fcf_yield_available_max":5,
+              "strict_receipt_scope_matched":True,
+              "historical_PIT_certified":False,"scoring_certified":False}
+        review={"code":"005930","market":"KOSPI","asof":market["date"],
+                "points":0.0,"available":4,"reviewed_comparative":True}
+        prior,old=generate(market,catalog,v,p,cashflow={"005930":base})
+        rows,new=generate(market,catalog,v,p,cashflow={"005930":base},
+                          reviewed_fcf={"005930":review})
+        by={r["code"]:r for r in prior}
+        for row in rows:
+            if row["code"]=="005930":
+                self.assertEqual(row["available"]-by[row["code"]]["available"],4)
+                self.assertEqual(row["fcf_subpoints"],{"financial4":0.0,"valuation5":2.0})
+                self.assertFalse(row["certified"])
+            else:
+                self.assertEqual(row,by[row["code"]])
+        self.assertEqual(new["reviewed_comparative_fcf_replayed_issuers"],1)
+        self.assertEqual(old["total_unacquired_weight_issuer_slots"]-
+                         new["total_unacquired_weight_issuer_slots"],4)
+        for field,value in (("asof","2000-01-01"),("market","KOSDAQ"),
+                            ("reviewed_comparative",False),("available",3),
+                            ("points",4.1)):
+            with self.assertRaises(LivePartialScorecardError):
+                generate(market,catalog,v,p,cashflow={"005930":base},
+                         reviewed_fcf={"005930":dict(review,**{field:value})})
+        direct=dict(base,financial_fcf_assets_candidate_points=0.0,
+                    financial_fcf_assets_available_max=4)
+        with self.assertRaises(LivePartialScorecardError):
+            generate(market,catalog,v,p,cashflow={"005930":direct},
+                     reviewed_fcf={"005930":review})
+
+    def test_reviewed_comparative_source_filters_and_uses_existing_peer_rule(self):
+        from unittest.mock import patch
+        from v3_current_observed_scorecard import reviewed_fcf_source
+        from v3_dart_reviewed_fcf_comparative import SCHEMA
+        from v3_dart_bulk_history import _midrank
+        day="2026-11-24"
+        codes=[f"{i:06d}" for i in range(1,35)]
+        catalog={"date":day,"rows":[{"code":c,"market":"KOSPI"} for c in codes]}
+        direct={c:{"raw_observed_financial_fcf_assets_3y_pct":float(i)}
+                for i,c in enumerate(codes[:30])}
+        reviewed={"schema":SCHEMA,"records":{c:{"code":c} for c in codes[29:]}}
+        source={"asof":day,"records":{}}
+        with patch("v3_dart_reviewed_fcf_comparative.verified_ratio",
+                   side_effect=lambda e,*a: None if e["code"]==codes[32] else 10.5):
+            got=reviewed_fcf_source(catalog,source,source,direct,reviewed,{codes[33]})
+            self.assertEqual(set(got),set(codes[30:32]))
+            expected=round(4*_midrank(10.5,sorted(list(map(float,range(30)))+[10.5,10.5]),1),6)
+            self.assertTrue(all(r["points"]==expected and r["available"]==4 for r in got.values()))
+            self.assertEqual(reviewed_fcf_source(catalog,source,dict(source,asof="2000-01-01"),
+                                                  direct,reviewed,{}),{})
+
     def test_independent_fcf_published_even_when_annual_book_is_absent(self):
         # A delayed BS/IS annual book cannot erase separately receipt-matched
         # CFO/CAPEX evidence. This reproduces the live 0/20+0/20 regression

@@ -323,6 +323,55 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
     return rows,expected
 
 
+def reviewed_fcf_source(catalog,history,cash,direct,reviewed,short_periods):
+    """Current-only FY2025 comparative FCF/assets, not original FY2023 facts.
+
+    Use the existing reviewed statement and original FY2024/25 anchors.
+    Never replace a direct three-year observation or modify its score.
+    """
+    from v3_dart_reviewed_fcf_comparative import SCHEMA as REVIEWED_SCHEMA, verified_ratio
+    from v3_dart_bulk_history import _midrank
+    day=catalog["date"]
+    if (history.get("asof")!=day or cash.get("asof")!=day or
+            reviewed is None or direct is None):
+        return {}
+    if reviewed.get("schema")!=REVIEWED_SCHEMA or not isinstance(reviewed.get("records"),dict):
+        raise LivePartialScorecardError("invalid_reviewed_fcf_comparative_registry")
+    members={row["code"]:row["market"] for row in catalog["rows"]}
+    ratios={code:row["raw_observed_financial_fcf_assets_3y_pct"]
+            for code,row in direct.items()
+            if code in members and row.get("raw_observed_financial_fcf_assets_3y_pct") is not None}
+    recovered={}
+    cutoff=date.fromisoformat(day)
+    for code,entry in reviewed["records"].items():
+        if code not in members or code in ratios or code in short_periods:
+            continue
+        ratio=verified_ratio(entry,history["records"].get(code,{}),
+                             cash["records"].get(code,{}),cutoff)
+        if ratio is not None:
+            recovered[code]=ratio
+    ratios.update(recovered)
+    peers={m:sorted(v for c,v in ratios.items() if members[c]==m)
+           for m in ("KOSPI","KOSDAQ")}
+    return {c:{"code":c,"market":members[c],"asof":day,
+               "points":round(4*_midrank(v,peers[members[c]],1),6),
+               "available":4,"reviewed_comparative":True}
+            for c,v in recovered.items() if len(peers[members[c]])>=30}
+
+
+def load_reviewed_fcf_source(root,market,catalog,history,saved_cash,direct,annual):
+    """Rebuild the public comparative-only supplement from its original inputs."""
+    from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT
+    from v3_operational_research_score import reviewed_short_periods
+    path=Path(root)/REVIEWED_FCF_OUTPUT
+    if direct is None or not path.is_file():
+        return {}
+    return reviewed_fcf_source(
+        catalog,history,retained_current_market_cashflow(market,catalog,history,saved_cash),
+        direct,json.loads(path.read_text(encoding="utf8")),
+        reviewed_short_periods(history,annual,catalog["date"]))
+
+
 def missing_close_technical(parts, receipt):
     """Supplement only missing equivalents from an admitted KRX close receipt."""
     weekly=receipt.get("weekly") or {}
@@ -336,7 +385,8 @@ def missing_close_technical(parts, receipt):
 
 
 def generate(market,catalog,volume,price,financial=None,cashflow=None,
-             path_coverage_receipt=None,money_source=None,regular_close_source=None):
+             path_coverage_receipt=None,money_source=None,regular_close_source=None,
+             reviewed_fcf=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog,money_source=money_source)
     true_price=price_build(market,catalog)
@@ -356,7 +406,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     if (len(listed_codes)!=len(catalog["rows"]) or
         len(listed_codes)!=catalog["listed_total"]):
         raise LivePartialScorecardError("duplicate_or_incomplete_listed_census")
-    for source_name,source_rows in (("fiscal",financial),("fcf",cashflow)):
+    for source_name,source_rows in (("fiscal",financial),("fcf",cashflow),
+                                    ("reviewed_fcf",reviewed_fcf)):
         if source_rows is not None and (
                 type(source_rows) is not dict or
                 not set(source_rows).issubset(listed_codes)):
@@ -378,6 +429,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     counts={"volume":0,"technical":0,"momentum":0,
             "financial":0,"valuation":0}
     fcf_counts={"financial4":0,"valuation5":0}
+    reviewed_fcf_count=0
     owner_profit_replay_issuers=0
     full100_from_owner_profit=0
     # Only publish seven per-component counts if every available DART fiscal
@@ -516,6 +568,24 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                         (base or 0)+extra,base_weight+weight,POINT_BUDGET[group])
                     fcf_earned[key]=extra
                     fcf_counts[key]+=1
+        if reviewed_fcf is not None and code in reviewed_fcf:
+            entry=reviewed_fcf[code]
+            if (cashflow is None or entry.get("code")!=code or
+                    entry.get("market")!=listed["market"] or entry.get("asof")!=asof or
+                    entry.get("reviewed_comparative") is not True or
+                    type(entry.get("available")) is not int or entry["available"]!=4 or
+                    type(entry.get("points")) not in (int,float) or
+                    not 0<=entry["points"]<=4 or fcf_earned["financial4"] is not None):
+                raise LivePartialScorecardError("invalid_or_duplicate_reviewed_fcf")
+            extra=entry["points"]
+            base,base_weight=values["financial"],coverage["financial"]
+            if base_weight+4>POINT_BUDGET["financial"]:
+                raise LivePartialScorecardError("reviewed_fcf_weight_overflow")
+            values["financial"],coverage["financial"]=_contribution(
+                (base or 0)+extra,base_weight+4,POINT_BUDGET["financial"])
+            fcf_earned["financial4"]=extra
+            fcf_counts["financial4"]+=1
+            reviewed_fcf_count+=1
         # Post-spike absorption and 20/60/120-session persistence are only
         # research-grade observations from the actual dated daily scan.
         # Add them *only* when their existing pillar's other evidence is
@@ -635,6 +705,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "highest_currently_observable_weight":sum(observed_area_max.values()),
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
+        "reviewed_comparative_fcf_replayed_issuers":reviewed_fcf_count,
+        "reviewed_comparative_fcf_rows":reviewed_fcf or {},
         "owner_profit_2025_official_receipt_replayed_issuers":owner_profit_replay_issuers,
         "observed_100weight_issuers_with_2025_owner_profit_supplement":full100_from_owner_profit,
         "owner_profit_supplement_investment_grade_certified":False,
@@ -805,15 +877,20 @@ def main(argv=None):
     # cashflow_source independently checks issuer/date/scope/receipt against
     # the current major archive; do not turn missing BS/IS into FCF=0.
     cashflow=None
+    reviewed_fcf={}
     try:
+        history=read("v3-dart-bulk-history.json")
+        saved_cash=read("v3-dart-cashflow-reference.json")
         candidate=cashflow_source(
-            market,catalog,read("v3-dart-bulk-history.json"),
-            read("v3-dart-cashflow-reference.json"),
+            market,catalog,history,saved_cash,
             read("v3-dart-fcf-research-preview.json"))
         if candidate is not None:
             cashflow,_=candidate
     except (OSError,ValueError,KeyError):
         cashflow=None
+    if cashflow is not None:
+        reviewed_fcf=load_reviewed_fcf_source(root,market,catalog,history,saved_cash,
+                                               cashflow,annual)
     money_source=read(MONEY_OUTPUT) if (root/MONEY_OUTPUT).is_file() else None
     volume=(volume_build(market,catalog,money_source=money_source) if args.refresh_derived
             else read("v3-volume-obv-observed.json"))
@@ -826,7 +903,7 @@ def main(argv=None):
         price,
         financial=financial,cashflow=cashflow,
         path_coverage_receipt=path_coverage_receipt,money_source=money_source,
-        regular_close_source=regular_close_source)
+        regular_close_source=regular_close_source,reviewed_fcf=reviewed_fcf)
     new_csv=to_csv(rows,summary)
     # Per-stock history is additive: a new market census never erases an
     # unrelated issuer's last valid observations. Its dated values are NOT

@@ -71,6 +71,32 @@ def _points(points: Any, available: Any, maximum: int) -> bool:
             and math.isfinite(points))
 
 
+def reviewed_fcf_rows(observed: Any, preview: Any) -> dict:
+    """Validate the explicitly separate comparative-only score index.
+
+    This is a public artifact consistency check, not original-filing proof.
+    The publisher and release CLI separately replay the saved receipt anchors.
+    """
+    rows=observed.get("reviewed_comparative_fcf_rows",{})
+    count=observed.get("reviewed_comparative_fcf_replayed_issuers",0)
+    _assert(type(rows) is dict and _count(count) and len(rows)==count
+            and count<=observed["listed_total"],"fcf_reviewed_index_count_mismatch")
+    direct={r["code"]:r for r in preview["rows"]}
+    for code,entry in rows.items():
+        _assert(type(code) is str and re.fullmatch(r"[0-9A-Z]{6}",code)
+                and type(entry) is dict and entry.get("code")==code
+                and entry.get("asof")==observed["asof"]
+                and entry.get("market") in ("KOSPI","KOSDAQ")
+                and entry.get("reviewed_comparative") is True
+                and _points(entry.get("points"),entry.get("available"),4)
+                and entry.get("available")==4
+                and (code not in direct or (
+                    direct[code].get("financial_fcf_assets_available_max")==0
+                    and direct[code].get("market")==entry["market"])),
+                "fcf_reviewed_index_invalid")
+    return rows
+
+
 def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
     """Check three aggregate sources without manufacturing missing CF values."""
     _assert(all(type(x) is dict for x in (observed, gap, preview)),
@@ -178,15 +204,16 @@ def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
     _assert(len(rows) <= by_year["2025"]["fcf_observed_receipt_matched"]
             and finance <= depth["three_year_source_receipt_complete"],
             "fcf_derived_coverage_exceeds_original_receipts")
+    comparative_count=len(reviewed_fcf_rows(observed,preview))
     _assert(observed.get("fcf_observed_issuer_counts") ==
-            {"financial4": finance, "valuation5": valuation},
+            {"financial4": finance+comparative_count, "valuation5": valuation},
             "fcf_current_scorecard_count_mismatch")
     components = observed.get("financial_valuation_component_observed_issuers")
     unobserved = observed.get("financial_valuation_component_unobserved_issuers")
     _assert(type(components) is dict and type(unobserved) is dict
-            and components.get("financial_fcf_assets_3y") == finance
+            and components.get("financial_fcf_assets_3y") == finance+comparative_count
             and components.get("valuation_fcf_yield_latest") == valuation
-            and unobserved.get("financial_fcf_assets_3y") == total - finance
+            and unobserved.get("financial_fcf_assets_3y") == total - finance-comparative_count
             and unobserved.get("valuation_fcf_yield_latest") == total - valuation,
             "fcf_subfactor_observation_mismatch")
 
@@ -204,7 +231,9 @@ def audit_fcf_sources(observed: Any, gap: Any, preview: Any) -> dict:
         "missing_account_reason_counts": missing_types,
         "source_eligible_unfetched_company_years":
             gap["source_eligible_unfetched_company_years"],
-        "financial_fcf4_observed_issuers": finance,
+        "financial_fcf4_observed_issuers": finance+comparative_count,
+        "financial_fcf4_original_receipt_issuers": finance,
+        "financial_fcf4_reviewed_comparative_issuers": comparative_count,
         "valuation_fcf5_observed_issuers": valuation,
         "three_year_source_receipt_complete_issuers":
             depth["three_year_source_receipt_complete"],
