@@ -1,0 +1,83 @@
+name: Audit saved reviewed comparative FCF coverage
+on:
+  pull_request:
+    paths: ['.github/workflows/audit-public-reviewed-fcf-once.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Reconcile original receipt anchors and measure missing public FCF coverage
+        run: |
+          python - <<'PY'
+          import csv,json
+          from pathlib import Path
+          from collections import Counter
+          from datetime import date
+          from v3_current_observed_scorecard import cashflow_source
+          from v3_dart_cashflow_enrichment import retained_current_market_cashflow
+          from v3_dart_reviewed_fcf_comparative import verified_ratio,SCHEMA
+          from v3_operational_research_score import reviewed_short_periods
+          root=Path('docs')
+          def read(name):
+              return json.loads((root/name).read_bytes())
+          market=read('data.json')
+          catalog=read('v22-market-catalog.json')
+          history=read('v3-dart-bulk-history.json')
+          saved=read('v3-dart-cashflow-reference.json')
+          preview=read('v3-dart-fcf-research-preview.json')
+          reviewed=read('v3-dart-reviewed-fcf-comparative.json')
+          annual=read('v3-dart-book-reference.json')
+          day=catalog['date']
+          assert day==market['date']==history['asof']==preview['asof']
+          assert reviewed['schema']==SCHEMA
+          direct,_=cashflow_source(market,catalog,history,saved,preview)
+          cash=retained_current_market_cashflow(market,catalog,history,saved)
+          short=reviewed_short_periods(history,annual,day)
+          with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig',newline='') as f:
+              public={r['종목코드']:r for r in csv.DictReader(f)}
+          members={m['code']:m for m in catalog['rows']}
+          assert len(public)==len(members)==catalog['listed_total']
+          assert set(public)==set(members)
+          assert all(public[c]['종목명']==m['name'] and public[c]['시장']==m['market'] for c,m in members.items())
+          counts=Counter()
+          crossings=Counter()
+          eligible=[]
+          for code,entry in reviewed['records'].items():
+              if code not in members:
+                  counts['not_listed']+=1
+                  continue
+              if code in short:
+                  counts['short_period']+=1
+                  continue
+              if direct.get(code,{}).get('financial_fcf_assets_available_max',0):
+                  counts['direct_already_observed']+=1
+                  continue
+              if public[code]['FCF자산3년_잠정점수']!='':
+                  counts['public_already_observed']+=1
+                  continue
+              ratio=verified_ratio(entry,history['records'].get(code,{}),cash['records'].get(code,{}),date.fromisoformat(day))
+              if ratio is None:
+                  counts['anchor_or_statement_unverified']+=1
+                  continue
+              peer_count=sum(v['market']==members[code]['market'] and v['financial_fcf_assets_available_max']==4 for v in direct.values())
+              if peer_count<30:
+                  counts['insufficient_peers']+=1
+                  continue
+              counts['verified_missing']+=1
+              old=int(float(public[code]['산출가능배점_100점중']))
+              assert old+4<=100
+              eligible.append(code)
+              for threshold in (90,95,100):
+                  if old<threshold<=old+4:
+                      crossings[threshold]+=1
+          assert sum(counts.values())==len(reviewed['records'])
+          print('PUBLIC_REVIEWED_FCF_PROBE='+json.dumps({'asof':day,'registry_count':len(reviewed['records']),'counts':counts,'potential_weight':4*len(eligible),'crossings':crossings,'provider_calls':0},sort_keys=True))
+          PY
