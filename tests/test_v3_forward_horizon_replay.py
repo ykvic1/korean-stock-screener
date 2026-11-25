@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from v3_forward_horizon_replay import OUT, aggregate_paths, loss_rate_bounds, pages_results, ready_windows, replay_next, return_gap_counts
+from v3_forward_horizon_replay import OUT, aggregate_paths, fcf_exclusion_summary, loss_rate_bounds, pages_results, ready_windows, replay_next, return_gap_counts
 from v3_forward_horizon_readiness import HORIZONS
 from v3_forward_liquidations import FIELDS as LIQUIDATION_FIELDS, REGISTER as LIQUIDATION_REGISTER
 from v3_forward_share_actions import BONUS_EX_RIGHTS, BONUS_LISTING, FIELDS, REGISTER
@@ -16,6 +16,29 @@ from v3_score_observation_capture import ARCHIVE
 
 
 class ForwardHorizonReplayTests(unittest.TestCase):
+    def test_fcf_alternatives_reuse_outcomes_and_keep_missing_at_the_original_cutoff(self):
+        codes = ['000001', '000002', '000003', '000004']
+        members = {code: ['Issuer', 'KOSPI'] for code in codes}
+        openings = {code: ['official_open_observed', 100] for code in codes}
+        outcomes = {
+            codes[0]: {'status': 'observed_price_path', 'terminal_return_pct': 6, 'mae_pct': -2},
+            codes[1]: {'status': 'missing_traded_bar'},
+            codes[2]: {'status': 'observed_delisting_settlement', 'terminal_return_pct': -3},
+            codes[3]: {'status': 'observed_price_path', 'terminal_return_pct': 12, 'mae_pct': -8},
+        }
+        rankings = {'baseline': codes, 'omit_fcf_yield': [codes[0], codes[3], codes[2], codes[1]]}
+        observation = {'rows': members, 'source_score_sha256': 'a' * 64}
+        with patch('v3_forward_horizon_replay.prepare_fcf', return_value=(rankings, codes)):
+            result = fcf_exclusion_summary(observation, openings, outcomes, {})
+        base = result['variants']['baseline']['top3']
+        variant = result['variants']['omit_fcf_yield']['top3']
+        self.assertEqual(base['unvalued_confirmed_openings_count'], 1)
+        self.assertEqual(base['observed_mean_return_pct'], 1.5)
+        self.assertEqual(variant['observed_mean_return_pct'], 5)
+        self.assertEqual(variant['worst_entry_relative_mae_pct'], -8)
+        self.assertNotIn('top10', result['variants']['baseline'])
+        self.assertNotIn(codes[0], json.dumps(result))
+
     def test_resumed_stock_counts_in_return_and_loss_denominators(self):
         days = ['2026-11-16', '2026-11-17', '2026-11-18']
         code = '000001'
@@ -130,6 +153,8 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 self.assertFalse(published['performance_validated'])
                 latest = published['horizons']['1']['latest']
                 self.assertEqual(latest.pop('factor_validation'),
+                                 {'status': 'frozen_factor_source_unavailable'})
+                self.assertEqual(latest.pop('v33_fcf_exclusions'),
                                  {'status': 'frozen_factor_source_unavailable'})
                 self.assertIsNone(latest.pop('index_benchmark'))
                 summary = latest.pop('v31_summary')
