@@ -1185,9 +1185,8 @@ for(const page of [html,entry]){
 assert.ok(source.includes("status==='reference_only'")&&
  source.includes("status==='reference_only'?'neutral_research_only'"),
  'new stop-reference-only CSV must reconcile without discarding financial evidence');
-assert.ok(entry.includes('시총 보정 점수 CSV (손절은 참고만)')&&
- html.includes('시총 보정 점수 CSV (손절은 참고만)'),
- 'both routes must not advertise a removed stop-loss score adjustment');
+assert.ok(entry.includes('현재 점수 CSV')&&html.includes('시총 보정 점수 CSV (손절은 참고만)'),
+ 'live route exposes current score export; research route retains its historical export');
 assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');
 assert.ok(css.includes('.u-score-row-explain .u-parts>div.u-factor-unverified')&&
  css.includes('background:#fff5f6;color:#244258')&&
