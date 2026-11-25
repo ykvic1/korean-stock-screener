@@ -131,8 +131,11 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                 latest = published['horizons']['1']['latest']
                 self.assertEqual(latest.pop('factor_validation'),
                                  {'status': 'frozen_factor_source_unavailable'})
+                self.assertIsNone(latest.pop('index_benchmark'))
                 summary = latest.pop('v31_summary')
                 self.assertEqual(summary['top3']['selected_count'], 1)
+                self.assertEqual(summary['top3']['market_breakdown']['KOSPI'],
+                                 {'valued_count': 1, 'observed_mean_return_pct': 5})
                 self.assertEqual(summary['top3']['observed_win_rate_bounds_pct'], [100, 100])
                 self.assertEqual(summary['top30']['observed_win_rate_bounds_pct'], [50, 100])
                 self.assertIsNone(summary['top30']['observed_mean_gain_loss_ratio'])
