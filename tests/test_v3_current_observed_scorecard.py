@@ -572,6 +572,26 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
                              expected_audit["six_pillar_numeric_provisional_issuer_counts"]["valuation"])
         else:
             self.assertIsNone(aligned,"newer annual source must await replay")
+        if aligned is not None and research_parts(history,catalog,annual)==parts:
+            from v3_dart_original_revenue_recovery import OUTPUT, REVIEWED, overlay
+
+            original=root/OUTPUT
+            reviewed=root/REVIEWED
+            if original.is_file() and reviewed.is_file():
+                saved=json.loads(original.read_bytes())
+                checked=json.loads(reviewed.read_bytes())
+                before=copy.deepcopy(history)
+                enriched,codes=overlay(catalog,history,saved,reviewed=checked)
+                with_original=finance_source(
+                    catalog,history,parts,annual,audit,weekly=weekly,
+                    original_revenue_source=saved,reviewed_revenue_source=checked)
+                if codes:
+                    expected_rows=research_parts(enriched,catalog,annual)['rows']
+                    self.assertEqual(set(with_original),{row['code'] for row in expected_rows})
+                    for row in expected_rows:
+                        self.assertEqual(with_original[row['code']]['unverified_components'],
+                                         row['unverified_components'])
+                self.assertEqual(history,before)
         fake=copy.deepcopy(expected_audit)
         fake["source_sha256_canonical"]["dart_four_year_archive"]="0"*64
         self.assertIsNone(finance_source(catalog,history,parts,annual,fake,weekly=weekly))
