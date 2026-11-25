@@ -81,7 +81,9 @@ jobs:
           new=json.loads(Path("fixed-data/docs/v3-operational-research-scores.json").read_text())
           money=json.loads(Path("fixed-data/docs/v3-actual-money-participation.json").read_text())
           if old["asof"] != new["asof"] or new["asof"] != money["asof"] or new["asof"] != "2026-11-20": raise ValueError("cutoff_changed")
-          if money["daily_asof"] > new["asof"] or money["calendar_week_end"] > new["asof"] or money["weekly_session_end"] > new["asof"]: raise ValueError("post_cutoff_money")
+          from v3_krx_calendar_week_money import closed_week_end
+          # Sunday is a bucket label; actual last trading session is the cutoff.
+          if money["daily_asof"] > new["asof"] or money["calendar_week_end"] != closed_week_end(new["asof"]) or money["weekly_session_end"] > new["asof"]: raise ValueError("post_cutoff_money")
           if old["rows"].keys() != new["rows"].keys() or len(new["rows"]) != 2592: raise ValueError("roster_changed")
           gains=losses=0
           for code, row in new["rows"].items():
