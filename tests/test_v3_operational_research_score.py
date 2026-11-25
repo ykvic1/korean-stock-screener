@@ -655,7 +655,7 @@ for(const {r} of rows){
 }
 const incomplete=rows.find(x=>x.r.v3_operational.available>0&&x.r.v3_operational.available<100);
 if(!incomplete||!ops.markup(incomplete.r).includes('미관측 항목')||
-   !ops.markup(incomplete.r).includes('미관측은 0점이 아닙니다'))
+   !ops.markup(incomplete.r).includes('미확보 부분의 평가점수는 0점으로 반영합니다.'))
  throw Error('missing evidence explanation absent');
 const complete=rows.find(x=>x.r.v3_operational.available===100);
 if(!complete||!ops.markup(complete.r).includes('근거가 모두 관측되었습니다')||
