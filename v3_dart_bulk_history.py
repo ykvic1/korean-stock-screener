@@ -886,7 +886,7 @@ def _midrank(value, ordered, direction):
 
 def research_parts(data,catalog,book,*,minimum_peers=30,
                    include_sales_to_cap=True,include_balance_factors=True,
-                   include_independent_earnings=False):
+                   include_independent_earnings=False,operating_margin_fallbacks=None):
     """Produce 4+4+4+4 financial and 5+5+5 valuation research points.
 
     Only observed, date-linked inputs with >=30 same-market peers contribute.
@@ -912,6 +912,8 @@ def research_parts(data,catalog,book,*,minimum_peers=30,
             # without mislabeling the 4-year revenue CAGR as observed.
             margin=(four["operating_margin_3y_pct"] if four is not None
                     else _three_year_margin(record,fiscal))
+            if margin is None and operating_margin_fallbacks is not None:
+                margin=operating_margin_fallbacks.get(code)
             selected[code]={
                 "revenue_cagr_3y_pct":(
                     four["revenue_cagr_3y_pct"] if four is not None else None),
