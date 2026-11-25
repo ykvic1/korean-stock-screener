@@ -2886,18 +2886,19 @@ function renderDetails(x){
   esc(root.V3TradingStatus.explanation(r))+'</span></div>':'';
  const ops=r.v3_operational;
  if(liveService){
-  view.innerHTML=halt+'<div class="u-detail-grid u-detail-kpis"><div><small>'+esc(priceLabel(r,true))+
-   '</small><strong>'+won(displayPrice(r))+'</strong></div><div><small>종합점수</small><strong>'+
-   (finite(ops?.score)?ops.score.toFixed(1):ops?.score===null?'0.0 (순위 제외)':'미산출')+
-   ' / 100</strong></div><div><small>확보배점</small><strong>'+
-   (finite(ops?.available)?ops.available.toFixed(1):'—')+' / 100</strong></div></div>'+
-   (root.V3OperationalScore?.markup(r,true)||'')+
+  view.innerHTML=halt+
    (!r.unpriced_operational_only?'<section class="u-detail-market" aria-label="차트와 위험">'+
     structuralStopMarkup(r,true)+'<h3>일봉 · 스윙 관찰</h3>'+
     (x.daily.length?'<div class="u-signals">'+x.daily.map(patternPill).join('')+'</div>':'<p class="u-muted">관측 없음 또는 자료 미확보</p>')+
     '<h3>주봉 · 중기/장기 관찰</h3>'+
     (x.weekly.length?'<div class="u-signals">'+x.weekly.map(patternPill).join('')+'</div>':'<p class="u-muted">관측 없음 또는 자료 미확보</p>')+
     sectorEvidenceMarkup(r,true)+'</section>':'<p class="u-muted">현재 가격 자료 미확보 · 가격 및 손절 참고선을 임의로 채우지 않습니다.</p>')+
+   '<div class="u-detail-grid u-detail-kpis"><div><small>'+esc(priceLabel(r,true))+
+   '</small><strong>'+won(displayPrice(r))+'</strong></div><div><small>종합점수</small><strong>'+
+   (finite(ops?.score)?ops.score.toFixed(1):ops?.score===null?'0.0 (순위 제외)':'미산출')+
+   ' / 100</strong></div><div><small>확보배점</small><strong>'+
+   (finite(ops?.available)?ops.available.toFixed(1):'—')+' / 100</strong></div></div>'+
+   (root.V3OperationalScore?.markup(r,true)||'')+
    '<div class="u-actions"><button type="button" id="addToCompare">이 종목 비교에 담기</button><span id="detailCompareStatus" role="status"></span>'+
    '<a href="'+esc(core.stockPage(r.code))+'" target="_blank" rel="noopener noreferrer">종목 차트 ↗</a></div>'+
    historicalPriceSlot;

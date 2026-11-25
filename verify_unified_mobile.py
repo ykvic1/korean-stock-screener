@@ -41,6 +41,8 @@ with sync_playwright() as p:
     assert not page.locator("#researchPanel").is_visible()
     assert not page.locator("#personalRank").is_visible()
     assert not page.locator("#dataCollectionStatus").is_visible()
+    assert page.locator("#stockSearch").evaluate("(e) => e.compareDocumentPosition(document.querySelector('#liveUpdates')) & Node.DOCUMENT_POSITION_FOLLOWING") 
+    assert page.locator("#stockSearch").evaluate("(e) => e.compareDocumentPosition(document.querySelector('#krxCloseAlert')) & Node.DOCUMENT_POSITION_FOLLOWING")
     for skipped in ("quant.json", "official.json", "v3-current-observed-all-listed.csv",
                     "v3-issuer-last-observed-factors.json", "v3-forward-validation-results.json",
                     "v3-krx-derived-backfill-progress.json", "v3-dart-cashflow-gap-summary.json"):
@@ -77,6 +79,23 @@ with sync_playwright() as p:
     page.locator('[data-stock="005930"]').click()
     assert page.locator(".u-operational-detail").is_visible()
     assert "기존 모델" not in page.locator(".u-operational-detail").inner_text()
+    assert page.locator(".u-detail-market").evaluate("(e) => e.compareDocumentPosition(document.querySelector('.u-operational-detail')) & Node.DOCUMENT_POSITION_FOLLOWING")
+    source_details = page.locator(".u-price-source-details")
+    assert source_details.count() == 1
+    assert source_details.get_attribute("open") is None
+    assert not source_details.locator(".u-session-scope").is_visible()
+    source_details.locator("summary").click()
+    assert source_details.locator(".u-session-scope").is_visible()
+    source_details.locator("summary").click()
+    assert page.locator(".u-operational-detail table").evaluate("""t => {
+      const cells = [...t.querySelectorAll('tbody tr td:nth-child(2)')];
+      return cells.length >= 5 && cells.every(c => {
+        const range=document.createRange(); range.selectNodeContents(c);
+        return range.getClientRects().length === 1 && getComputedStyle(c).whiteSpace === 'nowrap'
+          && c.scrollWidth <= c.clientWidth + 1;
+      });
+    }""")
+    assert page.locator(".u-operational-detail").evaluate("e => e.scrollWidth <= e.clientWidth + 1")
     assert not page.locator(".u-legacy-model").count()
     page.locator("#detailClose").click()
     page.locator("#stockSearch").fill("")

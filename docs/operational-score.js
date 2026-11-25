@@ -218,7 +218,7 @@ function markup(r,currentOnly=false){const v=r?.v3_operational;if(!v&&currentOnl
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
  return '<section class="u-operational-detail"><h3>'+(currentOnly?'현재 점수 · 세부 근거':'잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a'))+'</h3><p><strong>'+(v.score===null?'0.0 / 100 (관측 없음·순위 제외)':v.score.toFixed(1)+' / 100')+
   '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
-  '</p>'+reconciliationMarkup(v)+regularCloseMarkup(v)+sessionScopeMarkup(r)+
+  '</p>'+reconciliationMarkup(v)+(currentOnly?'':regularCloseMarkup(v)+sessionScopeMarkup(r))+
   '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
   (v.risk_warnings.length?'<p class="u-muted">'+v.risk_warnings.map(esc).join(' · ')+'</p>':'')+
   (currentOnly?'':'<p>기존 모델 '+(finite(v.legacy_score)?v.legacy_score.toFixed(1)+'점':'미관측')+' · 신규 '+(v.rank??'—')+'위 / 기존 '+(v.legacy_rank??'—')+'위</p>')+
@@ -234,7 +234,7 @@ function markup(r,currentOnly=false){const v=r?.v3_operational;if(!v&&currentOnl
   missingMarkup(v)+
   '<details><summary>'+(currentOnly?'평가항목별 점수':'신규 점수 세부 근거')+'</summary>'+Object.entries(MAXES).map(([a,limits])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(limits).map(([k,max])=>{const p=v.parts[a]?.[k];return '<li>'+esc(COMPONENTS[k])+': '+(p?p[0].toFixed(2):'0.00')+' / '+max.toFixed(2)+' · 확보 '+(p?p[1].toFixed(2):'0.00')+'점'+(p?' · '+esc(p[2]):' · 원천 미확보')+'</li>';}).join('')+'</ul>').join('')+
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
-  (currentOnly?'<p class="u-muted">투자성과·손절확률 미검증</p>':'<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p>')+'</section>';
+  (currentOnly?'<details class="u-price-source-details"><summary>가격·거래량 원천 검증 안내</summary>'+regularCloseMarkup(v)+sessionScopeMarkup(r)+'</details><p class="u-muted">투자성과·손절확률 미검증</p>':'<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p>')+'</section>';
 }
 function collectionStatus(record,currentDay){
  const bands=['100','95_to_under_100','90_to_under_95','80_to_under_90','70_to_under_80','60_to_under_70','under_60'];
