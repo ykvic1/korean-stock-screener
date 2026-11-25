@@ -1508,6 +1508,27 @@ function rankItems(model,core,tab='discover',market='all',query='',sort='stable'
  });
  return rows;
 }
+// Operating view: cache the unfiltered order per score criterion and data snapshot.
+// Search, market filters, TOP100 and pagination never rebuild the whole market.
+const liveRankCache=new WeakMap();
+function liveRankItems(model,core,market='all',query='',sort='ops',safeOnly=false,top100Only=false,obvOnly=false){
+ if(!model?.rows||!core)return [];
+ let cached=liveRankCache.get(model);
+ if(!cached){cached=new Map();liveRankCache.set(model,cached);}
+ if(!cached.has(sort))cached.set(sort,rankItems(model,core,'all','all','',sort));
+ const rows=cached.get(sort),search=String(query).trim().toLocaleLowerCase('ko-KR');
+ return rows.filter(x=>{
+  const r=x.r;
+  if(search)return (r.name+' '+r.code+' '+(r.sector||'')).toLocaleLowerCase('ko-KR').includes(search);
+  return (!obvOnly||obvLagCandidate(r))&&(!top100Only||(x.candidatePosition!==null&&x.candidatePosition<=100))&&
+   (market==='all'||r.market===market)&&(!safeOnly||!x.risk.unsafe);
+ });
+}
+const LIVE_DATA_FILES=new Set(['data.json','v3-weekly-rotation.json','v3-volume-obv-observed.json',
+ 'v3-current-price-technical-momentum.json','v3-industry-observed-relative-strength.json',
+ 'v3-dart-industry-classification.json','v3-operational-research-scores.json',
+ 'v3-trading-status.json','v3-regular-close-prices.json']);
+function liveDataFile(file){return LIVE_DATA_FILES.has(file);}
 function sampleQuant(x,core){
  if(!x.q)return '동일 기준일 퀀트 연구 없음';
  return core.quantGlance(x.q);
@@ -2678,7 +2699,7 @@ function historicalPricePath(r,data){
 }
 const api={VERSION,WEIGHTS,PILLARS,VOLUME_COMPONENTS,evaluateEPSValuation,validEPSValuation,applyPersonalValuation,stabilityProfile,compareStableResearchScores,volumeStatus,volumeParts,sustainedParticipationNote,observedVolumeEvidence,volumePathEvidence,volumeFactorEvidence,obvLagCandidate,applyObservedVolume,applyCurrentPriceReplay,esc,won,pct,eok,validDate,validPattern,evidence,structuralStopMarkup,
  technicalEvidence,momentumEvidence,technicalCandidate,pillarState,researchComposite,personalHundredFromComposite,personalHundred,scoreOverviewMarkup,scorePillarExplanation,issuerReadinessMarkup,subfactorHistoryMarkup,lastObservedFactorChip,comparisonPillarBars,fcfEvidenceStatus,fcfEvidenceMarkup,issuerCashflowGapMarkup,applyIssuerCashflowEvidence,matchCompareStock,resolveComparePair,coverageVector,coverageKey,coverageGroups,KSIC2_NAMES,sectorEvidenceMarkup,applyIndustryReference,riskState,rankItems,compareResearchScores,
- liveAreaKey,compareOperationalArea,sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
+ liveAreaKey,compareOperationalArea,liveRankItems,liveDataFile,sampleQuant,quantSourceQualityView,summary,marketFreshness,weeklyCoverageText,realSourceCoverageText,actualCashflowCoverageText,actualMoneyGapText,industryEvidenceView,industryPriceEvidenceView,fiveAreaCoverageView,retainedCoverageSummary,financialSubfactorCoverageView,applyRotationTechnicalBackfill,applyBulkFinancialPreview,applyActualCashflowPreview,applyCurrentObservedFinance,applyIssuerFactorLedger};
 Object.assign(api,{applyRegularClosePrices,displayPrice,priceLabel,currentPriceReferences,regularCloseReferencesMarkup,forwardValidationView,historicalPriceCoverageView,historicalPricePath});
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.V3UnifiedCore=api;
@@ -3005,7 +3026,9 @@ function draw(){
  const query=$('stockSearch').value.trim();
  const areaKey=liveAreaKey(sort),currentSort=liveService||sort==='ops'||!!areaKey;
  const coverageOnly=$('coverageGroup').value;
- const rows=rankItems(model,core,tab,$('market').value,query,sort,safeOnly,top100Only,obvOnly,coverageOnly);
+ const rows=liveService&&tab==='all'&&coverageOnly==='all'&&(sort==='ops'||areaKey)?
+  liveRankItems(model,core,$('market').value,query,sort,safeOnly,top100Only,obvOnly):
+  rankItems(model,core,tab,$('market').value,query,sort,safeOnly,top100Only,obvOnly,coverageOnly);
  $('filterNotice').textContent=query?
    '전체 시장 검색 결과 · TOP100·OBV·배점 그룹·선택 탭·위험 필터 제한 없음':
    (coverageOnly!=='all'?'5영역별 산출 가능 배점 구성이 같은 종목만 표시합니다. 세부원천·PIT·수익 검증을 보증하지 않습니다.'+(obvOnly?' OBV 연구 필터도 적용 중입니다.':''):
@@ -3070,6 +3093,14 @@ function draw(){
 
 }
 function present(data){
+ if(liveService){
+  const freshness=marketFreshness(data.date);
+  if(freshness.status==='invalid'||freshness.status==='future')throw Error('invalid_or_future_market_snapshot');
+  $('state').textContent='자료 기준 '+data.date;
+  $('state').className=freshness.status==='stale'?'u-state warning':'u-state';
+  if(compareShown)renderCompare();
+  draw();return;
+ }
  const metrics=summary(data,core);
  const freshness=marketFreshness(metrics.date);
  const observedVolumeCount=data.rows.filter(x=>observedVolumeEvidence(x.r)!==null).length;
@@ -3132,6 +3163,7 @@ async function load(){
  try{
   const [responses,observedCsv]=await Promise.all([
    Promise.all(files.map(async file=>{
+   if(liveService&&!liveDataFile(file))return null;
    try{const r=await root.fetch(file+'?v='+Date.now(),{cache:'no-store'});
     if(!r.ok)return null;
     if(file!=='data.json')return await r.json();
@@ -3147,7 +3179,7 @@ async function load(){
     return market;
    }catch(_){return null;}
    })),
-   root.fetch('v3-current-observed-all-listed.csv?v='+Date.now(),
+   liveService?Promise.resolve(null):root.fetch('v3-current-observed-all-listed.csv?v='+Date.now(),
               {cache:'no-store'}).then(r=>r.ok?r.text():null).catch(()=>null)
   ]);
   core=root.V3RankedCore;
@@ -3165,22 +3197,25 @@ async function load(){
   }
   weeklyCoverage=responses[6];
   applyRotationTechnicalBackfill(model,responses[7]);
-  applyBulkFinancialPreview(model,responses[9]);
+  if(!liveService)applyBulkFinancialPreview(model,responses[9]);
   realSavedCoverage=responses[10];
   actualCashflowCoverage=responses[11];
   actualMoneyCoverage=responses[21];
-  const attachedFcf=applyActualCashflowPreview(model,actualCashflowCoverage);
-  applyIssuerCashflowEvidence(model,responses[18],
-   attachedFcf>0?actualCashflowCoverage:null);
+  if(!liveService){
+   const attachedFcf=applyActualCashflowPreview(model,actualCashflowCoverage);
+   applyIssuerCashflowEvidence(model,responses[18],attachedFcf>0?actualCashflowCoverage:null);
+  }
   applyObservedVolume(model,responses[13],marketDigest);
   applyCurrentPriceReplay(model,responses[14]);
   // All 2,497 listed rows, same market day, independently replayed CSV.
   // Reject the entire overlay if any header, coverage, identity or subtotal
   // differs. Never double-add its FCF components to the already summed area.
-  applyCurrentObservedFinance(model,responses[16],observedCsv);
-  applyIssuerFactorLedger(model,responses[19]);
-  applyPersonalValuation(model,responses[20]);
-  if($('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
+  if(!liveService){
+   applyCurrentObservedFinance(model,responses[16],observedCsv);
+   applyIssuerFactorLedger(model,responses[19]);
+   applyPersonalValuation(model,responses[20]);
+  }
+  if(!liveService&&$('fiveAreaCoverage'))$('fiveAreaCoverage').innerHTML=
    fiveAreaCoverageView(responses[16],model.date,model.marketEligible,model)||
    '<p class="u-muted">영역별 실제 확보 현황을 확인할 수 없습니다. 자료 검증 후 표시합니다.</p>';
   const industry=industryEvidenceView(responses[12],model.date);

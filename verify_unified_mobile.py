@@ -30,6 +30,8 @@ with sync_playwright() as p:
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "[V3 workspace load]" in m.text else None)
+    live_requests = []
+    page.on("request", lambda req: live_requests.append(req.url.split("?")[0].rsplit("/", 1)[-1]))
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
     current = context.request.get(URL + "v3-operational-research-scores.json").json()
@@ -41,6 +43,11 @@ with sync_playwright() as p:
     assert not page.locator("#dataCollectionStatus").is_visible()
     assert page.locator("#stockSearch").evaluate("(e) => e.compareDocumentPosition(document.querySelector('#liveUpdates')) & Node.DOCUMENT_POSITION_FOLLOWING") 
     assert page.locator("#stockSearch").evaluate("(e) => e.compareDocumentPosition(document.querySelector('#krxCloseAlert')) & Node.DOCUMENT_POSITION_FOLLOWING")
+    for skipped in ("quant.json", "official.json", "v3-current-observed-all-listed.csv",
+                    "v3-issuer-last-observed-factors.json", "v3-forward-validation-results.json",
+                    "v3-krx-derived-backfill-progress.json", "v3-dart-cashflow-gap-summary.json"):
+        assert skipped not in live_requests, skipped
+    assert "v3-operational-research-scores.json" in live_requests
     assert page.locator("#liveProgressAsOf").inner_text() == current["asof"]
     assert page.locator("#liveProgressCoverage").inner_text() == (
         f'{sum(v["available"] >= 100 for v in rows.values()):,} / {len(rows):,}종목'

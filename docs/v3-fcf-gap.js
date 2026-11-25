@@ -1,6 +1,7 @@
 /* Source-only FCF missing-account diagnostics; never infer 0 CAPEX. */
 (function () {
   'use strict';
+  if(document.getElementById('liveScoreSort'))return;
   const el = document.getElementById('fcfMissingness');
   if (!el) return;
   const url = 'v3-dart-cashflow-gap-summary.json';
