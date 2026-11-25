@@ -265,6 +265,8 @@ def main():
         raw_money = (a.docs / "v3-actual-money-participation.json").read_bytes()
         reviews.update(money_terminal_reviews(report, read("v22-market-catalog.json"),
             json.loads(raw_money), json.loads(money_receipt.read_text()), raw_money, reviews))
+    from v3_v30b_final_source_review import review_remaining
+    reviews.update(review_remaining(report, read('v22-market-catalog.json'), read, reviews))
     if a.reviews and a.reviews.is_file():
         manual = json.loads(a.reviews.read_text())
         if set(manual) & set(reviews):

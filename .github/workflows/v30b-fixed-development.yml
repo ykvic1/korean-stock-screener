@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - v3_v30b_fixed_development.py
+      - v3_v30b_final_source_review.py
       - tests/test_v3_v30b_fixed_development.py
       - .github/workflows/v30b-fixed-development.yml
       - ops/v30b-development-scope.json
@@ -34,6 +35,7 @@ jobs:
           ref: 6608c3c091c3b7252c926975a87e9af650e41e8a
           path: original-roster
           persist-credentials: false
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
       - name: Unit tests for zero fallback and gap disposition
         run: python -m unittest discover -s tests -p 'test_v3_v30b_fixed_development.py' -v
       - name: Reconcile saved fixed-date sources and account each score component
