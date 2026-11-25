@@ -1,0 +1,121 @@
+name: V3.0b Fixed Cutoff Money Recovery
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/v30b-fixed-money-recovery.yml
+      - v3_actual_money_participation.py
+      - tests/test_v3_actual_money_participation.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v30b-fixed-money-recovery.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v30b-fixed-money-recovery
+  cancel-in-progress: false
+jobs:
+  replay:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - run: python -m unittest discover -s tests -p 'test_v3_actual_money_participation.py' -v
+      - uses: actions/checkout@v4
+        with:
+          ref: v30b-development-data-20261120
+          path: fixed-data
+      - name: Pin private revision from saved operational source receipt
+        id: source
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          d=json.loads(Path("docs/v3-actual-money-participation.json").read_text())
+          r=d["source_private_revision"]
+          if not re.fullmatch("[0-9a-f]{40}",r): raise ValueError("invalid_source_revision")
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f: f.write("revision="+r+"\n")
+          PY
+      - uses: actions/checkout@v4
+        with:
+          repository: ykvic1/korean-stock-private-data
+          ref: ${{ steps.source.outputs.revision }}
+          token: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          path: .money-private
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /derived/money-five-session/
+            /derived/money-five-session-repairs/
+            /derived/money-five-session-repair-checkpoint.json
+            /derived/money-calendar-weeks/
+            /derived/money-calendar-week-repairs/
+            /derived/money-calendar-week-repair-checkpoint.json
+            /derived/money-historical-checkpoint.json
+            /derived/money-forward-checkpoint.json
+            /derived/money-calendar-week-checkpoint.json
+      - name: Recompute only frozen-date data and compare actual coverage
+        env:
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          SOURCE_REVISION: ${{ steps.source.outputs.revision }}
+        run: |
+          set -euo pipefail
+          cp fixed-data/docs/v3-operational-research-scores.json "$RUNNER_TEMP/before-score.json"
+          python v3_actual_money_participation.py --private-snapshot .money-private --private-revision "$SOURCE_REVISION" --docs fixed-data/docs --fixed-development-cutoff
+          python v3_operational_research_score.py --docs fixed-data/docs
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          old=json.loads((Path(os.environ["RUNNER_TEMP"])/"before-score.json").read_text())
+          new=json.loads(Path("fixed-data/docs/v3-operational-research-scores.json").read_text())
+          money=json.loads(Path("fixed-data/docs/v3-actual-money-participation.json").read_text())
+          if old["asof"] != new["asof"] or new["asof"] != money["asof"] or new["asof"] != "2026-11-20": raise ValueError("cutoff_changed")
+          if money["daily_asof"] > new["asof"] or money["calendar_week_end"] > new["asof"] or money["weekly_session_end"] > new["asof"]: raise ValueError("post_cutoff_money")
+          if old["rows"].keys() != new["rows"].keys() or len(new["rows"]) != 2592: raise ValueError("roster_changed")
+          gains=losses=0
+          for code, row in new["rows"].items():
+              prior=old["rows"][code]
+              if (prior["name"],prior["market"]) != (row["name"],row["market"]): raise ValueError("identity_changed")
+              for area, parts in row["parts"].items():
+                  previous=prior["parts"][area]
+                  for key in previous.keys() | parts.keys():
+                      a=previous.get(key,[0,0])[1]; b=parts.get(key,[0,0])[1]
+                      if b>a+1e-6: gains+=1
+                      if b<a-1e-6: losses+=1
+                  if any(p[2]>new["asof"] for p in parts.values()): raise ValueError("future_component")
+          summary={"asof":new["asof"],"listed":len(new["rows"]),"component_weight_gains":gains,"component_weight_losses":losses,"before_100":sum(r["available"]>=100 for r in old["rows"].values()),"after_100":sum(r["available"]>=100 for r in new["rows"].values()),"provider_calls":0}
+          (Path(os.environ["RUNNER_TEMP"])/"fixed-money-result.json").write_text(json.dumps(summary,indent=2))
+          print(json.dumps(summary))
+          if losses: raise ValueError("frozen_observation_regression")
+          PY
+      - name: Delete private checkout before public output
+        if: always()
+        run: rm -rf -- .money-private
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fixed-money-result
+          path: ${{ runner.temp }}/fixed-money-result.json
+          if-no-files-found: warn
+      - name: Publish recovered evidence to fixed development branch only
+        if: success() && github.event_name != 'pull_request'
+        working-directory: fixed-data
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-actual-money-participation.json docs/v3-actual-money-coverage-summary.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Recover fixed November 20 money components from saved archive'
+          git push origin HEAD:v30b-development-data-20261120
