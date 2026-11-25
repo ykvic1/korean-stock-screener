@@ -2978,11 +2978,11 @@ function draw(){
    esc(r.code)+' · '+esc(r.market)+'</small></div>'+
    '<div class="u-card-kpis"><div class="u-card-price"><small>'+esc(priceLabel(r))+'</small><b>'+won(displayPrice(r))+'</b></div>'+
    '<div class="u-card-score"><small>'+(sort==='ops'?'신규 운영 R1 · 잠정':sort==='stable'?'안정형 보정 · 잠정':'V3 잠정점수 · 미검증')+'</small><strong>'+
-   (sort==='ops'?(ops?.score===null||ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
+   (sort==='ops'?(ops?.score===null?'0.0':ops?.score===undefined?'—':ops.score.toFixed(1)):sort==='stable'?(stable.score===null?'—':stable.score.toFixed(1)):
     (x.composite.earned===null?'—':x.composite.earned.toFixed(1)))+'<small> / 100</small></strong>'+
    (sort==='ops'?'<small>기존 '+(ops?.legacy_score===null||ops?.legacy_score===undefined?'미관측':ops.legacy_score.toFixed(1))+'점 · '+esc(ops?.asof||'기준일 미확인')+'</small>':sort==='stable'?'<small>V3 원점수 '+(x.composite.earned===null?'—':x.composite.earned.toFixed(1))+' · 보정 '+(stable.deduction>0?'-':stable.deduction<0?'+':'')+Math.abs(stable.deduction)+'</small>':
     sort==='personal'?'<small>개인환산 '+(x.personal100===null?'—':x.personal100.toFixed(1))+'점</small>':'')+'</div>'+
-   '<div class="u-card-coverage"><small>산출 배점</small><b>'+shownComposite.available.toFixed(1)+'/100</b></div></div>'+
+   '<div class="u-card-coverage"><small>확보 배점</small><b>'+shownComposite.available.toFixed(1)+'/100</b></div></div>'+
    '<div class="u-compact-pillars" aria-label="5개 영역별 잠정점수 · 자세한 기준일과 검증 상태는 종목 상세">'+
    shownComposite.pillars.map(p=>{
     const short={volume:'거래량',technical:'기술',financial:'재무',valuation:'가치',momentum:'모멘텀'}[p.key]||p.label;
