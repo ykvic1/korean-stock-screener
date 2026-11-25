@@ -101,6 +101,62 @@ class RevenueEvidenceTests(unittest.TestCase):
         self.assertIsNone(bulk._three_year_margin(source,YEARS))
         self.assertEqual(source,before)
 
+    def test_public_recovery_adds_only_missing_four_point_components(self):
+        from v3_current_observed_scorecard import (
+            independent_financial_supplement,FISCAL_COMPONENT_WEIGHTS)
+        codes=[f'{i:06d}' for i in range(33)]
+        catalog={'date':DAY,'listed_total':len(codes),'rows':[
+            {'code':c,'name':c,'market':'KOSPI'} for c in codes]}
+        history={'schema':bulk.SCHEMA,'asof':DAY,
+            'historical_PIT_source_certified':False,'fiscal_years':YEARS,
+            'listed_total':len(codes),'records':{c:record() for c in codes}}
+        fiscal={}
+        for c in codes:
+            components={k:{'observed_value':None,'candidate_points':None,
+                           'max_points':0,'peer_count':0}
+                        for k in FISCAL_COMPONENT_WEIGHTS}
+            components['revenue_cagr_3y_pct']={
+                'observed_value':12,'candidate_points':1,'max_points':4,'peer_count':33}
+            components['operating_roa_3y_pct']={
+                'observed_value':2,'candidate_points':1,'max_points':4,'peer_count':33}
+            fiscal[c]={'code':c,'market':'KOSPI','asof':DAY,'source_fiscal_years':YEARS,
+                       'unverified_components':components,
+                       'financial_candidate_points':2,'financial_available_max':8,
+                       'valuation_candidate_points':None,'valuation_available_max':0,
+                       'combined_provisional_points':2,'combined_available_max':8,
+                       'confirmed_v3_score':None,'scoring_certified':False}
+        missing=lambda: {'observed_value':None,'candidate_points':None,'max_points':0,'peer_count':0}
+        for c in codes[:3]:
+            fiscal[c]['unverified_components']['revenue_cagr_3y_pct']=missing()
+            fiscal[c]['financial_candidate_points']=1
+            fiscal[c]['financial_available_max']=4
+            fiscal[c]['combined_provisional_points']=1
+            fiscal[c]['combined_available_max']=4
+        # A future receipt and an absent year are not recovered.
+        history['records'][codes[1]]['years']['2022']['CFS']['receipt_id']='20990318000001'
+        del history['records'][codes[2]]['years']['2022']
+        # A same-receipt balance identity can independently recover ROA.
+        for year in YEARS:
+            stmt=history['records'][codes[0]]['years'][str(year)]['CFS']
+            stmt['ambiguous']=[]
+            stmt['values'].update(assets=100,liabilities=40,equity=60,operating_income=5)
+        history['records'][codes[0]]['years']['2023']['CFS']['values']['assets']=None
+        fiscal[codes[0]]['unverified_components']['operating_roa_3y_pct']=missing()
+        fiscal[codes[0]].update(financial_candidate_points=None,financial_available_max=0,
+                              combined_provisional_points=0,combined_available_max=0)
+        before=copy.deepcopy((history,fiscal))
+        result=independent_financial_supplement(catalog,history,{'asof':DAY,'records':[]},fiscal)
+        self.assertEqual(result[codes[0]]['financial_available_max'],8)
+        self.assertEqual(result[codes[0]]['unverified_components']['operating_roa_3y_pct']['observed_value'],5)
+        self.assertEqual(result[codes[0]]['unverified_components']['revenue_cagr_3y_pct']['max_points'],4)
+        self.assertTrue(all(result[c]==fiscal[c] for c in codes[1:]))
+        self.assertEqual((history,fiscal),before)
+        self.assertEqual(independent_financial_supplement(catalog,history,{'asof':'2000-01-01'},fiscal),fiscal)
+        bad=copy.deepcopy(history)
+        bad['records'][codes[0]]['years']['2023']['CFS']['ambiguous']=['assets']
+        blocked=independent_financial_supplement(catalog,bad,{'asof':DAY},fiscal)
+        self.assertEqual(blocked[codes[0]]['unverified_components']['operating_roa_3y_pct']['max_points'],0)
+
     def test_missing_year_invalid_receipt_and_nonpositive_revenue_remain_unobserved(self):
         for kind in ('absent','future','wrong_fiscal','zero','negative','bool','shorter'):
             with self.subTest(kind=kind):
