@@ -2619,7 +2619,7 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.ok(retained.every(unified.liveDataFile));
  for(const file of ['quant.json','official.json','v3-current-observed-all-listed.csv','v3-issuer-last-observed-factors.json','v3-forward-validation-results.json'])assert.equal(unified.liveDataFile(file),false);
  const core={stopDistance:()=>10,highRisk:()=>false};
- const fixture={rows:[{r:{code:'000001',name:'Alpha',market:'KOSPI',v3_operational:{score:60,rank:1,available:90,areas:{volume:{points:5,available:25}}}}},{r:{code:'000002',name:'Beta',market:'KOSDAQ',v3_operational:{score:55,rank:2,available:80,areas:{volume:{points:12,available:25}}}}}]};
+ const fixture={rows:[{r:{code:'000001',name:'Alpha',market:'KOSPI',price_date:'2026-11-24',v3_operational:{score:60,rank:1,available:90,areas:{volume:{points:5,available:25}}}}},{r:{code:'000002',name:'Beta',market:'KOSDAQ',price_date:'2026-11-24',v3_operational:{score:55,rank:2,available:80,areas:{volume:{points:12,available:25}}}}}]};
  const expected=unified.rankItems(fixture,core,'all','all','','area:volume');
  const first=unified.liveRankItems(fixture,core,'all','','area:volume');
  assert.deepEqual(first,expected);
