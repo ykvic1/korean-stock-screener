@@ -98,7 +98,7 @@ def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_sour
 
 
 def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=None,
-           official_2024_comparative=None, *, short_period_codes=()):
+           official_2024_comparative=None, *, short_period_codes=(), public_components=False):
     """Rebuild the same-market revenue peer cohort from saved actual values."""
     day=catalog['date']
     summary={'provider_calls':0,'eligible_revenue_issuers':0,'independent_revenue_only_issuers':0,
@@ -136,6 +136,13 @@ def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=
     parts={c:{'points':round(round(4*_midrank(v['growth'],peers[members[c]],1),6)*3.5/4,6),
               'available':3.5,'asof':day}
            for c,v in values.items() if len(peers[members[c]])>=30}
+    if public_components:
+        # Expose the exact unscaled source value and peer observation count.
+        # The default operational 3.5-point output is unchanged.
+        parts={c:{'observed_value':v['growth'],
+                  'candidate_points':round(4*_midrank(v['growth'],peers[members[c]],1),6),
+                  'max_points':4,'peer_count':len(peers[members[c]])}
+               for c,v in values.items() if len(peers[members[c]])>=30}
     summary.update(status='four_observed_revenue_years_only',eligible_revenue_issuers=len(values),
         independent_revenue_only_issuers=sum(v['independent_of_missing_profit'] for v in values.values()),
         verified_2022_supplement_issuers=sum(v['official_2022_supplement'] for v in values.values()),
