@@ -9,7 +9,8 @@ on:
     # PRIOR KST calendar day. Actual source daily CSVs were refreshed after
     # 21:30 on multiple recently observed sessions (e.g. 23:19 on Nov 10).
     # This reduces the risk of hashing a still-changing after-market source.
-    - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: prior weekday data
+    - cron: '5 16 * * 1-5' # 01:05 KST Tue-Sat: prior weekday data
+    - cron: '30 17 * * 1-5' # 02:30 KST Tue-Sat: recovery
     - cron: '30 22 * * 1-5' # 07:30 KST Tue-Sat: recover unpublished data
   # Run in the next day's early hours after BOTH KRX and NXT evening
   # sessions. Scheduling later lets the daily provider settle, but does NOT
@@ -103,7 +104,17 @@ jobs:
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.mode }}" == "publish" ]]; then
             python v3_aftermarket_cutoff.py --manifest batch-plan/manifest.json --published-snapshot docs/data.json
           fi
-          echo "matrix=$(python -c 'import json;print(json.dumps(json.load(open("batch-plan/matrix.json")),separators=(",",":")))')" >> "$GITHUB_OUTPUT"
+          # Keep 100-stock receipt boundaries and priority ordering, but amortize
+          # runner startup / pip / checkout over up to three consecutive parts.
+          python - <<'PY'
+          import json, os
+          parts = [x["part"] for x in json.load(open("batch-plan/matrix.json"))["include"]]
+          assert len(parts) == len(set(parts))
+          groups = [{"group": i // 3, "parts": " ".join(map(str, parts[i:i+3]))}
+                    for i in range(0, len(parts), 3)]
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write("matrix="+json.dumps({"include":groups},separators=(",",":"))+"\n")
+          PY
       - uses: actions/upload-artifact@v4
         if: steps.census.outputs.already_published != 'true'
         with:
@@ -128,23 +139,33 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
       - run: pip install -r requirements.txt
       - uses: actions/download-artifact@v4
         with:
           name: market-code-plan-${{ github.run_id }}
           path: batch-plan
-      - name: Analyze this 100-stock chunk
+      - name: Analyze up to three independent 100-stock chunks
         env:
-          CHUNK_INDEX: ${{ matrix.part }}
+          CHUNK_INDICES: ${{ matrix.parts }}
         shell: bash
         run: |
           set -euo pipefail
-          python full_market_batch.py scan \
-            --manifest batch-plan/manifest.json \
-            --part "$CHUNK_INDEX" --out batch-parts --workers 2
+          failed=0
+          for part in $CHUNK_INDICES; do
+            if ! python full_market_batch.py scan \
+              --manifest batch-plan/manifest.json \
+              --part "$part" --out batch-parts --workers 2; then
+              echo "::error::market_part_failed_$part"
+              failed=1
+            fi
+          done
+          exit "$failed"
       - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
         with:
-          name: market-part-${{ github.run_id }}-${{ matrix.part }}
+          name: market-part-${{ github.run_id }}-group-${{ matrix.group }}
           path: batch-parts/part-*.json
           if-no-files-found: error
           retention-days: 1
