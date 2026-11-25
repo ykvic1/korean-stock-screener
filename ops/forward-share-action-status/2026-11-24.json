@@ -1,0 +1,29 @@
+{
+  "schema": "v3-forward-krx-share-action-review-2",
+  "previous_session": "2026-11-23",
+  "session": "2026-11-24",
+  "status": "adjacent_share_counts_reviewed",
+  "previous_source_sha256": {
+    "KOSPI": "170a102097d55290d32b9ad67d996d218601b39afd3f2d3b80de2527e9cba857",
+    "KOSDAQ": "6351aee787d00c9ccee00eb30b2cb734422f77b800243e74e58602a55a243972"
+  },
+  "current_source_sha256": {
+    "KOSPI": "511af8895d15a6911b0568596db78704ae79671ff811698035d7bd3ab16fb0e8",
+    "KOSDAQ": "392c5aad02cefd9572469f16a0ed26ccaa788bfad5e81c971e90ee15bbaff3ea"
+  },
+  "reviewed_session_notices_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "compared_distinct_codes": 2772,
+  "states": {
+    "unchanged_share_count": 2761,
+    "share_count_unavailable": 0,
+    "identity_changed": 0,
+    "first_seen": 1,
+    "absent": 0,
+    "change_needs_notice": 10,
+    "notice_mismatch": 0,
+    "notice_matched": 0
+  },
+  "notice_codes_absent_from_both_panels": 0,
+  "full_corporate_action_history_certified": false,
+  "performance_validated": false
+}

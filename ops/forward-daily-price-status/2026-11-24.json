@@ -1,0 +1,28 @@
+{
+  "schema": "v3-forward-krx-daily-price-evidence-1",
+  "date": "2026-11-24",
+  "status": "archived_privately",
+  "source_sha256": {
+    "KOSPI": "511af8895d15a6911b0568596db78704ae79671ff811698035d7bd3ab16fb0e8",
+    "KOSDAQ": "392c5aad02cefd9572469f16a0ed26ccaa788bfad5e81c971e90ee15bbaff3ea"
+  },
+  "recorded_at_utc": "2026-11-25T03:56:47.878647+00:00",
+  "daily_row_count": 2772,
+  "market_price_counts": {
+    "KOSPI": {
+      "traded": 910,
+      "no_reported_volume": 25,
+      "price_unavailable": 0
+    },
+    "KOSDAQ": {
+      "traded": 1750,
+      "no_reported_volume": 87,
+      "price_unavailable": 0
+    }
+  },
+  "unavailable_listed_shares_count": 0,
+  "price_source": "KRX_OFFICIAL_STOCK_DAILY_OHLC",
+  "adjusted_history_certified": false,
+  "corporate_actions_certified": false,
+  "performance_validated": false
+}
