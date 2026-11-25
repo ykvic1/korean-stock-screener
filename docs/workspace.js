@@ -3053,7 +3053,7 @@ function draw(){
    '<div class="u-card-meta"><span>시총 '+(stable.capitalEok===null?'미확인':Math.round(stable.capitalEok).toLocaleString('ko-KR')+'억')+'</span>'+
    '<span>당일 거래대금 '+(stable.tradingEok===null?'미확인':stable.tradingEok.toLocaleString('ko-KR',{maximumFractionDigits:1})+'억')+'</span>'+
    '<span>업종 '+esc(r.v3_sector_research?.name||'미확인')+'</span>'+
-   '<span>점수 관측일 '+esc(ops?.asof||x.composite.asof||'미확인')+
+   '<span>점수 관측일 '+esc(ops?.asof||(!liveService?x.composite.asof:null)||'미확인')+
    (!liveService&&x.composite.stalePillars?' · 이전 관측 '+x.composite.stalePillars+'영역':'')+
    '</span></div>'+
    '<div class="u-tags">'+(tradingLabel?'<span class="u-halt-badge">'+esc(tradingLabel)+'</span>':'')+
@@ -3189,6 +3189,15 @@ async function load(){
   // operational-only issuers so all listed names remain searchable/rankable.
   const operationalLink=root.V3OperationalScore?.attachAllListed(model,responses[22])||
    {linked:0,unpriced:0};
+  if(liveService){
+   const attached=model.rows.map(x=>x.r.v3_operational).filter(Boolean);
+   const sameDay=operationalLink.linked===model.marketEligible&&!operationalLink.stale;
+   const day=responses[22]?.asof;
+   $('liveProgressAsOf').textContent=attached.length&&validDate(day)?day+(sameDay?'':' · 동기화 대기'):'자료 대기';
+   for(const [id,threshold] of [['liveProgressCoverage90',90],['liveProgressCoverage',100]])
+    $(id).textContent=sameDay?attached.filter(v=>v.available>=threshold).length.toLocaleString('ko-KR')+
+     ' / '+model.marketEligible.toLocaleString('ko-KR')+'종목':'자료 대기';
+  }
   const tradingLink=root.V3TradingStatus?.attach(model,responses[23]);
   const regularCloseLinked=applyRegularClosePrices(model,responses[24],marketDigest);
   if($('regularCloseNote')){
