@@ -18,6 +18,18 @@
   "forward_performance_required_for_release": false,
   "performance_validated": false,
   "v30b_release_ready": false,
+  "operational_release_policy": {
+    "decision_workflow": ".github/workflows/v30b-frozen-operational-release.yml",
+    "decision_code": "v3_v30b_operational_release.py",
+    "baseline_commit": "6608c3c091c3b7252c926975a87e9af650e41e8a",
+    "baseline_asof": "2026-11-20",
+    "all_listed_full_coverage_required": false,
+    "missing_inputs_remain_unscored": true,
+    "post_cutoff_data_reopens_development": false,
+    "remaining_fixed_snapshot_verification_is_research_followup": true,
+    "legacy_v30b_release_ready_means_investment_certification_not_operational_release": true,
+    "daily_operational_audit_is_not_a_development_completion_gate": true
+  },
   "first_scheduled_operations_session_kst": "2026-11-23",
   "operational_development_acceptance": {
     "status": "passed_on_frozen_baseline",
