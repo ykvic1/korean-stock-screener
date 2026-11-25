@@ -53,6 +53,11 @@ from v3_dart_parent_equity_recovery import (
     overlay as overlay_reported_parent_equity, ParentEquityRecoveryError,
 )
 
+from v3_dart_original_revenue_recovery import (
+    OUTPUT as ORIGINAL_REVENUE_OUTPUT, REVIEWED as REVIEWED_REVENUE_OUTPUT,
+    overlay as overlay_original_revenue,
+)
+
 SCHEMA="v3-current-day-all-listed-observed-plus-dart-fcf-0.3"
 POINT_BUDGET={"volume":20,"technical":25,"financial":20,
               "valuation":20,"momentum":15}
@@ -86,7 +91,8 @@ class LivePartialScorecardError(ValueError):
 
 def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
                    owner_profit_source=None,owner_profit_priority=None,
-                   parent_equity_source=None,parent_equity_cash=None):
+                   parent_equity_source=None,parent_equity_cash=None,
+                   original_revenue_source=None,reviewed_revenue_source=None):
     """Use ONLY the already-public audited DART files from this market close.
 
     A lagged seven-day technical rotation must not hide independently current
@@ -212,12 +218,20 @@ def finance_source(catalog,history,parts,annual,audit,*,weekly=None,
             existing["values"]["owners_profit"]=record["owners_profit_krw"]
             profit_changed.add(code)
         supplemented=audited
-    if profit_changed or equity_changed:
+    replay_history=history
+    revenue_changed=set()
+    if parts==expected and (original_revenue_source is not None or reviewed_revenue_source is not None):
+        try:
+            replay_history,revenue_changed=overlay_original_revenue(
+                catalog,history,original_revenue_source,reviewed=reviewed_revenue_source)
+        except (KeyError,TypeError,ValueError,AttributeError):
+            raise LivePartialScorecardError('untrusted_official_original_revenue_evidence') from None
+    if profit_changed or equity_changed or revenue_changed:
             # Reuse the existing market-wide percentile engine so new
             # profit peers and old peers are normalized consistently.
             # The new book lives in memory only and has a separately
             # audited official 2025 supplemental receipt provenance.
-            replayed=research_parts(history,catalog,supplemented,
+            replayed=research_parts(replay_history,catalog,supplemented,
                                     include_independent_earnings=owner_profit_source is not None)
             refreshed={r["code"]:r for r in replayed["rows"]}
             if len(refreshed)!=len(replayed["rows"]):
@@ -699,7 +713,11 @@ def load_financial_source(root, catalog, *, history=None, parts=None, weekly=Non
             owner_profit_source=profit_source,
             owner_profit_priority=profit_priority,
             parent_equity_source=parent_equity_source,
-            parent_equity_cash=parent_equity_cash)
+            parent_equity_cash=parent_equity_cash,
+            original_revenue_source=(read(ORIGINAL_REVENUE_OUTPUT)
+                                     if (root/ORIGINAL_REVENUE_OUTPUT).is_file() else None),
+            reviewed_revenue_source=(read(REVIEWED_REVENUE_OUTPUT)
+                                     if (root/REVIEWED_REVENUE_OUTPUT).is_file() else None))
     except (OSError,ValueError,KeyError) as error:
         if isinstance(error,LivePartialScorecardError):
             raise
