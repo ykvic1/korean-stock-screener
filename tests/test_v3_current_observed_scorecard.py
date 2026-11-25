@@ -257,10 +257,16 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         for mode in ("write", "verify"):
             self.assertIn("v3_dart_cashflow_gap_audit.py --mode " + mode +
                           " --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json", flow)
-        for html in ("index.html","workspace.html"):
+        for html in ("index.html","workspace.html","research.html"):
             text=(base/"docs"/html).read_text(encoding="utf8")
-            self.assertIn('href="v3-personal-adjusted-scores.csv"',text)
-            self.assertIn('시총 보정 점수 CSV (손절은 참고만)',text)
+            if html == "index.html":
+                self.assertIn('href="v3-operational-research-scores.csv"',text)
+                self.assertIn('현재 점수 CSV',text)
+                self.assertIn('href="research.html"',text)
+                self.assertNotIn('href="v3-personal-adjusted-scores.csv"',text)
+            else:
+                self.assertIn('href="v3-personal-adjusted-scores.csv"',text)
+                self.assertIn('시총 보정 점수 CSV (손절은 참고만)',text)
             self.assertNotIn('당일 3영역 잠정점수 CSV',text)
             self.assertNotIn('href="v3-all-listed-scores.csv"',text)
 

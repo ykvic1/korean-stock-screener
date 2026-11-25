@@ -1185,9 +1185,8 @@ for(const page of [html,entry]){
 assert.ok(source.includes("status==='reference_only'")&&
  source.includes("status==='reference_only'?'neutral_research_only'"),
  'new stop-reference-only CSV must reconcile without discarding financial evidence');
-assert.ok(entry.includes('시총 보정 점수 CSV (손절은 참고만)')&&
- html.includes('시총 보정 점수 CSV (손절은 참고만)'),
- 'both routes must not advertise a removed stop-loss score adjustment');
+assert.ok(entry.includes('현재 점수 CSV')&&html.includes('시총 보정 점수 CSV (손절은 참고만)'),
+ 'live route exposes current score export; research route retains its historical export');
 assert.ok(css.includes('.u-ma-cross-note'), 'mobile MA crossing evidence needs a separate readable line');
 assert.ok(css.includes('.u-score-row-explain .u-parts>div.u-factor-unverified')&&
  css.includes('background:#fff5f6;color:#244258')&&
@@ -2600,4 +2599,16 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.equal(JSON.stringify(ref),JSON.stringify({...source,price:100,stop_line:94,stop_pct:-6}),
   'source object remains unchanged');
  console.log('Personal stability overlay: cap <=5, stop reference unscored, missing retained PASS');
+}
+
+// Live maintenance: use only current operating area points, not legacy or normalized points.
+{
+ const make=(code,score,points,available)=>({r:{code,v3_operational:{score,available:100,areas:{volume:{points,available}}}}});
+ const a=make('000001',70,5,25),b=make('000002',55,12,15),c=make('000003',80,12,25),d=make('000004',null,0,0);
+ assert.equal(unified.liveAreaKey('area:volume'),'volume');
+ assert.equal(unified.liveAreaKey('area:constructor'),null);
+ assert.deepEqual([a,b,d,c].sort((x,y)=>unified.compareOperationalArea(x,y,'volume')).map(x=>x.r.code),['000003','000002','000001','000004']);
+ assert.equal(unified.compareOperationalArea({r:{code:'000005'}},a,'volume')>0,true);
+ for(const key of ['volume','technical','financial','valuation','momentum'])assert.ok(entry.includes('data-score-sort="area:'+key+'"'));
+ assert.ok(entry.includes('data-score-sort="ops"'));
 }

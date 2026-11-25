@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10263c">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'self'; object-src 'none'; form-action 'none'">
+<title>한국주식 통합 스크리너 · V3 연구 워크스페이스</title>
+<link rel="stylesheet" href="workspace.css?v=v30b-20261118-stock-detail-dialog">
+<script src="v3-ranking.js?v=alnum-20261112" defer></script>
+<script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
+<script src="operational-score.js?v=r1e-stop-unscored-alnum-session-scope-20261117-closeout&amp;source=regular-close-weekly-history" defer></script>
+<script src="v3-trading-status.js?v=20261110-halt-display-alnum-20261112" defer></script>
+<script src="workspace.js?v=v30b-20261120-close-digest" defer></script>
+<script src="v3-krx-progress.js" defer></script>
+<script src="v3-dart-receipt-progress.js" defer></script>
+<script src="v3-data-readiness.js" defer></script>
+<script src="v3-fcf-gap.js" defer></script>
+<script src="v3-live-progress.js?v=v30b-20261112-krx-cause-unproven" defer></script>
+</head>
+<body id="unifiedApp">
+<header class="u-header">
+ <div class="u-wrap u-header-inner">
+  <div><div class="u-eyebrow">KOREAN STOCK RESEARCH</div>
+   <h1>한국주식 스크리너 <span class="u-version">V3 BETA</span></h1>
+   <p>종목 탐색부터 재무·차트·위험 분석까지</p></div>
+  <div class="u-header-actions"><button type="button" id="reload">새로고침</button><details class="u-header-more"><summary>다운로드 · 메뉴</summary><div class="u-header-more-items"><a href="v3-personal-adjusted-scores.csv" download>시총 보정 점수 CSV (손절은 참고만)</a><a href="reports/latest.xlsx" download>전체 엑셀</a><a href="patch-notes.html">변경 내역</a><a href="legacy.html">이전 화면</a></div></details></div>
+ </div>
+</header>
+<main class="u-wrap">
+ <section class="u-live-updates" id="liveUpdates" aria-label="최근 공개 자료 업데이트">
+  <div class="u-live-updates-header">
+   <strong>관측 현황 <small>실시간 아님 · 미검증</small></strong>
+   <a href="patch-notes.html">업데이트 기록</a>
+  </div>
+  <div class="u-live-updates-grid">
+   <div><span>시장 자료 기준일</span><b id="liveProgressAsOf">확인 중</b></div>
+   <div><span>90점 이상 배점 확보 종목</span><b id="liveProgressCoverage90">확인 중</b></div>
+   <div><span>100점 배점 확보 종목</span><b id="liveProgressCoverage">확인 중</b></div>
+   <div><span>DART 과거 수집</span><b id="liveProgressDart">확인 중</b></div>
+  </div>
+  <details class="u-live-disclaimer"><summary>자료 검증 안내</summary><p id="liveProgressNotice" class="u-live-updates-note" role="status" aria-live="polite">공개 집계의 기준일과 확보 상태를 확인 중입니다. 정식 투자점수는 아직 인증되지 않았습니다.</p></details>
+ </section>
+<p id="krxCloseAlert" class="u-krx-price-alert" role="status" aria-live="polite">가격 원천 검증 중 · 네이버 FChart 일봉과 KRX 일별 종가의 불일치가 관측됐으나 원인은 미확인입니다. 정규장 종가·거래량과 동일하다고 보장되지 않습니다. <a href="v3-krx-saved-close-crosscheck.json">공식 KRX 대조 집계</a></p>
+<p id="dataCollectionStatus" class="u-research-note" role="status">초기 데이터 수집 마감 상태 확인 중</p>
+<p id="operationalModelNote" class="u-research-note">R1 잠정 운영모델 연결 중</p>
+<p id="regularCloseNote" class="u-research-note" role="status" hidden></p>
+<p id="tradeStatusNote" class="u-research-note">거래정지 여부 자료 확인 중</p>
+<p class="u-research-note"><a href="v3-operational-research-scores.csv" download>신규 운영점수 CSV</a> · 기존 점수는 정렬 기준에서 비교할 수 있습니다.</p>
+<section class="u-controls" aria-label="종목 검색 및 필터">
+  <label class="u-quick-search" for="stockSearch">종목 검색
+    <input id="stockSearch" type="search" placeholder="종목명 또는 코드 검색 (예: 삼성전자, 005930)" autocomplete="off" spellcheck="false">
+   </label>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><span id="filterNotice"></span></div>
+  <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
+   <button data-tab="discover" type="button" aria-pressed="true">우선 관찰</button>
+   <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
+   <button data-tab="rsi" type="button" aria-pressed="false">RSI 전환</button>
+   <button data-tab="quant" type="button" aria-pressed="false">퀀트 자료</button>
+   <button data-tab="all" type="button" aria-pressed="false">전 종목</button>
+  </div>
+  <details class="u-extra-filters" id="advancedFilters"><summary>상세 필터 · 확보 배점</summary>
+  <div class="u-filters"><label class="u-coverage-control" for="coverageGroup">기존 모델 확보배점 필터
+    <select id="coverageGroup" aria-label="5영역별 관측 가능 배점이 같은 종목 묶음"><option value="all">전체 배점 그룹</option></select>
+   </label>
+   <label>시장
+    <select id="market"><option value="all">코스피 + 코스닥</option>
+     <option value="KOSPI">코스피</option><option value="KOSDAQ">코스닥</option></select></label>
+   <label>정렬 기준
+    <select id="sort"><option value="ops" selected>신규 잠정 운영점수 R1</option><option value="stable">안정형 보정순 (시총만 보정)</option><option value="score">V3 잠정 원점수순</option><option value="personal">개인 연구용 100점 환산순</option>
+     <option value="research">패턴·위험 우선</option>
+     <option value="risk">손절거리순</option></select></label>
+   <label class="u-check"><input type="checkbox" id="saferOnly"> 손절거리 3~15% · 위험 경고 제외</label>
+  </div></details>
+ </section>
+ <section class="u-results" aria-label="통합 종목 분석">
+  <div class="u-results-head"><div><h2>종목 탐색</h2><p id="resultCount" role="status" aria-live="polite">자료 로드 중…</p></div>
+  <p class="u-research-note">잠정점수 · 미인증</p></div>
+  <div class="u-content">
+   <div class="u-list-area"><div id="stockList" class="u-stock-list"><div class="u-empty">시장 분석 데이터를 확인하고 있습니다.</div></div>
+    <button id="more" type="button" hidden>다음 20종목 보기</button></div>
+  </div>
+ </section>
+ <dialog id="detail" class="u-detail" aria-labelledby="detailTitle">
+  <header class="u-detail-top">
+   <div><h2 id="detailTitle" tabindex="-1"></h2><p id="detailIdentity"></p></div>
+   <div class="u-detail-nav" role="group" aria-label="종목 상세 이동">
+    <button id="detailPrevious" type="button" aria-label="이전 종목">‹ 이전</button>
+    <span id="detailPosition" role="status"></span>
+    <button id="detailNext" type="button" aria-label="다음 종목">다음 ›</button>
+    <button id="detailClose" type="button" aria-label="분석 닫기">닫기</button>
+   </div>
+  </header>
+  <div id="detailBody" class="u-detail-body"></div>
+ </dialog>
+ <details class="u-compare" id="stockCompare" aria-label="종목 2개 비교">
+  <summary class="u-compare-toggle"><strong>종목 2개 비교</strong><span>필요할 때 펼치기 · 개인 연구용</span></summary>
+  <form id="compareForm" class="u-compare-form">
+   <label for="compareCodeA">종목 A <input id="compareCodeA" type="search" maxlength="40" placeholder="예: 삼성전자 또는 005930" autocomplete="off"></label>
+   <label for="compareCodeB">종목 B <input id="compareCodeB" type="search" maxlength="40" placeholder="예: SK하이닉스 또는 000660" autocomplete="off"></label>
+   <button id="compareRun" type="submit">2종목 비교하기</button>
+   <button id="compareReset" type="button">선택 초기화</button>
+  </form>
+  <p id="compareStatus" class="u-compare-status" role="status" aria-live="polite">정확한 종목명이나 6자리 코드를 입력하면 두 종목을 비교할 수 있습니다. 종목 상세의 ‘비교에 담기’도 사용할 수 있어요.</p>
+  <div id="compareResults" hidden></div>
+ </details>
+ <details class="u-research-panel" id="researchPanel"><summary><strong>데이터 수집 · 검증 현황</strong><span>KRX · DART · 과거 수익률 검증</span></summary><div class="u-research-body">
+ <details class="u-intro u-history" id="forwardValidationCoverage">
+  <summary class="u-intro-top"><span class="u-section-heading">실측 보유기간 검증 준비</span><span class="u-history-value" aria-live="polite">자료 확인 중</span></summary>
+  <div class="u-history-body"><p class="u-source">자료 확인 중</p></div>
+ </details>
+ <details class="u-intro u-history" id="historicalPriceCoverage">
+  <summary class="u-intro-top"><span class="u-section-heading">과거 가격수익률 산출 현황</span><span class="u-history-value" aria-live="polite">12개월 표본 확인</span></summary>
+  <div class="u-history-body"><p class="u-source">자료 확인 중</p></div>
+ </details>
+ <details class="u-intro" id="marketSummary">
+  <summary class="u-intro-top"><span class="u-section-heading" id="sourceTitle">오늘의 시장 관찰 <small>자세히 보기</small></span>
+  <span id="state" class="u-state" role="status" aria-live="polite">데이터 연결 중…</span></summary>
+  <div class="u-stats">
+   <div><span>가격 분석 종목</span><strong id="statAnalyzed">—</strong></div>
+   <div><span>패턴·전환 관찰</span><strong id="statWatch">—</strong></div>
+   <div><span>기술항목 점수 산출</span><strong id="statTechnical">—</strong></div>
+   <div><span>V3 잠정점수 산출 종목</span><strong id="statV3">확인 중</strong></div>
+  </div>
+  <p id="sourceNotes" class="u-source">수집 원장으로 확인한 잠정 관측자료만 표시하며 정규장·수정주가·공시시점 독립 인증은 완료되지 않았습니다. 외국인·기관 수급 등 미확보 관측점수는 비워둡니다. 산업은 점수에서 제외하며 현재 DART 업종과 20·60·120일 상대강도를 참고정보로 제공합니다. 재무·가치는 동일 기준일에 확보된 공시 근거로 잠정 계산하며 투자용 확정점수가 아닙니다.</p>
+ </details>
+ 
+ <details class="u-industry-research u-intro" id="industryResearch">
+   <summary><strong>산업 실제 실적 관측 · 표본 확산</strong><small id="industryResearchCount">자료 확인 중</small></summary>
+   <div id="industryResearchContent">
+     <p class="u-muted">공식 DART 업종코드 및 실적 자료를 확인하고 있습니다. 산업은 점수 배점에서 제외됩니다. 업종 강도는 별도 참고정보입니다.</p>
+   </div>
+   <p class="u-source"><a href="v3-industry-observed-profit-breadth.csv" download>업종별 영업이익 개선율·확보율 CSV ↓</a> · <a href="v3-industry-saved-profit-gap-issuers.csv" download>업종 실적 비교 미확보 종목·원인 CSV ↓</a> · 현재 DART 회사업종/저장 공시원장 기준이며 공식 KRX 산업 15점이 아닙니다.</p>
+ </details>
+ <details class="u-intro" id="dataReadiness">
+  <summary class="u-intro-top"><span class="u-section-heading">V3 데이터 확보 현황 <small>자세히 보기</small></span>
+   <span id="readinessStatus" class="u-state" role="status" aria-live="polite">실측 자료 확인 중…</span></summary>
+  <div class="u-stats" aria-label="과거 자료 및 당일 관측 확보 현황">
+   <div><span>DART 4개년 공시 확보 기록 (종목·연도)</span><strong id="readinessFinancial">미확인</strong></div>
+   <div><span>기술분석 관측 종목</span><strong id="readinessPrice">미확인</strong></div>
+   <div><span>3개년 FCF 접수번호 대조 종목</span><strong id="readinessCashflow">미확인</strong></div>
+   <div><span>재무영역 일부 근거 관측</span><strong id="readinessFinancialIssuers">미확인</strong></div>
+   <div><span>가치평가영역 일부 근거 관측</span><strong id="readinessValuationIssuers">미확인</strong></div>
+   <div><span>5영역 100점 배점 근거 관측 (미인증)</span><strong id="readinessProvisional100">미확인</strong></div>
+   <div><span>정식 100점 검증 종목</span><strong id="readinessCertified">미확인</strong></div>
+  </div>
+  <div id="fiveAreaCoverage" class="u-coverage-placeholder" aria-label="영역별 데이터 관측률">5개 영역별 실제 확보율 확인 중…</div>
+  <details class="u-fcf-gap">
+   <summary>3개년 FCF 미확보 원인 · 실제 공시 계정 기준</summary>
+   <p id="fcfMissingness" class="u-source" role="status" aria-live="polite">현금흐름 자료 누락 원인 확인 중…</p>
+  </details>
+  <details class="u-fcf-gap" id="quantSourceQuality">
+   <summary id="quantQualityStatus">9년 퀀트 가격 이력 확보율 · 확인 중</summary>
+   <p id="quantQualityNotes" class="u-source" role="status" aria-live="polite">가격 이력과 제외 원인을 확인 중…</p>
+   <div id="quantQualityQueue" hidden></div>
+  </details>
+  <p class="u-source" id="readinessNotes">서로 같은 기준일의 실제 수집 결과만 함께 표시합니다.</p>
+  <p class="u-source">KRX 장기 구간은 비공개 파생정보의 수집 현황만 표시합니다. 구간 확보 완료는 정규장·수정주가·기업행위 검증 완료를 뜻하지 않습니다.
+   <a href="https://github.com/ykvic1/korean-stock-screener/actions/workflows/v3-krx-derived-history.yml" target="_blank" rel="noopener noreferrer">과거 파생자료 수집 실행 기록 확인 ↗</a>.
+   기존 18:30 분석은 V3 통합 화면에 가격·패턴·엑셀 자료를 공급하며, 검증 완료 후 새 엔진으로 단계적으로 전환합니다.</p>
+  <p class="u-source"><strong>업종별 20·60·120일 상대강도:</strong> <a href="v3-industry-observed-relative-strength.csv" download>실제 표본·초기 회복 관찰 후보 CSV ↓</a> · 현재 DART 업종분류와 저장된 시장 대비 상대강도에 근거합니다. 과거 업종 구성·수정주가·시장지수별 날짜는 독립 검증 전이며 산업은 점수 합계에 포함하지 않습니다. 120일은 실제 확보된 그룹만 표시합니다.</p>
+   <p class="u-source"><strong>가격·실적 동반 회복 관찰:</strong> <a href="v3-industry-dual-evidence-watch.csv" download>가격 상대강도 × DART 영업이익 실제 교차분석 CSV ↓</a> · 시장별 현재 DART 업종코드 그룹의 실측 연구 후보이며, 공식 업종/PIT·수정주가 검증 전입니다. 산업 점수·매수 신호가 아닙니다.</p>
+ </details>
+  <details class="u-intro" id="krxHistoryProgress">
+  <summary class="u-intro-top"><span class="u-section-heading">KRX 10년 과거 파생데이터 확보 현황 <small>자세히 보기</small></span>
+   <span id="krxProgressStatus" class="u-state" role="status" aria-live="polite">비공개 파생자료 검사 중…</span></summary>
+  <div class="u-stats">
+   <div><span>5거래일 묶음 확보 / 전체</span><strong id="krxHistoryCollected">미확인</strong></div>
+   <div><span>구간 경계 연결 / 확보분</span><strong id="krxHistoryBridges">미확인</strong></div>
+   <div><span>20·60·120·250거래일 파생수익률 산출 묶음</span><strong id="krxHistoryRolling">미확인</strong></div>
+   <div><span>급격한 가격변화 위험점검 / 연결분</span><strong id="krxHistoryRisk">미확인</strong></div>
+  </div>
+  <p class="u-source" id="krxHistoryNotes">비공개 원본 대신 검증된 수집 구간 수만 보여드립니다. 미확인 항목은 자동 배점에 반영되지 않습니다.</p>
+  <p class="u-source"><a href="v3-krx-derived-backfill-progress.json">실제 4단계 확보·미확보 원천 요약 JSON ↗</a> · 비공개 파생근거만 계산하며 개별 시세 및 과거 상장폐지 종목 PIT 검증 완료를 의미하지 않습니다.</p>
+ </details>
+ <details class="u-intro" id="dartHistoryProgress">
+  <summary class="u-intro-top"><span class="u-section-heading">DART 10년 과거 공시 수집 현황 <small>자세히 보기</small></span>
+   <span id="dartHistoryStatus" class="u-state" role="status" aria-live="polite">공시 원장 확인 중…</span></summary>
+  <div class="u-stats" aria-label="과거 OpenDART 공시 접수자료 수집 진행률">
+   <div><span>과거 공시 수집 완료 월 / 전체</span><strong id="dartHistoryMonths">미확인</strong></div>
+   <div><span>비공개 저장 공시 페이지</span><strong id="dartHistoryPages">미확인</strong></div>
+   <div><span>비공개 저장 공시 접수기록</span><strong id="dartHistoryReceipts">미확인</strong></div>
+  </div>
+  <p class="u-source" id="dartHistoryNotes">공시 수집 기록을 비식별로 검증 중입니다. 기업행위·수정주가 인증 자료는 아닙니다.</p>
+  <p class="u-source"><a href="v3-dart-historical-receipt-progress.json">실제 수집 진행률 원천 집계 JSON ↗</a> · 완료 개월 수는 기업행위 효력일·상장폐지 종목·과거 수정주가·정식 100점 투자점수 검증을 뜻하지 않습니다.</p>
+ </details>
+ </div></details>
+<footer class="u-footer">관측 기준일과 데이터 확보 여부를 우선 표시합니다. 주봉·RSI·OBV 패턴은 연구용 근사이며 기관 매집이나 상승 가능성을 확정하지 않습니다. 실시간 주문이나 자동매매 기능은 없습니다.</footer>
+</main>
+</body></html>

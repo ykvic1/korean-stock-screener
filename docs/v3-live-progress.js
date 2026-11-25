@@ -129,6 +129,7 @@ if(typeof module!=='undefined'&&module.exports)
  module.exports={observedSummary,operationalSummary,dartSummary,scoreRolloverNotice,closeAuditSummary};
 if(!root.document)return;
 const doc=root.document;
+const liveService=!!doc.getElementById('liveScoreSort');
 const fields={
  date:doc.getElementById('liveProgressAsOf'),
  coverage90:doc.getElementById('liveProgressCoverage90'),
@@ -147,9 +148,11 @@ async function getJson(path){
 }
 async function load(){
  const run=++generation;
+ if(!liveService){
  fields.date.textContent='확인 중';
  fields.coverage90.textContent='확인 중';
  fields.coverage.textContent='확인 중';
+ }
  fields.dart.textContent='확인 중';
  fields.note.textContent='각 데이터 원천의 기준일과 수집 상태를 확인 중입니다.';
  fields.close.firstChild.textContent='가격 원천을 공식 KRX와 대조 중입니다. ';
@@ -177,12 +180,14 @@ async function load(){
    '기존 FChart 일봉의 거래세션 구분과 정규장 가격·거래량 근거는 아직 미인증입니다. ':
   'KRX 정규장 종가와 저장 일봉의 독립 대조 결과를 확인할 수 없습니다. '+
   '원천·거래세션 인증 전이므로 점수는 잠정 참고용입니다. ';
+ if(!liveService){
  fields.date.textContent=o?o.asof+' · '+o.model+' 점수':m?m.asof:'재확인 필요';
  fields.coverage90.textContent=o?
   fmt(o.near90)+' / '+fmt(o.total)+'종목 ('+o.model+')': '신규 모델 집계 대기';
  fields.coverage.textContent=o?
   fmt(o.observed)+' / '+fmt(o.total)+'종목 ('+o.model+')':m?
   fmt(m.observed)+' / '+fmt(m.total)+'종목 (기존 모델)':'재확인 필요';
+ }
  fields.dart.textContent=f?
   fmt(f.complete)+' / '+fmt(f.total)+'개월':'재확인 필요';
  const rollover=!o&&market.status==='fulfilled'?scoreRolloverNotice(

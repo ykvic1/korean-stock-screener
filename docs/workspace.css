@@ -900,3 +900,13 @@ dialog.u-detail::backdrop{background:#16344280}
 .u-operational-detail .u-score-table-final{background:#e9f7f0;color:#087962;font-weight:800}
 
 .u-operational-detail{border:2px solid #66b9a4;border-radius:14px;padding:16px;margin:12px 0;overflow-wrap:anywhere}.u-operational-detail table{width:100%;border-collapse:collapse}.u-operational-detail td,.u-operational-detail th{padding:6px 4px;text-align:left;border-bottom:1px solid #384357}.u-operational-detail details{margin:12px 0}.u-operational-detail ul{padding-left:20px}
+
+/* V3.0b live maintenance: current score only; research route unchanged. */
+.u-live-service .u-live-legacy,.u-live-service #dataCollectionStatus,.u-live-service #operationalModelNote,.u-live-service #personalRank,.u-live-service #tabs,.u-live-service #liveUpdates .u-live-disclaimer,.u-live-service #liveUpdates .u-live-updates-header>a,.u-live-service #tradeStatusNote,.u-live-service #regularCloseNote[hidden]{display:none!important}
+.u-live-service .u-live-updates-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.u-live-sort{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:3px 0 12px}
+.u-live-sort button{min-width:0;min-height:42px;border:1px solid #cbd9e0;border-radius:8px;background:#fff;color:#324f60;font-weight:700;font-size:13px;padding:6px 2px;cursor:pointer}
+.u-live-sort button[aria-pressed=true]{background:#086c5a;color:#fff;border-color:#086c5a}
+.u-live-sort button:focus-visible{outline:2px solid #086c5a;outline-offset:2px}
+.u-compact-pillars .u-selected-pillar{outline:2px solid #086c5a;outline-offset:-2px;border-radius:5px;background:#e6f4ef}
+@media(max-width:480px){.u-live-sort{gap:4px}.u-live-sort button{font-size:11px;padding:5px 1px}.u-live-service .u-live-updates-grid{gap:5px}}
