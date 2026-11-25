@@ -1,0 +1,57 @@
+name: Audit saved comparative margin coverage
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audit-public-margin-coverage-once.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Compare saved receipt evidence with the published gap
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from v3_current_observed_scorecard import load_financial_source
+          from v3_dart_original_revenue_recovery import OUTPUT as SALES, REVIEWED as SALES_REVIEWED, overlay
+          from v3_dart_operating_income_comparative import OUTPUT, REVIEWED, margin_parts
+          root = Path('docs')
+          def read(name):
+              return json.loads((root / name).read_bytes())
+          catalog = read('v22-market-catalog.json')
+          history = read('v3-dart-bulk-history.json')
+          existing, _ = load_financial_source(root, catalog)
+          assert existing is not None
+          enriched, _ = overlay(catalog, history, read(SALES), reviewed=read(SALES_REVIEWED))
+          verified, _ = margin_parts(catalog, enriched, read(OUTPUT), reviewed=read(REVIEWED))
+          with (root / 'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig', newline='') as file:
+              public = {row['종목코드']: row for row in csv.DictReader(file)}
+          assert len(public) == catalog['listed_total']
+          candidates = []
+          crossings = Counter()
+          for code in verified:
+              row = existing.get(code, {}).get('unverified_components', {})
+              if row.get('operating_margin_3y_pct', {}).get('candidate_points') is not None:
+                  continue
+              base = int(float(public[code]['산출가능배점_100점중'] or 0))
+              assert base + 4 <= 100
+              candidates.append(code)
+              for bound in (90, 95, 100):
+                  if base < bound <= base + 4:
+                      crossings[bound] += 1
+          print('PUBLIC_MARGIN_PROBE=' + json.dumps({
+              'asof': catalog['date'], 'listed': len(public),
+              'candidate_count': len(candidates), 'candidate_weight': 4 * len(candidates),
+              'candidate_threshold_crossings': crossings, 'provider_calls': 0,
+          }, sort_keys=True))
+          PY
