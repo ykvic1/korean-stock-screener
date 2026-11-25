@@ -1,0 +1,138 @@
+{
+  "schema": "v30b-frozen-comparative-primary-statement-evidence-v1",
+  "development_cutoff": "2026-11-20",
+  "source": {
+    "run_id": 45507325062,
+    "summary_job_id": 138875239978,
+    "artifact_id": 14977831575,
+    "artifact_digest": "sha256:e576b3d864a7d17759d2a15bddd5e38ccf16c680d74c26dc7c02c1d64b5b43f8",
+    "commit": "ab81145cf09e4203d9f030fbf4efa459b8cd5d08"
+  },
+  "anchor": "2025-11-13",
+  "comparative_primary_statement_fields": {
+    "2022": {
+      "assets": {
+        "ambiguous_or_unusable": 2,
+        "different_value": 165,
+        "matched": 1634,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 316,
+        "stored_value_missing": 2
+      },
+      "equity": {
+        "ambiguous_or_unusable": 1,
+        "different_value": 164,
+        "matched": 1630,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 316,
+        "stored_value_missing": 8
+      },
+      "liabilities": {
+        "ambiguous_or_unusable": 1,
+        "different_value": 139,
+        "matched": 1660,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 316,
+        "stored_value_missing": 3
+      },
+      "operating_income": {
+        "ambiguous_or_unusable": 7,
+        "different_value": 246,
+        "matched": 1546,
+        "no_matching_primary_row": 4,
+        "stored_receipt_unavailable_at_anchor": 316,
+        "stored_value_missing": 3
+      },
+      "revenue": {
+        "ambiguous_or_unusable": 7,
+        "different_value": 199,
+        "matched": 1541,
+        "no_matching_primary_row": 8,
+        "stored_receipt_unavailable_at_anchor": 316,
+        "stored_value_missing": 51
+      }
+    },
+    "2023": {
+      "assets": {
+        "ambiguous_or_unusable": 2,
+        "different_value": 113,
+        "matched": 1865,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 138,
+        "stored_value_missing": 1
+      },
+      "equity": {
+        "ambiguous_or_unusable": 1,
+        "different_value": 109,
+        "matched": 1865,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 138,
+        "stored_value_missing": 6
+      },
+      "liabilities": {
+        "ambiguous_or_unusable": 1,
+        "different_value": 105,
+        "matched": 1874,
+        "no_matching_primary_row": 3,
+        "stored_receipt_unavailable_at_anchor": 138,
+        "stored_value_missing": 1
+      },
+      "operating_income": {
+        "ambiguous_or_unusable": 1,
+        "different_value": 197,
+        "matched": 1731,
+        "no_matching_primary_row": 52,
+        "stored_receipt_unavailable_at_anchor": 138,
+        "stored_value_missing": 3
+      },
+      "revenue": {
+        "ambiguous_or_unusable": 2,
+        "different_value": 162,
+        "matched": 1745,
+        "no_matching_primary_row": 7,
+        "stored_receipt_unavailable_at_anchor": 138,
+        "stored_value_missing": 68
+      }
+    }
+  },
+  "issuers": 2267,
+  "primary_statement_fields": {
+    "assets": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2117,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 1
+    },
+    "equity": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2117,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 1
+    },
+    "liabilities": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2118,
+      "no_matching_primary_row": 3
+    },
+    "operating_income": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2067,
+      "no_matching_primary_row": 53,
+      "stored_value_missing": 1
+    },
+    "revenue": {
+      "ambiguous_or_unusable": 1,
+      "matched": 2057,
+      "no_matching_primary_row": 3,
+      "stored_value_missing": 61
+    }
+  },
+  "statuses": {
+    "compared": 2122,
+    "historical_and_saved_receipt_differ": 1,
+    "original_document_unresolved": 144
+  },
+  "scope": "FY2022 and FY2023 comparisons are the prior-year columns of the matched FY2024 filing, not independent authentication of each earlier filing; a difference can reflect restatement or presentation. Do not replace values or promote scores from these outcomes.",
+  "historical_point_in_time_certified": false,
+  "new_provider_calls": 0
+}
