@@ -1,0 +1,63 @@
+name: V3.0b Frozen Operational Release
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - v3_v30b_operational_release.py
+      - tests/test_v3_v30b_operational_release.py
+      - .github/workflows/v30b-frozen-operational-release.yml
+      - ops/v30b-development-scope.json
+  push:
+    branches: [main]
+    paths:
+      - v3_v30b_operational_release.py
+      - tests/test_v3_v30b_operational_release.py
+      - .github/workflows/v30b-frozen-operational-release.yml
+      - ops/v30b-development-scope.json
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  frozen-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Checkout immutable November 20 operating baseline
+        uses: actions/checkout@v4
+        with:
+          ref: 6608c3c091c3b7252c926975a87e9af650e41e8a
+          path: frozen-baseline
+          persist-credentials: false
+      - name: Check cutoff and operational release invariants
+        run: python -m unittest discover -s tests -p 'test_v3_v30b_operational_release.py' -v
+      - name: Decide operational release on frozen sources only
+        run: |
+          python v3_v30b_operational_release.py --baseline frozen-baseline --scope ops/v30b-development-scope.json --out "$RUNNER_TEMP/v30b-frozen-operational-release.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v30b-frozen-operational-release
+          path: ${{ runner.temp }}/v30b-frozen-operational-release.json
+          if-no-files-found: error
+      - name: Display frozen release separately from research certification
+        if: success()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          r = json.loads((Path(os.environ["RUNNER_TEMP"])/"v30b-frozen-operational-release.json").read_text())
+          with open(os.environ["GITHUB_STEP_SUMMARY"],"a") as out:
+              out.write(f"### V3.0b 운영판 개발 완료: {r['development_complete']}\n")
+              out.write(f"- 고정 기준일: {r['asof']}\n- 전체 종목: {r['listed_total']}\n")
+              out.write("- 신규 거래일 데이터와 과거 독립 인증은 완료 조건에서 제외.\n")
+              out.write("- 투자성과 또는 투자점수 인증을 주장하지 않음.\n")
+          PY
