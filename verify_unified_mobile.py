@@ -105,6 +105,29 @@ with sync_playwright() as p:
         code for code, row in rows.items() if row["rank"] == 1)
     page.screenshot(path=str(OUT / "unified-mobile-live.png"), full_page=True)
     assert not errors, errors
+    # Performance page uses only the saved aggregate feeds; no provider calls or invented outcomes.
+    coverage = context.request.get(URL + "v3-forward-validation-coverage.json").json()
+    outcomes = context.request.get(URL + "v3-forward-validation-results.json").json()
+    page.locator(".u-header-more > summary").click()
+    page.get_by_role("link", name="투자 성과 검증", exact=True).click()
+    assert page.url.endswith("/performance.html")
+    page.locator("#schedule tr").first.wait_for(timeout=20000)
+    assert page.locator("#schedule tr").count() == 5
+    assert coverage["latest_score_asof"] in page.locator("#status").inner_text()
+    for months in ("1", "2", "3", "6", "12"):
+        page.locator("#period").select_option(months)
+        assert page.locator("#results tr").count() == 9
+        if not coverage["horizons"][months]["archive_ready_count"]:
+            assert "평가 대기" in page.locator("#window").inner_text()
+            assert page.locator("#results td").evaluate_all(
+                "(cells) => cells.every(c => c.textContent === '—')"
+            )
+        page.locator("#factorMarket").select_option("KOSDAQ")
+        page.locator("#factorMarket").select_option("KOSPI")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    assert outcomes["performance_validated"] is False
+    assert not errors, errors
+    page.screenshot(path=str(OUT / "v31-performance-mobile.png"), full_page=True)
     # Continue the existing detailed research regression on the preserved research route.
     page.goto(URL + "research.html", wait_until="domcontentloaded", timeout=60000)
     assert page.url.endswith("/research.html")
