@@ -2601,3 +2601,15 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
   'source object remains unchanged');
  console.log('Personal stability overlay: cap <=5, stop reference unscored, missing retained PASS');
 }
+
+// Live maintenance: use only current operating area points, not legacy or normalized points.
+{
+ const make=(code,score,points,available)=>({r:{code,v3_operational:{score,available:100,areas:{volume:{points,available}}}}});
+ const a=make('000001',70,5,25),b=make('000002',55,12,15),c=make('000003',80,12,25),d=make('000004',null,0,0);
+ assert.equal(unified.liveAreaKey('area:volume'),'volume');
+ assert.equal(unified.liveAreaKey('area:constructor'),null);
+ assert.deepEqual([a,b,d,c].sort((x,y)=>unified.compareOperationalArea(x,y,'volume')).map(x=>x.r.code),['000003','000002','000001','000004']);
+ assert.equal(unified.compareOperationalArea({r:{code:'000005'}},a,'volume')>0,true);
+ for(const key of ['volume','technical','financial','valuation','momentum'])assert.ok(entry.includes('data-score-sort="area:'+key+'"'));
+ assert.ok(entry.includes('data-score-sort="ops"'));
+}
