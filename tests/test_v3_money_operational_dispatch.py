@@ -50,5 +50,25 @@ class OperationalDispatchTests(unittest.TestCase):
         self.assertIn('github.event.workflow_run.head_repository.full_name == github.repository',self.live)
         self.assertIn('queue: max',self.live)
 
+    def test_fcf_evidence_replayed_and_staged_with_current_scores(self):
+        publication=self.live.split('id: publication',1)[1].split(
+            'Refresh operational scores explicitly',1)[0]
+        initial,retry=publication.split('for attempt in 1 2 3; do',1)
+        for block in (initial,retry):
+            preview='v3_dart_cashflow_factor_preview.py --mode write --defer-source-lag'
+            gap='v3_dart_cashflow_gap_audit.py --mode write --defer-source-lag'
+            score='v3_current_observed_scorecard.py --mode write --refresh-derived'
+            self.assertLess(block.index(preview),block.index(gap))
+            self.assertLess(block.index(gap),block.index(score))
+            staged=next(line for line in block.splitlines() if 'git add --' in line)
+            for path in ('docs/v3-dart-fcf-research-preview.json',
+                         'docs/v3-dart-cashflow-gap-summary.json',
+                         'docs/v3-dart-cashflow-issuer-evidence.json',
+                         'docs/v3-current-observed-all-listed-summary.json'):
+                self.assertIn(path,staged)
+        for script in ('v3_dart_cashflow_factor_preview.py','v3_dart_cashflow_gap_audit.py'):
+            self.assertLess(retry.index(script+' --mode verify --defer-source-lag'),
+                            retry.index('git push origin HEAD:main'))
+
 
 if __name__=='__main__':unittest.main()
