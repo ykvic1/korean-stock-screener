@@ -128,7 +128,10 @@ class ForwardHorizonReplayTests(unittest.TestCase):
                                  {'status': 'selected', 'compared_with_score_asof': None})
                 published = pages_results(root, readiness, now)
                 self.assertFalse(published['performance_validated'])
-                summary = published['horizons']['1']['latest'].pop('v31_summary')
+                latest = published['horizons']['1']['latest']
+                self.assertEqual(latest.pop('factor_validation'),
+                                 {'status': 'frozen_factor_source_unavailable'})
+                summary = latest.pop('v31_summary')
                 self.assertEqual(summary['top3']['selected_count'], 1)
                 self.assertEqual(summary['top3']['observed_win_rate_bounds_pct'], [100, 100])
                 self.assertEqual(summary['top30']['observed_win_rate_bounds_pct'], [50, 100])
