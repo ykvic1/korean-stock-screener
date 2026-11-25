@@ -194,6 +194,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+      - name: Refresh secondary CSV after verified primary publication
+        if: steps.publication.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run v3-all-listed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
       - name: Manual read-only consistency verification
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'verify' }}
         run: |

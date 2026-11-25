@@ -13,6 +13,16 @@ WORKFLOW=ROOT/".github/workflows/v3-v30b-readiness-audit.yml"
 
 
 class V30bReadinessWorkflowTests(unittest.TestCase):
+    def test_primary_publication_dispatches_secondary_only_after_change(self):
+        primary = (ROOT / ".github/workflows/v3-current-observed-scorecard.yml").read_text()
+        secondary = (ROOT / ".github/workflows/v3-all-listed-scorecard.yml").read_text()
+        block = primary.split("      - name: Refresh secondary CSV after verified primary publication", 1)[1].split("      - name:", 1)[0]
+        self.assertIn("steps.publication.outputs.changed == 'true'", block)
+        self.assertIn('gh workflow run v3-all-listed-scorecard.yml', block)
+        self.assertIn('-f mode=write', block)
+        self.assertNotIn('gh workflow run v3-current-observed-scorecard.yml', secondary)
+        self.assertIn('group: korea-stock-screener-scorecard-publisher', secondary)
+
     def test_daily_watch_is_read_only_and_independent(self):
         content=WORKFLOW.read_text(encoding="utf8")
         self.assertIn("cron: '23 0 * * *'",content)
