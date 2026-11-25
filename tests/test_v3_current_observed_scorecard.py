@@ -677,6 +677,30 @@ class CurrentAllListedScorecardTests(unittest.TestCase):
         self.assertEqual(report["observed_issuer_counts"]["financial"],0)
         self.assertTrue(all(r["available"]<=(60 if path_receipt else 49)
                             for r in rows))
+        close_path=docs/"v3-regular-close-indicators.json"
+        if close_path.is_file():
+            official=json.loads(close_path.read_bytes())
+            improved,improved_report=generate(
+                *sources,path_coverage_receipt=path_receipt,regular_close_source=official)
+            before={row["code"]:row for row in rows}
+            for row in improved:
+                previous=before[row["code"]]
+                self.assertGreaterEqual(row["available"],previous["available"])
+                self.assertEqual(row["factor_available"]["momentum"],
+                                 previous["factor_available"]["momentum"])
+                if row["code"] not in sources[3]["rows"]:
+                    self.assertEqual(row["available"],previous["available"])
+            counts=improved_report["regular_close_technical_replayed_issuer_counts"]
+            gained=sum(counts[key]*weight for key,weight in
+                       (("daily_rsi",2),("weekly_rsi",3),("weekly_ma120",3)))
+            self.assertEqual(report["total_unacquired_weight_issuer_slots"]-
+                             improved_report["total_unacquired_weight_issuer_slots"],gained)
+            if sources[1]["date"]=="2026-11-24" and official.get("asof")==sources[1]["date"]:
+                self.assertEqual(counts,{"daily_rsi":27,"weekly_rsi":14,"weekly_ma120":14})
+            stale={**official,"asof":"2000-01-01"}
+            stale_rows,stale_report=generate(
+                *sources,path_coverage_receipt=path_receipt,regular_close_source=stale)
+            self.assertEqual((rows,report),(stale_rows,stale_report))
         self.assertEqual(report["path_independent_saved_audit_sha256"],
                          path_receipt["daily_source_sha256"] if path_receipt else None)
 

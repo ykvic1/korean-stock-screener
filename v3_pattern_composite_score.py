@@ -135,6 +135,13 @@ def _risks(row):
     return list(dict.fromkeys(reasons))
 
 
+def rsi_points(observation, maximum):
+    if observation is None:
+        return None
+    return maximum if (observation["rsi30_cross_recent"]
+                       or observation["rsi_bullish_divergence_recent"]) else 0
+
+
 def evaluate(row, *, other_pillars=None):
     """Use only source-observed technical evidence; never fabricate five pillars.
 
@@ -145,10 +152,8 @@ def evaluate(row, *, other_pillars=None):
     weekly = _observed(row, "weekly")
     d_pattern, d_label = _pattern(daily, 7) if daily else (None, None)
     w_pattern, w_label = _pattern(weekly, 8) if weekly else (None, None)
-    d_rsi = (2 if daily["rsi30_cross_recent"] or
-             daily["rsi_bullish_divergence_recent"] else 0) if daily else None
-    w_rsi = (3 if weekly["rsi30_cross_recent"] or
-             weekly["rsi_bullish_divergence_recent"] else 0) if weekly else None
+    d_rsi = rsi_points(daily, 2)
+    w_rsi = rsi_points(weekly, 3)
     ma120 = _weekly_trend(weekly) if weekly else None
     vol = _num(row.get("one_day_volume_ratio"))
     vol_score = (2 if 1.2 <= vol <= 5 else 0) if vol is not None and vol >= 0 else None

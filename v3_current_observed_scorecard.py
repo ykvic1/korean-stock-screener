@@ -31,6 +31,8 @@ from v3_actual_money_contract import OUTPUT as MONEY_OUTPUT
 from v3_current_price_replay import build as price_build
 from v3_all_listed_scorecard import _momentum, _contribution
 from v3_weekly_rotation import technical_points
+from v3_pattern_composite_score import TECHNICAL_WEIGHTS, _weekly_trend, rsi_points
+from v3_regular_close_contract import admitted_rows as regular_close_rows
 from v3_dart_bulk_history import _stable_digest, research_parts, BulkHistoryError
 from v3_real_six_pillar_coverage_audit import (
     _canonical_hash, coverage as independently_replayed_coverage,
@@ -321,8 +323,20 @@ def cashflow_source(market,catalog,history,cash,stored_preview):
     return rows,expected
 
 
+def missing_close_technical(parts, receipt):
+    """Supplement only missing equivalents from an admitted KRX close receipt."""
+    weekly=receipt.get("weekly") or {}
+    candidates={
+        "daily_rsi":rsi_points(receipt.get("daily_rsi"),TECHNICAL_WEIGHTS["daily_rsi"]),
+        "weekly_rsi":rsi_points(weekly.get("rsi"),TECHNICAL_WEIGHTS["weekly_rsi"]),
+        "weekly_ma120":_weekly_trend(weekly),
+    }
+    return {key:value for key,value in candidates.items()
+            if parts[key] is None and value is not None}
+
+
 def generate(market,catalog,volume,price,financial=None,cashflow=None,
-             path_coverage_receipt=None,money_source=None):
+             path_coverage_receipt=None,money_source=None,regular_close_source=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog,money_source=money_source)
     true_price=price_build(market,catalog)
@@ -332,6 +346,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     if asof!=market["date"] or volume["asof"]!=asof or price["asof"]!=asof:
         raise LivePartialScorecardError("different_market_date")
     observed={r["code"]:r for r in market["stocks"]}
+    official_closes=regular_close_rows(regular_close_source,catalog)
+    close_technical_counts=dict.fromkeys(("daily_rsi","weekly_rsi","weekly_ma120"),0)
     # A DART-derived candidate that no longer belongs to the same-day
     # listed universe must fail closed, not disappear during catalog iteration.
     # Checked before any per-issuer score or availability is published.
@@ -409,6 +425,12 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                 if (not available or points is None or
                     t.get("technical_observed_maximum")!=available):
                     raise LivePartialScorecardError("inconsistent_replayed_technical")
+                if code in official_closes:
+                    recovered=missing_close_technical(t["technical_parts"],official_closes[code])
+                    points+=sum(recovered.values())
+                    available+=sum(TECHNICAL_WEIGHTS[key] for key in recovered)
+                    for key in recovered:
+                        close_technical_counts[key]+=1
                 values["technical"],coverage["technical"]=_contribution(
                     points,available,25)
             mom=p["momentum_research_reference"]
@@ -634,6 +656,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             path_coverage_receipt["daily_source_sha256"]
             if path_coverage_receipt is not None else None),
         "path_research_subweight_applied_issuer_counts":dict(path_added),
+        "regular_close_technical_replayed_issuer_counts":close_technical_counts,
         "additional_path_investment_grade_points_authorized":0,
         "stop_loss_severity_research_counts":stop_risk_counts,
         "stop_risk_adjustment_is_not_part_of_100point_total":True,
@@ -780,11 +803,14 @@ def main(argv=None):
             else read("v3-volume-obv-observed.json"))
     price=(price_build(market,catalog) if args.refresh_derived
            else read("v3-current-price-technical-momentum.json"))
+    regular_close_path=root/"v3-regular-close-indicators.json"
+    regular_close_source=read(regular_close_path.name) if regular_close_path.is_file() else None
     rows,summary=generate(
         market,catalog,volume,
         price,
         financial=financial,cashflow=cashflow,
-        path_coverage_receipt=path_coverage_receipt,money_source=money_source)
+        path_coverage_receipt=path_coverage_receipt,money_source=money_source,
+        regular_close_source=regular_close_source)
     new_csv=to_csv(rows,summary)
     # Per-stock history is additive: a new market census never erases an
     # unrelated issuer's last valid observations. Its dated values are NOT
