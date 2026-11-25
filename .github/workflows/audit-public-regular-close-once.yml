@@ -1,0 +1,73 @@
+name: Audit saved KRX technical evidence coverage
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/audit-public-regular-close-once.yml'
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Measure missing exact-equivalent components on same-session priced issuers
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          from collections import Counter
+          from pathlib import Path
+          from v3_regular_close_contract import admitted_rows
+          from v3_path_provisional_factors import recovered_close_momentum
+          root=Path('docs')
+          def read(name):
+              return json.loads((root/name).read_bytes())
+          catalog=read('v22-market-catalog.json')
+          market=read('data.json')
+          replay=read('v3-current-price-technical-momentum.json')
+          official=admitted_rows(read('v3-regular-close-indicators.json'),catalog)
+          assert official and replay['asof']==market['date']==catalog['date']
+          stocks={row['code']:row for row in market['stocks'] if row['price_date']==market['date']}
+          with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig', newline='') as f:
+              public={row['종목코드']:row for row in csv.DictReader(f)}
+          gains=Counter()
+          changed=0
+          crossings=Counter()
+          for code,row in replay['rows'].items():
+              if code not in stocks:
+                  continue
+              t=row.get('technical_research_reference')
+              p=official.get(code) or {}
+              w=p.get('weekly') or {}
+              parts=t['technical_parts'] if t else {}
+              candidates={
+                  'daily_rsi': (2,p.get('daily_rsi')),
+                  'weekly_rsi': (3,w.get('rsi')),
+                  'weekly_ma120': (3,w.get('weekly_ma120_gap_pct')),
+              }
+              bump=0
+              if t:
+                  for key,(weight,val) in candidates.items():
+                      if parts[key] is None and val is not None:
+                          gains[key]+=1
+                          bump+=weight
+              if (float(public[code]['모멘텀_산출배점'] or 0)==8
+                      and recovered_close_momentum(stocks[code].get('v3_krx_close_momentum_path'),catalog['date']) is not None):
+                  gains['momentum_path']+=1
+                  bump+=7
+              if not bump:
+                  continue
+              changed+=1
+              base=int(float(public[code]['산출가능배점_100점중'] or 0))
+              assert base + bump <= 100
+              for bound in (90,95,100):
+                  if base<bound<=base+bump:
+                      crossings[bound]+=1
+          print('PUBLIC_KRX_PROBE='+json.dumps({'asof':catalog['date'],'admitted':len(official),
+                'issuer_gains':changed,'component_gains':gains,'crossings':crossings},sort_keys=True))
+          PY
