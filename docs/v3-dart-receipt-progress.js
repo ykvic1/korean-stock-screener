@@ -81,6 +81,7 @@ function statusText(progress,audited){
 }
 if(typeof module!=='undefined'&&module.exports)module.exports={validate,validateAudit,statusText};
 if(!root.document)return;
+if(root.document.getElementById('liveScoreSort'))return;
 const D=root.document;
 const names=['dartHistoryStatus','dartHistoryMonths','dartHistoryPages',
  'dartHistoryReceipts','dartHistoryNotes'];
