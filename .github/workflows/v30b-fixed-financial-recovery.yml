@@ -1,0 +1,92 @@
+name: V3.0b Fixed Financial Evidence Recovery
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/v30b-fixed-financial-recovery.yml]
+  push:
+    branches: [main]
+    paths: [.github/workflows/v30b-fixed-financial-recovery.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v30b-fixed-money-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          ref: v30b-development-data-20261120
+          path: fixed-data
+      - run: pip install 'requests>=2.31,<3'
+      - name: Plan exact receipt-bound missing fiscal inputs on fixed data
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path("fixed-data/docs/v22-market-catalog.json").read_text())
+          if r["date"]!="2026-11-20" or r["listed_total"]!=2592: raise ValueError("fixed_roster_date_changed")
+          PY
+          for script in v3_dart_revenue_2022.py v3_dart_revenue_2023_comparative.py v3_dart_revenue_2024_comparative.py v3_dart_operating_income_comparative.py v3_dart_reported_eps.py; do
+            echo "$script"
+            python "$script" --docs fixed-data/docs --mode dry-run
+          done
+      - name: Collect only eligible remaining receipts with existing free DART access
+        if: github.event_name != 'pull_request'
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          cp fixed-data/docs/v3-operational-research-scores.json "$RUNNER_TEMP/fixed-financial-before.json"
+          for script in v3_dart_revenue_2022.py v3_dart_revenue_2023_comparative.py v3_dart_revenue_2024_comparative.py v3_dart_operating_income_comparative.py v3_dart_reported_eps.py; do
+            echo "$script"
+            plan=$(python "$script" --docs fixed-data/docs --mode dry-run)
+            pending=$(printf '%s' "$plan" | python -c 'import json,sys;x=json.load(sys.stdin);print(x.get("remaining",x.get("pending",-1)))')
+            if (( pending < 0 )); then exit 2; fi
+            if (( pending > 0 )); then
+              python "$script" --docs fixed-data/docs --mode live
+            fi
+            python "$script" --docs fixed-data/docs --mode dry-run
+          done
+          python v3_operational_research_score.py --docs fixed-data/docs
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          a=json.loads((Path(os.environ["RUNNER_TEMP"])/"fixed-financial-before.json").read_text())
+          b=json.loads(Path("fixed-data/docs/v3-operational-research-scores.json").read_text())
+          if a["asof"]!=b["asof"] or b["asof"]!="2026-11-20" or a["rows"].keys()!=b["rows"].keys() or len(b["rows"])!=2592: raise ValueError("fixed_roster_or_date_changed")
+          gains=losses=0
+          for code, row in b["rows"].items():
+              old=a["rows"][code]
+              if (row["name"],row["market"])!=(old["name"],old["market"]): raise ValueError("identity_changed")
+              for area, parts in row["parts"].items():
+                  for key in parts.keys()|old["parts"][area].keys():
+                      x=old["parts"][area].get(key,[0,0])[1]; y=parts.get(key,[0,0])[1]
+                      gains+=y>x+1e-6; losses+=y<x-1e-6
+                  if any(p[2]>b["asof"] for p in parts.values()): raise ValueError("future_score_component")
+          print(json.dumps({"asof":b["asof"],"component_weight_gains":gains,"component_weight_losses":losses,"before_100":sum(r["available"]>=100 for r in a["rows"].values()),"after_100":sum(r["available"]>=100 for r in b["rows"].values())}))
+          if losses: raise ValueError("fixed_observation_regression")
+          PY
+      - name: Publish fixed financial recovery only
+        if: success() && github.event_name != 'pull_request'
+        working-directory: fixed-data
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-dart-revenue-2022-supplement.json docs/v3-dart-revenue-2023-comparative.json docs/v3-dart-revenue-2024-comparative.json docs/v3-dart-operating-income-2025-comparative.json docs/v3-dart-reported-eps.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Recover fixed-date receipt-matched financial evidence'
+          git push origin HEAD:v30b-development-data-20261120
