@@ -440,6 +440,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
             set(FISCAL_COMPONENT_WEIGHTS)<=set(r["unverified_components"])
             for r in financial.values()))
     fiscal_component_counts={key:0 for key in FISCAL_COMPONENT_WEIGHTS}
+    independent_financial_counts=dict.fromkeys(("revenue_cagr_3y_pct","liabilities_to_assets_pct","operating_roa_3y_pct"),0)
     path_added={"volume4":0,"momentum7":0}
     path_observed=0
     stop_risk_counts={"bonus_research_only":0,"penalty_research_only":0,
@@ -540,6 +541,10 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                             raise LivePartialScorecardError(
                                 "untrusted_dart_subfactor_observation")
                         fiscal_component_counts[component]+=1
+                        if component in independent_financial_counts and evidence.get("source_basis") in (
+                                "four_annual_revenue_values_independent_of_profit",
+                                "same_receipt_unambiguous_assets_liabilities_equity_identity"):
+                            independent_financial_counts[component]+=1
         fcf_earned={"financial4":None,"valuation5":None}
         if cashflow is not None and code in cashflow:
             entry=cashflow[code]
@@ -706,6 +711,7 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "max_single_issuer_available_weight":max(r["available"] for r in output),
         "fcf_observed_issuer_counts":fcf_counts,
         "reviewed_comparative_fcf_replayed_issuers":reviewed_fcf_count,
+        "independent_financial_replayed_issuer_counts":independent_financial_counts,
         "reviewed_comparative_fcf_rows":reviewed_fcf or {},
         "owner_profit_2025_official_receipt_replayed_issuers":owner_profit_replay_issuers,
         "observed_100weight_issuers_with_2025_owner_profit_supplement":full100_from_owner_profit,
@@ -801,6 +807,109 @@ def to_csv(rows,summary):
     return "\ufeff"+sink.getvalue()
 
 
+def independent_financial_supplement(catalog,history,annual,financial,*,revenue_sources=()):
+    """Fill only absent public components with independently observed evidence.
+
+    Revenue CAGR requires four positive same-scope annual revenue observations
+    but does not require operating profit. A missing balance-sheet denominator
+    may be reconstructed only by the existing exact, unambiguous A=L+E rule.
+    Previously observed components and their scores are never overwritten.
+    """
+    from v3_revenue_growth_evidence import derive
+    from v3_operational_research_score import reviewed_short_periods
+    from v3_dart_bulk_history import _balance_financial_metrics,_valid_receipt,_day,_midrank
+    from v3_dart_cashflow_factor_preview import _receipt_balance_assets
+    day=catalog["date"]
+    if (financial is None or history.get("asof")!=day or
+            (annual or {}).get("asof")!=day or not financial or
+            not all(set(FISCAL_COMPONENT_WEIGHTS)<=set(r.get("unverified_components",{}))
+                    for r in financial.values())):
+        return financial
+    members={r["code"]:r["market"] for r in catalog["rows"]}
+    short=reviewed_short_periods(history,annual,day)
+    fiscal_years=history["fiscal_years"]
+    def missing(code,metric):
+        return financial.get(code,{}).get("unverified_components",{}).get(metric,{}).get("candidate_points") is None
+    revenue,_=derive(history,catalog,*revenue_sources,
+                     short_period_codes=short,public_components=True)
+    additions={}
+    for code,component in revenue.items():
+        if missing(code,"revenue_cagr_3y_pct"):
+            additions.setdefault(code,{})["revenue_cagr_3y_pct"]={
+                **component,"source_basis":"four_annual_revenue_values_independent_of_profit"}
+    balance_metrics=("liabilities_to_assets_pct","operating_roa_3y_pct")
+    recovered={metric:{} for metric in balance_metrics}
+    cutoff=_day(day)
+    for code,record in history["records"].items():
+        if code not in members or code in short or not any(missing(code,k) for k in balance_metrics):
+            continue
+        old=_balance_financial_metrics(record,fiscal_years,day)
+        updated=deepcopy(record)
+        changed=False
+        for year in fiscal_years:
+            for scope,stmt in updated["years"].get(str(year),{}).items():
+                if scope not in ("CFS","OFS") or not _valid_receipt(stmt.get("receipt_id"),year,cutoff):
+                    continue
+                assets,derived=_receipt_balance_assets(stmt)
+                if derived:
+                    stmt["values"]["assets"]=assets
+                    changed=True
+        if not changed:
+            continue
+        new=_balance_financial_metrics(updated,fiscal_years,day)
+        for i,metric in enumerate(balance_metrics):
+            if old[i] is None and new[i] is not None and missing(code,metric):
+                recovered[metric][code]=new[i]
+    for metric,values in recovered.items():
+        if not values:
+            continue
+        direction=-1 if metric=="liabilities_to_assets_pct" else 1
+        peers={m:[] for m in ("KOSPI","KOSDAQ")}
+        for code,row in financial.items():
+            if code in short or code not in members:
+                continue
+            value=row["unverified_components"][metric].get("observed_value")
+            if type(value) in (float,int) and math.isfinite(value):
+                peers[members[code]].append(value)
+        for code,value in values.items():
+            peers[members[code]].append(value)
+        for pool in peers.values():
+            pool.sort()
+        for code,value in values.items():
+            pool=peers[members[code]]
+            if len(pool)>=30:
+                additions.setdefault(code,{})[metric]={
+                    "observed_value":value,"candidate_points":round(4*_midrank(value,pool,direction),6),
+                    "max_points":4,"peer_count":len(pool),
+                    "source_basis":"same_receipt_unambiguous_assets_liabilities_equity_identity"}
+    result=dict(financial)
+    for code,components in additions.items():
+        row=deepcopy(financial[code]) if code in financial else {
+            "code":code,"market":members[code],"asof":day,"source_fiscal_years":fiscal_years,
+            "unverified_components":{k:{"observed_value":None,"candidate_points":None,
+                                         "max_points":0,"peer_count":0}
+                                     for k in FISCAL_COMPONENT_WEIGHTS},
+            "financial_candidate_points":None,"financial_available_max":0,
+            "valuation_candidate_points":None,"valuation_available_max":0,
+            "combined_provisional_points":0,"combined_available_max":0,
+            "confirmed_v3_score":None,"scoring_certified":False}
+        points=row["unverified_components"]
+        for metric,entry in components.items():
+            if points[metric]["max_points"]!=0 or points[metric]["candidate_points"] is not None:
+                raise LivePartialScorecardError("independent_financial_double_count")
+            points[metric]=entry
+        financial_keys=("revenue_cagr_3y_pct","operating_margin_3y_pct",
+                        "liabilities_to_assets_pct","operating_roa_3y_pct")
+        row["financial_available_max"]=sum(points[k]["max_points"] for k in financial_keys)
+        row["financial_candidate_points"]=round(sum(points[k]["candidate_points"] or 0 for k in financial_keys),6)
+        row["combined_available_max"]=row["financial_available_max"]+row["valuation_available_max"]
+        row["combined_provisional_points"]=round(row["financial_candidate_points"]+(row["valuation_candidate_points"] or 0),6)
+        if row["financial_available_max"]>16 or row["combined_available_max"]>31:
+            raise LivePartialScorecardError("independent_financial_budget_overflow")
+        result[code]=row
+    return result
+
+
 def load_financial_source(root, catalog, *, history=None, parts=None, weekly=None):
     """Replay the same saved fiscal and supplemental receipts for both CSV publishers."""
     root=Path(root)
@@ -830,8 +939,9 @@ def load_financial_source(root, catalog, *, history=None, parts=None, weekly=Non
                 raise LivePartialScorecardError('future_parent_equity_supplement')
             parent_equity_source=candidate
             parent_equity_cash=read('v3-dart-cashflow-reference.json')
+        history=history if history is not None else read("v3-dart-bulk-history.json")
         financial=finance_source(
-            catalog,(history if history is not None else read("v3-dart-bulk-history.json")),
+            catalog,history,
             (parts if parts is not None else read("v3-dart-bulk-provisional.json")),
             annual,audit,
             weekly=((weekly if weekly is not None else read("v3-weekly-rotation.json"))
@@ -852,6 +962,13 @@ def load_financial_source(root, catalog, *, history=None, parts=None, weekly=Non
         if isinstance(error,LivePartialScorecardError):
             raise
         financial=None
+    if financial is not None:
+        revenue_files=("v3-dart-revenue-2022-supplement.json",
+                       "v3-dart-revenue-2023-comparative.json",
+                       "v3-dart-revenue-2024-comparative.json")
+        financial=independent_financial_supplement(catalog,history,annual,financial,
+            revenue_sources=tuple(read(name) if (root/name).is_file() else None
+                                  for name in revenue_files))
     return financial,annual
 
 
