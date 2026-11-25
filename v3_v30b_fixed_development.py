@@ -72,6 +72,46 @@ def cashflow_terminal_reviews(report, gap, issuer_evidence):
     return reviews
 
 
+def price_error_terminal_reviews(report, catalog, trading, market, history_progress):
+    """Close still-missing price factors after a documented fixed-day source error.
+
+    A zero listing-volume reference is not official suspension proof. Preserve
+    all recovered indicators and financial scores; only the residual invalid
+    price/money component receives zero, never a fabricated price or volume.
+    """
+    if (catalog.get("date") != CUTOFF or trading.get("asof") != CUTOFF
+        or market.get("date") != CUTOFF or history_progress.get("asof") != CUTOFF
+        or trading.get("listed_total") != report["listed_total"]
+        or market.get("examined_count") != report["listed_total"]
+        or history_progress.get("listed_total") != report["listed_total"]
+        or history_progress.get("pending_sessions") != 0
+        or history_progress.get("requested_sessions") != history_progress.get("archived_sessions")
+        or history_progress.get("requested_completed_weeks") != history_progress.get("archived_completed_weeks")):
+        raise ValueError("fixed_price_source_attempt_not_reconciled")
+    members = {r["code"]: r for r in catalog["rows"]}
+    error_codes = {code for code, stage, reason in market["collection_errors"]
+                   if reason == "price_zero_latest_volume"}
+    statuses = trading["rows"]
+    eligible = {code for code, member in members.items()
+                if member.get("price_history_status") == "price_source_or_validation_error"
+                and member.get("listing_zero_volume_reference") is True
+                and code in error_codes and statuses.get(code, {}).get("state") == "zero_volume"
+                and all(statuses[code].get(k) == member[k] for k in ("name","market"))}
+    reviews = {}
+    for code in sorted(eligible):
+        for area in ("volume","technical","momentum"):
+            for key, maximum in R1D_PART_LIMITS[area].items():
+                point = report["rows"][code]["parts"][area].get(key)
+                weight = round(maximum - (point[1] if point else 0), 6)
+                if weight <= .00001:
+                    continue
+                reviews[":".join((code, area, key))] = {
+                    "asof": CUTOFF, "missing_weight": weight,
+                    "status": "source_error_after_attempt",
+                    "evidence": "fixed market collection price_zero_latest_volume; matched listing zero-volume reference; regular close archive complete; residual unavailable"}
+    return reviews
+
+
 def build(report, comparison, catalog, frozen_catalog, legacy_priority=None, reviews=None):
     if not (report["asof"] == comparison["asof"] == catalog["date"] == frozen_catalog["date"] == CUTOFF):
         raise ValueError("development_cutoff_mismatch")
@@ -162,6 +202,8 @@ def main():
     legacy = a.docs / "v3-near-100-evidence-priority.json"
     reviews = cashflow_terminal_reviews(report, read("v3-dart-cashflow-gap-summary.json"),
                                        read("v3-dart-cashflow-issuer-evidence.json"))
+    reviews.update(price_error_terminal_reviews(report, read("v22-market-catalog.json"),
+        read("v3-trading-status.json"), read("data.json"), read("v3-regular-close-history-progress.json")))
     if a.reviews and a.reviews.is_file():
         manual = json.loads(a.reviews.read_text())
         if set(manual) & set(reviews):
