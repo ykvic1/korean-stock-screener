@@ -1,0 +1,10 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {validCoverage,validGroup,outcome}=require('../docs/v31-performance.js');
+const c={schema:'v3-forward-validation-coverage-1',performance_validated:false,latest_score_asof:'2026-11-23',candidate_entry_session_count:5,matched_entry_session_count:4,horizons:Object.fromEntries(['1','2','3','6','12'].map(p=>[p,{first_target_date:'2026-12-16',selected_window_count:1,archive_ready_count:0}]))};
+const g={selected_count:2,confirmed_opening_count:2,valued_count:1,unvalued_confirmed_openings_count:1,positive_count:1,negative_count:0,flat_count:0,observed_mean_return_pct:5,observed_win_rate_bounds_pct:[50,100],observed_mean_gain_loss_ratio:null,downside_observed_count:1,worst_entry_relative_mae_pct:-10};
+assert.ok(validCoverage(c));assert.ok(validGroup(g));assert.ok(!validGroup({...g,observed_win_rate_bounds_pct:[100,100]}));
+assert.equal(outcome(c,{schema:'v3-forward-validation-results-1',performance_validated:false,horizons:{}},'1'),null);
+const r={schema:'v3-forward-validation-results-1',performance_validated:false,horizons:{'1':{published_window_count:1,latest:{score_asof:'2026-11-13',entry_session:'2026-11-16',evaluation_session:'2026-12-16',confirmed_opening_count:2,valued_count:1,v31_summary:Object.fromEntries(['top3','top10','top20','top30','top100','below40','40to60','60to80','80plus'].map(k=>[k,g]))}}}};
+assert.equal(outcome(c,r,'1'),null);c.horizons['1'].archive_ready_count=1;assert.ok(outcome(c,r,'1'));assert.equal(outcome(c,{...r,performance_validated:true},'1'),null);
+console.log('V3.1 performance view tests passed');
