@@ -81,3 +81,35 @@ class FixedDevelopmentTests(unittest.TestCase):
         history["pending_sessions"] = 1
         with self.assertRaises(ValueError):
             price_error_terminal_reviews(report, catalog, trading, market, history)
+
+    def test_money_gap_closure_does_not_discard_usable_source_weight(self):
+        from hashlib import sha1
+        from unittest.mock import patch
+        from v3_v30b_fixed_development import money_terminal_reviews
+        from v3_dart_bulk_history import _stable_digest
+        day = "2026-11-20"
+        catalog = {"date":day,"rows":[{"code":"000001","name":"A","market":"KOSPI"}]}
+        raw = b"test"
+        receipt = {"schema":"v30b-fixed-money-replay-receipt-1","asof":day,
+                   "listed":1,"workflow_conclusion":"success","workflow_run_id":123,
+                   "money_git_blob":sha1(b"blob 4"+bytes([0])+raw).hexdigest(),
+                   "component_weight_losses":0,"provider_calls":0}
+        money = {"asof":day,"source_catalog_sha256":_stable_digest(catalog),
+                 "listed_total":1,"daily_cohorts_inspected":96,"calendar_weeks_inspected":240,
+                 "daily_asof":"2026-11-18","weekly_session_end":day,"calendar_week_end":"2026-11-22",
+                 "eligible_issuers":1,"component_eligible_issuers":1}
+        report = {"listed_total":1,"rows":{"000001":{"parts":{"volume":{
+            "persistence":[1,2,day],"long_horizon_growth":[1,6,day]}}}}}
+        records = {"000001":{"points":2}}
+        components = {"000001":{"component_observations":{"components":{
+            "persistence":[1,3],"concentration_quality":[1,2]}}}}
+        with patch("v3_actual_money_contract.usable_records",return_value=records), patch(
+                "v3_actual_money_contract.usable_component_records",return_value=components):
+            result=money_terminal_reviews(report,catalog,money,receipt,raw,{})
+            self.assertNotIn("000001:volume:persistence",result)
+            self.assertNotIn("000001:volume:concentration_quality",result)
+            self.assertNotIn("000001:volume:long_horizon_growth",result)
+            self.assertIn("000001:volume:correction_contraction",result)
+            receipt["money_git_blob"]="other"
+            with self.assertRaises(ValueError):
+                money_terminal_reviews(report,catalog,money,receipt,raw,{})
