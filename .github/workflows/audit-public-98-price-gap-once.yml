@@ -63,7 +63,8 @@ jobs:
           panel=read_day(blob,day)
           if panel is None:
               raise SystemExit('official_regular_close_panel_missing')
-          groups=defaultdict(Counter)
+          groups = defaultdict(Counter)
+          gap = 0
           for m in catalog['rows']:
               code=m['code']
               record=panel['rows'].get(code)
@@ -75,11 +76,13 @@ jobs:
               momentum = observed_weight(s, '모멘텀_산출배점', 15)
               financial = observed_weight(s, '재무_산출배점', 20)
               valuation = observed_weight(s, '가치_산출배점', 20)
-              total_weight = int(s['산출가능배점_100점중'])
+              total_weight = observed_weight(s, '산출가능배점_100점중', 100)
+              missing_weight = int(s['미확보배점_100점중'])
               if (s['시장'] != m['market'] or s['종목명'] != m['name']
                       or volume + technical + momentum + financial + valuation != total_weight
-                      or total_weight + int(s['미확보배점_100점중']) != 100):
+                      or total_weight + missing_weight != 100):
                   raise SystemExit('public_scorecard_identity_or_weight_mismatch')
+              gap += missing_weight
               pricegap = 60 - volume - technical - momentum
               group=m['price_history_status']
               g=groups[group]
@@ -99,7 +102,6 @@ jobs:
               if code not in stocks and state=='traded':
                   if receipt.get('continuous_sessions',0)>=121:
                       g['unpriced_traded_121_close_candidate']+=1
-          gap=sum(100-int(r['산출가능배점_100점중']) for r in rows.values())
           total=len(rows)*100
           target=total*98//100
           print('PUBLIC_98_PRICE_GAP_PROBE='+json.dumps({
