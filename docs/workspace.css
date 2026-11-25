@@ -910,3 +910,25 @@ dialog.u-detail::backdrop{background:#16344280}
 .u-live-sort button:focus-visible{outline:2px solid #086c5a;outline-offset:2px}
 .u-compact-pillars .u-selected-pillar{outline:2px solid #086c5a;outline-offset:-2px;border-radius:5px;background:#e6f4ef}
 @media(max-width:480px){.u-live-sort{gap:4px}.u-live-sort button{font-size:11px;padding:5px 1px}.u-live-service .u-live-updates-grid{gap:5px}}
+
+/* Live UI maintenance: compact readable score columns at narrow widths. */
+.u-live-service .u-operational-detail table{table-layout:fixed;width:100%;font-variant-numeric:tabular-nums}
+.u-live-service .u-operational-detail thead th:first-child{width:46%}
+.u-live-service .u-operational-detail thead th:nth-child(2){width:23%}
+.u-live-service .u-operational-detail thead th:nth-child(3){width:31%}
+.u-live-service .u-operational-detail td:nth-child(2),.u-live-service .u-operational-detail th:nth-child(2){text-align:right;white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.u-live-service .u-operational-detail td:nth-child(3),.u-live-service .u-operational-detail th:nth-child(3){text-align:right;white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.u-live-service .u-operational-detail .u-score-table-deduction td:nth-child(3){white-space:normal;overflow-wrap:break-word}
+.u-live-service .u-operational-detail th:first-child,.u-live-service .u-operational-detail td:first-child{overflow-wrap:break-word;word-break:keep-all}
+.u-live-service .u-price-source-details summary{font-weight:600;cursor:pointer}
+.u-live-service .u-price-source-details .u-muted{margin:8px 0}
+.u-live-service #liveUpdates{margin-top:16px;margin-bottom:8px}
+.u-live-service .u-live-updates-grid b{overflow-wrap:normal;word-break:normal}
+@media(max-width:480px){
+ .u-live-service .u-operational-detail{padding:10px}
+ .u-live-service .u-operational-detail td,.u-live-service .u-operational-detail th{padding:7px 3px;font-size:12px}
+ .u-live-service .u-operational-detail td:nth-child(2),.u-live-service .u-operational-detail td:nth-child(3){font-size:12px}
+ .u-live-service .u-live-updates-grid{grid-template-columns:1fr}
+ .u-live-service .u-live-updates-grid>div{display:flex;justify-content:space-between;align-items:center;gap:8px;border:0;padding:5px 0}
+ .u-live-service .u-live-updates-grid b{white-space:nowrap}
+}
