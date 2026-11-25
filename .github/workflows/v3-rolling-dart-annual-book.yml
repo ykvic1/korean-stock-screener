@@ -8,10 +8,11 @@ on:
   schedule:
     # Eight separated KST weekday windows, max 40 issuers each.
     # UTC Sunday-Thursday late hours correspond to KST Monday-Friday morning.
-    # :17 avoids GitHub's busy top-of-hour scheduling window.
+    # Keep the 02:30–08:50 KST daily market publication window clear.
+    # Stagger DART outside that window; full-market explicit followups still run.
     - cron: '17 16 * * 0-4'  # 01:17 KST Mon-Fri (previous UTC day)
-    - cron: '17 19 * * 0-4'  # 04:17 KST Mon-Fri (previous UTC day)
-    - cron: '17 22 * * 0-4'  # 07:17 KST Mon-Fri (previous UTC day)
+    - cron: '37 2 * * 1-5'   # 11:37 KST Mon-Fri
+    - cron: '37 10 * * 1-5'  # 19:37 KST Mon-Fri
     - cron: '17 1 * * 1-5'   # 10:17 KST Mon-Fri
     - cron: '17 4 * * 1-5'   # 13:17 KST Mon-Fri
     - cron: '17 7 * * 1-5'   # 16:17 KST Mon-Fri
