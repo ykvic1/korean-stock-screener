@@ -265,9 +265,18 @@ def generate(market,catalog,history,parts,weekly,cash=None,fcf=None,
             # filings against today's same-scope major annual receipts rather
             # than dropping true FCF just because the previous preview hash
             # predates unrelated newly collected companies. No new API calls.
-            expected=score_preview(
-                market,catalog,history,cash,
-                minimum_peers=fcf.get("minimum_same_market_peers",30))
+            if fiscal_source_dir is not None:
+                from v3_current_observed_scorecard import cashflow_source
+                from v3_dart_cashflow_enrichment import retained_current_market_cashflow
+                verified=cashflow_source(market,catalog,history,cash,fcf)
+                if verified is None:
+                    raise FullMarketScorecardError("fcf_source_not_reconciled")
+                cash=retained_current_market_cashflow(market,catalog,history,cash)
+                expected=verified[1]
+            else:
+                expected=score_preview(
+                    market,catalog,history,cash,
+                    minimum_peers=fcf.get("minimum_same_market_peers",30))
             fcf_rows={r["code"]:r for r in expected["rows"]}
             if len(fcf_rows)!=len(expected["rows"]):
                 raise FullMarketScorecardError("duplicate_fcf_issuer")
