@@ -43,7 +43,8 @@ from v3_dart_cashflow_enrichment import (
     CashflowError, fingerprint, retained_current_market_cashflow,
 )
 from v3_unscored_path_coverage import summarize as summarize_path_coverage
-from v3_path_provisional_factors import preview as path_preview
+from v3_path_provisional_factors import MOMENTUM_MAX, preview as path_preview
+from v3_public_saved_close_momentum import OUTPUT as CLOSE_MOMENTUM_OUTPUT, observations as close_momentum_observations
 from v3_issuer_factor_ledger import build as build_issuer_factor_ledger
 from v3_stop_loss_severity import preview as stop_risk_preview
 from v3_personal_score_adjustments import build as build_personal_scores, to_csv as personal_csv
@@ -386,7 +387,7 @@ def missing_close_technical(parts, receipt):
 
 def generate(market,catalog,volume,price,financial=None,cashflow=None,
              path_coverage_receipt=None,money_source=None,regular_close_source=None,
-             reviewed_fcf=None):
+             reviewed_fcf=None,close_momentum_source=None):
     """Compute all current listed tickers; verify EVERY reused source row."""
     true_volume=volume_build(market,catalog,money_source=money_source)
     true_price=price_build(market,catalog)
@@ -399,6 +400,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
     official_closes=regular_close_rows(regular_close_source,catalog)
     close_technical_counts=dict.fromkeys(("daily_rsi","weekly_rsi","weekly_ma120"),0)
     short_history_rsi_count=0
+    official_momentum=close_momentum_observations(close_momentum_source,market,catalog)
+    official_momentum_count=0
     # A DART-derived candidate that no longer belongs to the same-day
     # listed universe must fail closed, not disappear during catalog iteration.
     # Checked before any per-issuer score or availability is published.
@@ -618,6 +621,11 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
                 path_added["momentum7"]+=1
             path_research["research_volume_weight_applied"]=add_vol
             path_research["research_momentum_weight_applied"]=add_mom
+        if source_stock is not None and coverage['momentum']==8 and code in official_momentum:
+            values['momentum']=round(values['momentum']+official_momentum[code],6)
+            coverage['momentum']+=MOMENTUM_MAX
+            path_added['momentum7']+=1
+            official_momentum_count+=1
         stop_risk=stop_risk_preview(source_stock or {},asof=asof)
         risk_group=("neutral_research_only" if stop_risk["status"] == "reference_only"
                     else "unavailable")
@@ -751,6 +759,8 @@ def generate(market,catalog,volume,price,financial=None,cashflow=None,
         "path_research_subweight_applied_issuer_counts":dict(path_added),
         "regular_close_technical_replayed_issuer_counts":close_technical_counts,
         "regular_close_short_history_rsi_issuers":short_history_rsi_count,
+        **({"regular_close_momentum_replayed_issuers":official_momentum_count}
+           if official_momentum_count else {}),
         "additional_path_investment_grade_points_authorized":0,
         "stop_loss_severity_research_counts":stop_risk_counts,
         "stop_risk_adjustment_is_not_part_of_100point_total":True,
@@ -1020,7 +1030,8 @@ def main(argv=None):
         price,
         financial=financial,cashflow=cashflow,
         path_coverage_receipt=path_coverage_receipt,money_source=money_source,
-        regular_close_source=regular_close_source,reviewed_fcf=reviewed_fcf)
+        regular_close_source=regular_close_source,reviewed_fcf=reviewed_fcf,
+        close_momentum_source=read(CLOSE_MOMENTUM_OUTPUT) if (root/CLOSE_MOMENTUM_OUTPUT).is_file() else None)
     new_csv=to_csv(rows,summary)
     # Per-stock history is additive: a new market census never erases an
     # unrelated issuer's last valid observations. Its dated values are NOT
