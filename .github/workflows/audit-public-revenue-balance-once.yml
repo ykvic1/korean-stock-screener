@@ -1,0 +1,75 @@
+name: Audit saved revenue and balance coverage (read only)
+on:
+  pull_request:
+    paths: ['.github/workflows/audit-public-revenue-balance-once.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Count independently verified missing components
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from collections import Counter
+          import csv,json
+          from copy import deepcopy
+          from v3_current_observed_scorecard import load_financial_source
+          from v3_revenue_growth_evidence import derive
+          from v3_operational_research_score import reviewed_short_periods
+          from v3_dart_bulk_history import _balance_financial_metrics,_valid_receipt,_day
+          from v3_dart_cashflow_factor_preview import _receipt_balance_assets
+          root=Path('docs')
+          read=lambda n:json.loads((root/n).read_bytes())
+          catalog=read('v22-market-catalog.json')
+          history=read('v3-dart-bulk-history.json')
+          fiscal,annual=load_financial_source(root,catalog)
+          assert fiscal is not None
+          day=catalog['date']
+          assert history['asof']==day
+          short=reviewed_short_periods(history,annual,day)
+          with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig') as f:
+              public={r['종목코드']:r for r in csv.DictReader(f)}
+          assert len(public)==catalog['listed_total']
+          assert all(r['가격자료기준일']==day for r in public.values())
+          rev,summary=derive(history,catalog,
+              read('v3-dart-revenue-2022-supplement.json'),
+              read('v3-dart-revenue-2023-comparative.json'),
+              read('v3-dart-revenue-2024-comparative.json'),short_period_codes=short)
+          def missing(code,metric):
+              return fiscal.get(code,{}).get('unverified_components',{}).get(metric,{}).get('candidate_points') is None
+          found=Counter()
+          additions=Counter()
+          for c in rev:
+              if missing(c,'revenue_cagr_3y_pct'):
+                  found['revenue_cagr_3y_pct']+=1
+                  additions[c]+=4
+          for c,r in history['records'].items():
+              if c not in public or c in short:continue
+              old=_balance_financial_metrics(r,history['fiscal_years'],day)
+              new=deepcopy(r)
+              for year,scopes in new['years'].items():
+                  for scope,stmt in scopes.items():
+                      if scope not in ('CFS','OFS') or not _valid_receipt(stmt.get('receipt_id'),int(year),_day(day)):continue
+                      assets,derived=_receipt_balance_assets(stmt)
+                      if derived:stmt['values']['assets']=assets
+              updated=_balance_financial_metrics(new,history['fiscal_years'],day)
+              for i,metric in enumerate(('liabilities_to_assets_pct','operating_roa_3y_pct')):
+                  if old[i] is None and updated[i] is not None and missing(c,metric):
+                      found[metric]+=1
+                      additions[c]+=4
+          crossings=Counter()
+          for c,weight in additions.items():
+              before=int(public[c]['산출가능배점_100점중'])
+              assert before+weight<=100
+              for t in (90,95,100):
+                  if before<t<=before+weight:crossings[t]+=1
+          print('PUBLIC_REVENUE_BALANCE_PROBE='+json.dumps({'asof':day,'added_by_component':found,'unique_issuers':len(additions),'potential_weight':sum(additions.values()),'crossings':crossings,'revenue_source_summary':summary,'provider_calls':0},sort_keys=True))
+          PY
