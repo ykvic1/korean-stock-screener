@@ -1,0 +1,58 @@
+name: V3.0b Operational Development Acceptance
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/v30b-operational-acceptance.yml, v3_v30b_operational_acceptance.py]
+  push:
+    branches: [main]
+    paths: [.github/workflows/v30b-operational-acceptance.yml, v3_v30b_final_source_review.py]
+  workflow_run:
+    workflows: [V3.0b Last Fixed Original Filing Recovery]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v30b-operational-acceptance
+  cancel-in-progress: false
+jobs:
+  audit:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          ref: v30b-development-data-20261120
+          path: fixed-data
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 6608c3c091c3b7252c926975a87e9af650e41e8a
+          path: original-roster
+          persist-credentials: false
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Evaluate fixed development and current publication independently
+        run: |
+          set -euo pipefail
+          python v3_v30b_fixed_development.py --docs fixed-data/docs --frozen-catalog original-roster/docs/v22-market-catalog.json --out "$RUNNER_TEMP/fixed-ledger.json"
+          set +e
+          python v3_v30b_operational_acceptance.py --ledger "$RUNNER_TEMP/fixed-ledger.json" --docs docs --out "$RUNNER_TEMP/v30b-operational-acceptance.json"
+          rc=$?
+          set -e
+          if [[ "$rc" != 0 && "$rc" != 2 ]]; then exit "$rc"; fi
+          # A pending ledger is a valid audit result, not a release approval.
+          test -s "$RUNNER_TEMP/v30b-operational-acceptance.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v30b-operational-acceptance
+          path: ${{ runner.temp }}/v30b-operational-acceptance.json
+          if-no-files-found: error
