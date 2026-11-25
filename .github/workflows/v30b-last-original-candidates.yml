@@ -1,0 +1,87 @@
+name: V3.0b Last Fixed Original Filing Recovery
+on:
+  pull_request:
+    branches: [main]
+    paths: [.github/workflows/v30b-last-original-candidates.yml, v3_v30b_last_original_candidates.py]
+  push:
+    branches: [main]
+    paths: [.github/workflows/v30b-last-original-candidates.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v30b-fixed-money-recovery
+  cancel-in-progress: false
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/checkout@v4
+        with:
+          ref: v30b-development-data-20261120
+          path: fixed-data
+      - uses: actions/checkout@v4
+        with:
+          ref: 6608c3c091c3b7252c926975a87e9af650e41e8a
+          path: original-roster
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: a3c9692cec9ce2f3c12bf09323c3b85ead463c70
+          path: review-code
+          persist-credentials: false
+      - run: pip install 'requests>=2.31,<3' 'exchange-calendars==4.13.1'
+      - name: Reconcile and plan only the last remaining original filings
+        run: |
+          set -euo pipefail
+          python review-code/v3_v30b_fixed_development.py --docs fixed-data/docs --frozen-catalog original-roster/docs/v22-market-catalog.json --out "$RUNNER_TEMP/fixed-before-ledger.json"
+          python v3_v30b_last_original_candidates.py --fixed-root fixed-data --ledger "$RUNNER_TEMP/fixed-before-ledger.json"
+      - name: Recover remaining eligible original filings and verify score
+        if: github.event_name != 'pull_request'
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          cp fixed-data/docs/v3-operational-research-scores.json "$RUNNER_TEMP/before-score.json"
+          python v3_v30b_last_original_candidates.py --fixed-root fixed-data --ledger "$RUNNER_TEMP/fixed-before-ledger.json" --live
+          python v3_dart_cashflow_gap_audit.py --market fixed-data/docs/data.json --catalog fixed-data/docs/v22-market-catalog.json --major fixed-data/docs/v3-dart-bulk-history.json --cashflow fixed-data/docs/v3-dart-cashflow-reference.json --out fixed-data/docs/v3-dart-cashflow-gap-summary.json --issuer-out fixed-data/docs/v3-dart-cashflow-issuer-evidence.json
+          python v3_operational_research_score.py --docs fixed-data/docs
+          python review-code/v3_v30b_fixed_development.py --docs fixed-data/docs --frozen-catalog original-roster/docs/v22-market-catalog.json --out "$RUNNER_TEMP/fixed-after-ledger.json"
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])
+          before=json.loads((root/"before-score.json").read_text())
+          after=json.loads(Path("fixed-data/docs/v3-operational-research-scores.json").read_text())
+          ledger=json.loads((root/"fixed-after-ledger.json").read_text())
+          if before["asof"]!=after["asof"] or after["asof"]!="2026-11-20" or before["rows"].keys()!=after["rows"].keys(): raise ValueError("frozen_roster_changed")
+          gains=losses=0
+          for c,r in after["rows"].items():
+              old=before["rows"][c]
+              for a,parts in r["parts"].items():
+                  for k in parts.keys()|old["parts"][a].keys():
+                      x=old["parts"][a].get(k,[0,0])[1];y=parts.get(k,[0,0])[1]
+                      gains+=y>x+1e-6;losses+=y<x-1e-6
+          print(json.dumps({"actual_weight_gains":gains,"actual_weight_losses":losses,"pending_issuers":ledger["pending_source_review_issuers"],"pending_components":ledger["gap_disposition_counts"].get("pending",0),"full_observed_issuers":ledger["full_observed_issuers"]}))
+          if losses: raise ValueError("observation_regression")
+          PY
+      - name: Publish only fixed development data
+        if: success() && github.event_name != 'pull_request'
+        working-directory: fixed-data
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/v3-dart-original-revenue-recovery.json docs/v3-dart-cashflow-reference.json docs/v3-dart-cashflow-gap-summary.json docs/v3-dart-cashflow-issuer-evidence.json docs/v3-operational-research-scores.json docs/v3-operational-research-scores.csv docs/v3-operational-research-comparison.json docs/score-history/
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Recover last eligible fixed-date original financial receipts'
+          git push origin HEAD:v30b-development-data-20261120
