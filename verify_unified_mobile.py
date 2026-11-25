@@ -128,6 +128,32 @@ with sync_playwright() as p:
     assert outcomes["performance_validated"] is False
     assert not errors, errors
     page.screenshot(path=str(OUT / "v31-performance-mobile.png"), full_page=True)
+    # V3.2 is a separate view; no extra market/sector requests on live stock homepage.
+    assert "v32-market-index-reference.json" not in live_requests
+    page.goto(URL, wait_until="domcontentloaded", timeout=60000)
+    page.locator(".u-stock").first.wait_for(timeout=45000)
+    page.locator(".u-header-more > summary").click()
+    page.get_by_role("link", name="시장·업종 분석", exact=True).click()
+    assert page.url.endswith("/market-sector.html")
+    page.locator("#indexRows tr").first.wait_for(timeout=20000)
+    assert page.locator("#indexRows tr").count() == 2
+    assert "미확보" in page.locator("#flowValues").inner_text()
+    raw_sector = context.request.get(URL + "v3-industry-observed-relative-strength.json").json()
+    assert raw_sector["asof"] in page.locator("#sectorStatus").inner_text() or "미확인" in page.locator("#sectorStatus").inner_text()
+    for market in ("all", "KOSPI", "KOSDAQ"):
+        page.locator("#market").select_option(market)
+        for horizon in ("m20", "m60", "m120"):
+            page.locator("#period").select_option(horizon)
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        if market != "all":
+            assert page.locator("#groups th").evaluate_all(
+                "(els, market) => els.every(e => e.textContent.startsWith(market + ' · '))", market)
+    page.locator("#market").select_option("all")
+    for filter_name in ("recovery", "eligible", "dual", "earnings", "all"):
+        page.locator("#watch").select_option(filter_name)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    assert not errors, errors
+    page.screenshot(path=str(OUT / "v32-market-sector-mobile.png"), full_page=True)
     # Continue the existing detailed research regression on the preserved research route.
     page.goto(URL + "research.html", wait_until="domcontentloaded", timeout=60000)
     assert page.url.endswith("/research.html")

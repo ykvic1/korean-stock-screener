@@ -10,6 +10,9 @@ on:
       - 'docs/performance.html'
       - 'docs/v31-performance.js'
       - 'docs/v31-performance.css'
+      - 'docs/market-sector.html'
+      - 'docs/v32-market-sector.js'
+      - 'tests/test_v32_market_sector.cjs'
       - 'tests/test_v31_performance.cjs'
       - 'docs/workspace.js'
       - 'docs/v3-data-readiness.js'
@@ -103,6 +106,7 @@ jobs:
             verification/unified-mobile.png
             verification/unified-mobile-live.png
             verification/v31-performance-mobile.png
+            verification/v32-market-sector-mobile.png
             verification/unified-mobile-result.json
             verification/unified-mobile-export.xlsx
           if-no-files-found: warn
