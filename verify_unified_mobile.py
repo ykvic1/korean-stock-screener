@@ -32,6 +32,56 @@ with sync_playwright() as p:
     page.on("console", lambda m: errors.append(m.text) if m.type == "error" and "[V3 workspace load]" in m.text else None)
     page.goto(URL, wait_until="domcontentloaded", timeout=60000)
     assert page.url.rstrip("/") == URL.rstrip("/"), "root should serve unified UI directly"
+    current = context.request.get(URL + "v3-operational-research-scores.json").json()
+    rows = current["rows"]
+    page.locator(".u-stock").first.wait_for(timeout=45000)
+    assert page.locator("#stockSearch").is_visible()
+    assert not page.locator("#researchPanel").is_visible()
+    assert not page.locator("#personalRank").is_visible()
+    assert not page.locator("#dataCollectionStatus").is_visible()
+    assert page.locator("#liveProgressAsOf").inner_text() == current["asof"]
+    assert page.locator("#liveProgressCoverage").inner_text() == (
+        f'{sum(v["available"] >= 100 for v in rows.values()):,} / {len(rows):,}종목'
+    )
+    assert page.locator("#resultCount").inner_text().startswith(f'{len(rows):,}종목')
+    for key in ("volume", "technical", "financial", "valuation", "momentum"):
+        button = page.locator(f'[data-score-sort="area:{key}"]')
+        button.click()
+        assert button.get_attribute("aria-pressed") == "true"
+        codes = page.locator(".u-stock").evaluate_all("(els) => els.map(e => e.dataset.stock)")
+        expected = sorted(rows, key=lambda c: (
+            -rows[c]["areas"][key]["points"] if rows[c]["score"] is not None else 1,
+            -rows[c]["areas"][key]["available"] if rows[c]["score"] is not None else 0,
+            -rows[c]["score"] if rows[c]["score"] is not None else 1,
+            -rows[c]["available"], c))
+        # Compare metric order rather than locale-dependent alphanumeric tie order.
+        assert len(codes) == min(20, len(rows))
+        assert [rows[c]["areas"][key]["points"] for c in codes] == [
+            rows[c]["areas"][key]["points"] for c in expected[:len(codes)]]
+        for code in codes:
+            card = page.locator(f'[data-stock="{code}"]')
+            assert card.locator(f'[data-pillar="{key}"]').evaluate("(e) => e.classList.contains('u-selected-pillar')")
+            assert abs(float(card.locator(f'[data-pillar="{key}"] b').inner_text()) -
+                       rows[code]["areas"][key]["points"]) <= 0.051
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+    page.locator("#top100Only").click()
+    assert page.locator("#resultCount").inner_text().startswith("100종목")
+    page.locator("#stockSearch").fill("005930")
+    page.locator('[data-stock="005930"]').click()
+    assert page.locator(".u-operational-detail").is_visible()
+    assert "기존 모델" not in page.locator(".u-operational-detail").inner_text()
+    assert not page.locator(".u-legacy-model").count()
+    page.locator("#detailClose").click()
+    page.locator("#stockSearch").fill("")
+    page.locator("#top100Only").click()
+    page.locator('[data-score-sort="ops"]').click()
+    assert page.locator(".u-stock").first.get_attribute("data-stock") == next(
+        code for code, row in rows.items() if row["rank"] == 1)
+    page.screenshot(path=str(OUT / "unified-mobile-live.png"), full_page=True)
+    assert not errors, errors
+    # Continue the existing detailed research regression on the preserved research route.
+    page.goto(URL + "research.html", wait_until="domcontentloaded", timeout=60000)
+    assert page.url.endswith("/research.html")
     # Current PR259 interface has no coverageGateStatus/Rows elements.
     # Check the real market source snapshot and the unchanged stock-card UI.
     observed = context.request.get(URL + "v3-current-observed-all-listed-summary.json").json()
