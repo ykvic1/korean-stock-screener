@@ -12,7 +12,7 @@
     "forward_outcomes_workflow": ".github/workflows/v3-forward-entry.yml"
   },
   "remaining_fixed_snapshot_verification": [
-    "Historical financial inputs outside the receipt-matched FY2024 primary-statement coverage",
+    "Historical financial inputs not independently verified by the receipt-matched FY2024 primary statements and FY2022–FY2023 comparative-column audit; retain unresolved differences and unavailable original filings as unverified",
     "Historical corporate-action and adjusted-price coverage outside the verified cases"
   ],
   "forward_performance_required_for_release": false,
@@ -131,6 +131,16 @@
       }
     },
     "expanded_verification_followup": {
+      "comparative_primary_statement_totals": {
+        "run_id": 45507325062,
+        "summary_job_id": 138875239978,
+        "artifact_id": 14977831575,
+        "issuers_checked": 2267,
+        "matched_fy2024_receipt_compared": 2122,
+        "evidence": "ops/v30b-fixed-pit-comparative-primary-statement-totals.json",
+        "independent_earlier_filing_version_verified": false,
+        "historical_point_in_time_certified": false
+      },
       "corporate_action_anchor_batches": [
         {
           "offset": 2,
