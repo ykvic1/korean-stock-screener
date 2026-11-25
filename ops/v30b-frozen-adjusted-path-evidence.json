@@ -1,0 +1,529 @@
+{
+  "schema": "v30b-frozen-adjusted-path-evidence-v1",
+  "development_cutoff": "2026-11-20",
+  "source": "Naver historical chart",
+  "event_count": 5,
+  "outcomes": [
+    {
+      "code": "008500",
+      "event_date": "2025-12-15",
+      "state": "exact",
+      "expected_multiplier": "1/5",
+      "observed_multiplier": "1/5",
+      "prior_matches_unadjusted": false,
+      "listing_matches_unadjusted": true,
+      "official_daily_source_sha256": [
+        "cbc15d039a1b1f1112b4e94d0b8277de94e79f3366f44411bdd77a0575c3241f",
+        "1e1fc54689d9602cb35a3116eb9c9a30c9284b83d72c3a9da42ec7714ea3e9bb"
+      ],
+      "official_daily_reference_factor_match": "exact",
+      "year_path": {
+        "first_observed_trade": "20251113",
+        "last_observed_trade": "20260629",
+        "present_in_endpoint_roster": false,
+        "raw_traded_sessions": 135,
+        "adjusted_positive_closes_on_traded_sessions": 135,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 133,
+          "krx_reference_match": 1
+        },
+        "unresolved_pairs": []
+      },
+      "adjusted_response_sha256": "f2c086ac4f8dd9d85857944d3b4521c67ef704ecd660629ac89998619b14e737"
+    },
+    {
+      "code": "121850",
+      "event_date": "2025-12-10",
+      "state": "different_factor",
+      "expected_multiplier": "10",
+      "observed_multiplier": "673359/54353",
+      "prior_matches_unadjusted": false,
+      "listing_matches_unadjusted": false,
+      "kind_notice": "https://kind.krx.co.kr/external/2025/12/09/000506/20251209001663/70793.htm",
+      "notice_reference_factor_match": "within_rounding",
+      "official_daily_source_sha256": [
+        "5af14cc5e095280fbf544da041b8831aadeebc2d7472e45d211a7772207e927c",
+        "45e5391cf4390aa10e7d01a30011dc090a6a08b83b3db43284e61c405e0968f8"
+      ],
+      "official_daily_reference_factor_match": "within_rounding",
+      "year_path": {
+        "first_observed_trade": "20251113",
+        "last_observed_trade": "20260911",
+        "present_in_endpoint_roster": false,
+        "raw_traded_sessions": 186,
+        "adjusted_positive_closes_on_traded_sessions": 186,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 183,
+          "krx_reference_match": 2
+        },
+        "unresolved_pairs": []
+      },
+      "adjusted_response_sha256": "81b7772e8cff17630d67b1549ffec86869c62215af7f7c16e0c465ef41c2d7a8"
+    },
+    {
+      "code": "008290",
+      "event_date": "2026-05-12",
+      "state": "exact",
+      "expected_multiplier": "2",
+      "observed_multiplier": "2",
+      "prior_matches_unadjusted": false,
+      "listing_matches_unadjusted": true,
+      "official_daily_source_sha256": [
+        "0f455769782b4f0a2f2c5ace73d62830adb4794dea36ae7407c2f91630c60256",
+        "c885fed3800e13c71280aeaf166134f2cefca50e762812e80d01bdc2d90180a9"
+      ],
+      "official_daily_reference_factor_match": "exact",
+      "year_path": {
+        "first_observed_trade": "20251113",
+        "last_observed_trade": "20260918",
+        "present_in_endpoint_roster": false,
+        "raw_traded_sessions": 194,
+        "adjusted_positive_closes_on_traded_sessions": 194,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 192,
+          "krx_reference_match": 1
+        },
+        "unresolved_pairs": []
+      },
+      "adjusted_response_sha256": "de8dba01c3e9fb7f0d1ebaa1d6da0f90dfc39882cf4464b7511d6b2ff7fcdd67"
+    },
+    {
+      "code": "028080",
+      "event_date": "2026-04-30",
+      "state": "different_factor",
+      "expected_multiplier": "5",
+      "observed_multiplier": "7520/1503",
+      "prior_matches_unadjusted": false,
+      "listing_matches_unadjusted": true,
+      "kind_notice": "https://kind.krx.co.kr/external/2026/04/29/001058/20260429002274/70795.htm",
+      "notice_reference_factor_match": "exact",
+      "official_daily_source_sha256": [
+        "f4120cc926daddd39f3d4b1ff60428fefd364b3e261b923e0ed44ab6a8115b5f",
+        "48080f5e4af8644c2ef16d6cbe82ac9ac77f318f4455127d4d0e3213b3d789d1"
+      ],
+      "official_daily_reference_factor_match": "exact",
+      "year_path": {
+        "first_observed_trade": "20251113",
+        "last_observed_trade": "20260928",
+        "present_in_endpoint_roster": false,
+        "raw_traded_sessions": 198,
+        "adjusted_positive_closes_on_traded_sessions": 198,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 196,
+          "krx_reference_match": 1
+        },
+        "unresolved_pairs": []
+      },
+      "adjusted_response_sha256": "0c451b55054891827385800dc2964d49a8d77d5e457af55e2b110b5025e6f066"
+    },
+    {
+      "code": "291230",
+      "event_date": "2026-08-14",
+      "state": "exact",
+      "expected_multiplier": "5",
+      "observed_multiplier": "5",
+      "prior_matches_unadjusted": false,
+      "listing_matches_unadjusted": true,
+      "official_daily_source_sha256": [
+        "24a19f73bacdcb96de7ffaf3a319b09846a00d375caf8821cd0a14f98828eb08",
+        "513fcbaf1509c58c67de40eb2c60a1afa8acd8bad1a89ff809d83e2a51eb3445"
+      ],
+      "official_daily_reference_factor_match": "exact",
+      "year_path": {
+        "first_observed_trade": "20251113",
+        "last_observed_trade": "20261113",
+        "present_in_endpoint_roster": true,
+        "raw_traded_sessions": 231,
+        "adjusted_positive_closes_on_traded_sessions": 231,
+        "adjacent_traded_session_pairs": {
+          "consistent_with_unchanged_scale": 190,
+          "krx_reference_match": 1,
+          "krx_reference_differs": 39
+        },
+        "unresolved_pairs": [
+          {
+            "prior": "20260911",
+            "current": "20260914",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.685,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260914",
+            "current": "20260915",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 19.724,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": true
+          },
+          {
+            "prior": "20260915",
+            "current": "20260916",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 19.763,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260916",
+            "current": "20260917",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.724,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": true
+          },
+          {
+            "prior": "20260917",
+            "current": "20260918",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.685,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260918",
+            "current": "20260921",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 79.365,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260921",
+            "current": "20260922",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -59.172,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": true
+          },
+          {
+            "prior": "20260922",
+            "current": "20260923",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.417,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260928",
+            "current": "20260929",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 38.647,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260929",
+            "current": "20260930",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -57.471,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20260930",
+            "current": "20261001",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 77.071,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261001",
+            "current": "20261002",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.194,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261002",
+            "current": "20261006",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -19.157,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": true
+          },
+          {
+            "prior": "20261006",
+            "current": "20261007",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 129.63,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261007",
+            "current": "20261008",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -146.018,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261008",
+            "current": "20261012",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 281.955,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261012",
+            "current": "20261013",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -503.324,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261013",
+            "current": "20261014",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 403.64,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261014",
+            "current": "20261015",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 450.705,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261015",
+            "current": "20261016",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -544.657,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261016",
+            "current": "20261019",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 137.988,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261020",
+            "current": "20261021",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -79.329,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261021",
+            "current": "20261022",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -56.672,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261022",
+            "current": "20261023",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 101.584,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261023",
+            "current": "20261026",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -21.135,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261026",
+            "current": "20261027",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -60.2,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261027",
+            "current": "20261028",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -20.387,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261028",
+            "current": "20261029",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 60.033,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261029",
+            "current": "20261030",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -100.115,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261030",
+            "current": "20261102",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -90.071,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261102",
+            "current": "20261103",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -53.417,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261103",
+            "current": "20261104",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 458.533,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261104",
+            "current": "20261105",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -327.674,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261105",
+            "current": "20261106",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 12.65,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261106",
+            "current": "20261109",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 64.522,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261109",
+            "current": "20261110",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -125.54,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261110",
+            "current": "20261111",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 123.877,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": false
+          },
+          {
+            "prior": "20261111",
+            "current": "20261112",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": -23.585,
+            "same_unadjusted_prior": false,
+            "same_unadjusted_current": true
+          },
+          {
+            "prior": "20261112",
+            "current": "20261113",
+            "official_scale_unchanged": true,
+            "relative_gap_basis_points": 232.558,
+            "same_unadjusted_prior": true,
+            "same_unadjusted_current": false
+          }
+        ]
+      },
+      "adjusted_response_sha256": "bbb63badf78bc73013c56decefe2361c2262879751388149137ddf3dd933249d"
+    }
+  ],
+  "official_market_day_sha256": {
+    "KOSPI_20251125": "cbc15d039a1b1f1112b4e94d0b8277de94e79f3366f44411bdd77a0575c3241f",
+    "KOSPI_20251215": "1e1fc54689d9602cb35a3116eb9c9a30c9284b83d72c3a9da42ec7714ea3e9bb",
+    "KOSDAQ_20251114": "5af14cc5e095280fbf544da041b8831aadeebc2d7472e45d211a7772207e927c",
+    "KOSDAQ_20251210": "45e5391cf4390aa10e7d01a30011dc090a6a08b83b3db43284e61c405e0968f8",
+    "KOSDAQ_20251217": "7e55145e7ca123339fdd19a4c7a9f7fe80292667eafe0022a8af5414f64f4192",
+    "KOSDAQ_20251218": "da3c860a9a509c8965830016e86d910a6643d99dcaf01b394ddab0cf5bfd6c58",
+    "KOSDAQ_20260417": "0f455769782b4f0a2f2c5ace73d62830adb4794dea36ae7407c2f91630c60256",
+    "KOSDAQ_20260512": "c885fed3800e13c71280aeaf166134f2cefca50e762812e80d01bdc2d90180a9",
+    "KOSDAQ_20260408": "f4120cc926daddd39f3d4b1ff60428fefd364b3e261b923e0ed44ab6a8115b5f",
+    "KOSDAQ_20260430": "48080f5e4af8644c2ef16d6cbe82ac9ac77f318f4455127d4d0e3213b3d789d1",
+    "KOSDAQ_20260724": "24a19f73bacdcb96de7ffaf3a319b09846a00d375caf8821cd0a14f98828eb08",
+    "KOSDAQ_20260814": "513fcbaf1509c58c67de40eb2c60a1afa8acd8bad1a89ff809d83e2a51eb3445",
+    "KOSDAQ_20260911": "72848b22fdcf8a6594ee5a5658bd2c259fff9d0624b8b9c8c29303b58bd205cc",
+    "KOSDAQ_20260914": "b6347d742b5d052c5d7e865c00e4f99614c06afda6be8f39a963b961eba1eaff",
+    "KOSDAQ_20260915": "3595c9598fd248ec57f60d430b8035b6c2a868776a3fc5c65b96507c8f042bb4",
+    "KOSDAQ_20260916": "bbaebaa83d0e437a43837cfc794a4992c863d39d9f870c2016ea4868bbbaebd9",
+    "KOSDAQ_20260917": "c2d25a35f6ac7421b692784136380bf656308b8b400756337bdff3b20f0b102f",
+    "KOSDAQ_20260918": "732bf4fe0b29951190e75c0a31e4ff7c27df1296c1841937aed7d5edff92c405",
+    "KOSDAQ_20260921": "d638dce44a171060b413358eef6534c957f62e8cecce3d6e9e422f3a0bd72533",
+    "KOSDAQ_20260922": "1d02b1a21eeff69ebfbca96664c1566c3fffc8fbe2c8f33552d50f5927137257",
+    "KOSDAQ_20260923": "d04816b1f154393d264803936389af005d916cfe686374a43b7a23cc00590651",
+    "KOSDAQ_20260928": "c5411d2b9dfd57ee2360a425428f273297c18b8455ce3c2496e89e581c350bd2",
+    "KOSDAQ_20260929": "6c2e8f71759a2d6527fe27073224204b81d96dd30c0b7dd5420dbb24c340311d",
+    "KOSDAQ_20260930": "433373f06874f0ba22491d785ede1b9ef7274f7aea698d3e40c7d64752262fbd",
+    "KOSDAQ_20261001": "6e921cb014e00e3b01596d7d7d98d8242142a1a689109b803a891b3c376d8e16",
+    "KOSDAQ_20261002": "3ad91ff7105d0a567ab7ea591d779c726e3d731e05583be7fbf549f033144d68",
+    "KOSDAQ_20261006": "883ccc9394bea68f4024c20edc8d102ed95b2573663345f32bb6f69197c88ab5",
+    "KOSDAQ_20261007": "ae62b39ba2db572f2c72ae27799e6e6bdd87229c53d99704387da3d70e2efd86",
+    "KOSDAQ_20261008": "58367423d94d3c411e1bc3a343dd65497a45caf7fbb8aa818aad6eb851e52c69",
+    "KOSDAQ_20261012": "ef7f9dcbf7c15e5b7e493fff9ee2a468c70ff5419816c2de5b93dd94db7c9bc4",
+    "KOSDAQ_20261013": "d2324cbebe3381ddf9444cd1589ee3e56c619a4417fc22b705083e6870baeb45",
+    "KOSDAQ_20261014": "f7995e2d19d216c4a0eb0d049c6941431f61598250125c3cdc2f64d11739d58e",
+    "KOSDAQ_20261015": "2428d10039a31fbafc5311ca44f975aaabb5c364b9ef872ecd61d4c3c1548350",
+    "KOSDAQ_20261016": "6c81b7ca5fddd48412dbd25505bfd6da435d43dd224ee8e51c26684076e1c893",
+    "KOSDAQ_20261019": "ba0bcae00599d62a6ca27649bd130ff5349f12a9af0b451b556675278e86238f",
+    "KOSDAQ_20261020": "06490e03c934417006d38a47ca718358af8edced5759f01bbe1ca6c153c82b6d",
+    "KOSDAQ_20261021": "7fbe506aaf3546903fd265a9bc6e665da4cf9e9edcc689b781490afb8f6e44a8",
+    "KOSDAQ_20261022": "869a98e755f4a07520414cf0f61e221e9f612af664bbb428864c3143013ece03",
+    "KOSDAQ_20261023": "1dac21502effb30da9d6e2700ec1163e7edb994bb34421bdd369c02824611be4",
+    "KOSDAQ_20261026": "e68fe2ad745e233cc89906f2569068a62db780c04eeb3d1d676c5d43414a0a58",
+    "KOSDAQ_20261027": "a077e9e9ab8fc44602534ed7a9c2c2905ad90ae4cb0406f64444e23d19f1eea3",
+    "KOSDAQ_20261028": "2c53062cca15102e9d81b1abe6316f9f3e0b55b24db702f1c7232b6327b503db",
+    "KOSDAQ_20261029": "9cd700b517e430b43d886e01571bf1938fa0defe89ae75e9a14a504361037fde",
+    "KOSDAQ_20261030": "6e6df0f5e435ca3c92a276daf1d0309817b27f09485334e8007e3e382a500219",
+    "KOSDAQ_20261102": "06c767c053c2c6b99006a8031b26901eec445b70b799fd6548032dcd48c51cde",
+    "KOSDAQ_20261103": "b98a98e31f9205e6ccb4910051f76f17207484d7e7ee273fd4289485e547cfba",
+    "KOSDAQ_20261104": "97d280716bf4ec8a3ee39295a992e96bd428820ae6b08837fb9149bf15cc397c",
+    "KOSDAQ_20261105": "6038da378f86d284b64416efedb17f5fd88f25f9ecfd47a8c767b18303dce02c",
+    "KOSDAQ_20261106": "c95d266eadeb5f16ad522b660d9b034a9c4544047ca135ddcabd7221c7dd9a6e",
+    "KOSDAQ_20261109": "718525cb81fce44b377a4fb2ba786ebd844eda6d053b2efa331971e7199fb130",
+    "KOSDAQ_20261110": "92f4d4dd47b4d02d7169fa019358f18fd335f80e39a91855d67445e6a8a6eead",
+    "KOSDAQ_20261111": "fde36655e8cf3014ef88807baece1ac87fd73119aa72e5ef0fe50456ec0ce766",
+    "KOSDAQ_20261112": "a1ad3baa564e2c8dc7097f086688637d274462359b68f7833b0d97d5fb8a3c3c",
+    "KOSDAQ_20261113": "866fd08b5e4885689feb87c3447962f876623fbafa954877e9f205bd8f9cbc4e"
+  },
+  "counts": {
+    "exact": 3,
+    "different_factor": 2
+  },
+  "official_adjusted_history_verified": false,
+  "adjacent_pair_counts": {
+    "consistent_with_unchanged_scale": 894,
+    "krx_reference_match": 6,
+    "krx_reference_differs": 39
+  },
+  "interpretation": "All 39 unresolved pairs have an unchanged official KRX reference scale; do not infer additional corporate actions or promote vendor adjusted prices. The four remaining issuer paths have no unresolved adjacent pairs in the observed window. This is not independent certification of all adjusted-price history.",
+  "new_provider_calls": 0
+}
