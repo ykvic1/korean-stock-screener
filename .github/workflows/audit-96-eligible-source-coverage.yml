@@ -1,0 +1,152 @@
+name: Audit eligible public-source coverage at 96 percent
+on:
+  pull_request:
+    paths: ['.github/workflows/audit-96-eligible-source-coverage.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'requests>=2.31,<3' 'numpy>=1.26,<3' 'pandas>=2,<3' 'exchange-calendars==4.13.1'
+      - name: Verify saved cashflow receipt and source evidence
+        run: python v3_dart_cashflow_gap_audit.py --mode verify --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
+      - name: Reconcile eligible coverage, exclusions and threshold
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          python - <<'PY'
+          import csv
+          import json
+          import os
+          from collections import Counter
+          from concurrent.futures import ThreadPoolExecutor
+          from pathlib import Path
+
+          from v3_forward_share_actions import normalized_name
+          from v3_regular_close_indicators import (
+              PRIVATE_REPO, PrivateGitStorage, archive_path, history_dates, read_day,
+          )
+
+          root = Path('docs')
+          def read(name):
+              return json.loads((root / name).read_bytes())
+
+          catalog = read('v22-market-catalog.json')
+          day = catalog['date']
+          members = {member['code']: member for member in catalog['rows']}
+          with (root / 'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig') as stream:
+              csv_rows = list(csv.DictReader(stream))
+          rows = {row['종목코드']: row for row in csv_rows}
+          if (len(members) != catalog['listed_total'] or len(rows) != len(csv_rows)
+                  or rows.keys() != members.keys()):
+              raise SystemExit('listed_roster_mismatch')
+
+          fcf = read('v3-dart-cashflow-issuer-evidence.json')
+          summary = read('v3-current-observed-all-listed-summary.json')
+          if (fcf['asof'] != day or summary['asof'] != day or fcf['listed_total'] != len(members)
+                  or fcf['source_receipt_scope_checked'] is not True):
+              raise SystemExit('source_date_or_receipt_mismatch')
+
+          if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
+              raise SystemExit('private_archive_not_available')
+          storage = PrivateGitStorage(PRIVATE_REPO, os.environ['V3_PRIVATE_ARCHIVE_TOKEN'])
+          storage.verify_private()
+          sessions = history_dates(day)[-60:]
+          if len(sessions) != 60 or sessions[-1] != day:
+              raise SystemExit('invalid_session_window')
+
+          def no_trade_codes(session):
+              blob, _ = storage.get_content(archive_path(session))
+              panel = read_day(blob, session)
+              if panel is None:
+                  raise SystemExit('missing_official_trading_status_session')
+              return {
+                  code for code, row in panel['rows'].items()
+                  if code in members and row[5] is False
+                  and row[0] == members[code]['market']
+                  and normalized_name(row[1]) == normalized_name(members[code]['name'])
+              }
+
+          with ThreadPoolExecutor(max_workers=6) as pool:
+              no_trade = list(pool.map(no_trade_codes, sessions))
+          excluded_issuers = set.intersection(*no_trade)
+          missing_accounts = set('XCBPI')
+          fcf_excluded = Counter()
+          all_observed = 0
+          excluded_observed = 0
+          remaining_histogram = Counter()
+          for code, row in rows.items():
+              member = members[code]
+              observed = int(row['산출가능배점_100점중'] or '0')
+              missing = int(row['미확보배점_100점중'])
+              if (not 0 <= observed <= 100 or observed + missing != 100
+                      or row['가격자료기준일'] != day or row['시장'] != member['market']
+                      or row['종목명'] != member['name']):
+                  raise SystemExit('scorecard_row_mismatch')
+              all_observed += observed
+              if code in excluded_issuers:
+                  excluded_observed += observed
+                  continue
+              remaining_histogram[observed] += 1
+
+              status = fcf['records'].get(code)
+              if status is None:
+                  continue
+              if len(status) != 4 or status[0] not in ('CFS', 'OFS') or not set(status[1:]) <= set('XCBPIUNV'):
+                  raise SystemExit('unknown_cashflow_status')
+              financial_missing = (
+                  row['FCF자산3년_잠정점수'] == '' and bool(missing_accounts.intersection(status[1:]))
+              )
+              valuation_missing = (
+                  row['FCF수익률_잠정점수'] == '' and status[-1] in missing_accounts
+              )
+              if 4 * financial_missing + 5 * valuation_missing > missing:
+                  raise SystemExit('excluded_weight_was_observed')
+              fcf_excluded['financial_4_issuer_count'] += financial_missing
+              fcf_excluded['valuation_5_issuer_count'] += valuation_missing
+
+          total = len(rows) * 100
+          if total - all_observed != summary['total_unacquired_weight_issuer_slots']:
+              raise SystemExit('scorecard_totals_do_not_reconcile')
+          missing_weight = 4 * fcf_excluded['financial_4_issuer_count'] + 5 * fcf_excluded['valuation_5_issuer_count']
+          eligible = (len(rows) - len(excluded_issuers)) * 100 - missing_weight
+          observed = all_observed - excluded_observed
+          target = (96 * eligible + 99) // 100
+          thresholds = (100, 95, 90, 80, 70, 60, 0)
+          print('ELIGIBLE_COVERAGE_96=' + json.dumps({
+              'asof': day,
+              'listed_total': len(rows),
+              'all_listed_weight': total,
+              'all_listed_observed': all_observed,
+              'no_trade_first_session': sessions[0],
+              'no_trade_last_session': sessions[-1],
+              'no_trade_status_window': len(sessions),
+              'no_trade_latest_session_count': len(no_trade[-1]),
+              'long_no_trade_excluded_issuers': len(excluded_issuers),
+              'long_no_trade_excluded_observed_weight': excluded_observed,
+              'remaining_issuers': len(rows) - len(excluded_issuers),
+              'remaining_issuer_coverage_bins': [
+                  sum(count for weight, count in remaining_histogram.items()
+                      if weight >= bottom and (index == 0 or weight < thresholds[index - 1]))
+                  for index, bottom in enumerate(thresholds)
+              ],
+              'verified_unavailable_fcf_components': fcf_excluded,
+              'verified_unavailable_fcf_weight': missing_weight,
+              'eligible_weight': eligible,
+              'eligible_observed_weight': observed,
+              'eligible_coverage_pct': round(100 * observed / eligible, 4),
+              'target_pct': 96,
+              'target_observed_weight': target,
+              'additional_weight_to_target': max(0, target - observed),
+              'archive_reads': len(sessions),
+              'source_provider_requests': 0,
+          }, sort_keys=True))
+          PY
