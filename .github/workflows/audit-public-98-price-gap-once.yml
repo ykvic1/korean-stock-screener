@@ -1,0 +1,84 @@
+name: Audit 98 percent coverage price bottlenecks (saved sources only)
+on:
+  pull_request:
+    paths: ['.github/workflows/audit-public-98-price-gap-once.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -r requirements.txt
+      - name: Reconcile official trading status and existing missing price components
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os,json,csv
+          from pathlib import Path
+          from collections import Counter,defaultdict
+          from v3_regular_close_indicators import PRIVATE_REPO,archive_path,read_day,PrivateGitStorage
+          from v3_regular_close_contract import admitted_rows
+          from v3_forward_share_actions import normalized_name
+          root=Path('docs')
+          read=lambda n:json.loads((root/n).read_bytes())
+          catalog=read('v22-market-catalog.json')
+          day=catalog['date']
+          source=read('v3-regular-close-indicators.json')
+          official=admitted_rows(source,catalog)
+          assert official and source['asof']==day
+          market=read('data.json')
+          assert market['date']==day
+          stocks={s['code']:s for s in market['stocks']}
+          with (root/'v3-current-observed-all-listed.csv').open(encoding='utf-8-sig') as stream:
+              rows={r['종목코드']:r for r in csv.DictReader(stream)}
+          assert len(rows)==catalog['listed_total'] and all(r['가격자료기준일']==day for r in rows.values())
+          if os.getenv('V3_PRIVATE_ARCHIVE_REPO')!=PRIVATE_REPO:
+              raise SystemExit('private_archive_not_available')
+          storage=PrivateGitStorage(PRIVATE_REPO,os.getenv('V3_PRIVATE_ARCHIVE_TOKEN',''))
+          storage.verify_private()
+          blob,_=storage.get_content(archive_path(day))
+          panel=read_day(blob,day)
+          assert panel is not None
+          groups=defaultdict(Counter)
+          for m in catalog['rows']:
+              code=m['code']
+              record=panel['rows'].get(code)
+              identity=record is not None and record[0]==m['market'] and normalized_name(record[1])==normalized_name(m['name'])
+              state=('traded' if record[5] is True else 'zero_trades' if record[5] is False else 'unknown') if identity else 'identity_unmatched'
+              s=rows[code]
+              pricegap=60-sum(int(s[k]) for k in ('거래량_OBV_산출배점','기술_산출배점','모멘텀_산출배점'))
+              group=m['price_history_status']
+              g=groups[group]
+              g['issuers']+=1
+              g['price_weight_missing']+=pricegap
+              g['official_'+state]+=1
+              receipt=official.get(code,{})
+              if pricegap:
+                  g['price_gap_official_'+state]+=pricegap
+                  for threshold in (20,60,90,121,200,260):
+                      if receipt.get('continuous_sessions',0)>=threshold:
+                          g['close_continuity_at_least_'+str(threshold)]+=1
+              if code in stocks and int(s['모멘텀_산출배점'])==8:
+                  g['priced_missing_path7']+=1
+                  if receipt.get('continuous_sessions',0)>=121 and identity and record[5] is True and stocks[code].get('price')==record[2]:
+                      g['path7_same_close_121_candidate']+=1
+              if code not in stocks and state=='traded':
+                  if receipt.get('continuous_sessions',0)>=121:
+                      g['unpriced_traded_121_close_candidate']+=1
+          gap=sum(100-int(r['산출가능배점_100점중']) for r in rows.values())
+          total=len(rows)*100
+          target=total*98//100
+          print('PUBLIC_98_PRICE_GAP_PROBE='+json.dumps({
+              'asof':day,'listed_total':len(rows),'target_weight':target,
+              'current_missing_weight':gap,'required_new_weight':max(0,target-(total-gap)),
+              'groups':groups,'private_archive_reads':1,'provider_calls':0,
+              'official_status_observed_not_suspension_reason':True,
+              'new_points_promoted':0,'raw_rows_exported':False},sort_keys=True))
+          PY
