@@ -68,6 +68,7 @@ function validate(raw){
 }
 if(typeof module!=='undefined'&&module.exports)module.exports={validate};
 if(!root.document)return;
+if(root.document.getElementById('liveScoreSort'))return;
 const D=root.document;
 const names=['krxProgressStatus','krxHistoryCollected','krxHistoryBridges',
   'krxHistoryRolling','krxHistoryRisk','krxHistoryNotes'];
