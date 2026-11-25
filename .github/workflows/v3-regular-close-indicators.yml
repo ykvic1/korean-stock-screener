@@ -1,10 +1,15 @@
 name: V3 Official Regular Close Daily Indicators
 
 on:
+  pull_request:
+    paths:
+      - v3_public_saved_close_momentum.py
+      - .github/workflows/v3-regular-close-indicators.yml
   push:
     branches: [main]
     paths:
       - v3_regular_close_indicators.py
+      - v3_public_saved_close_momentum.py
       - v3_regular_close_contract.py
       - v3_krx_close_momentum_recovery.py
       - v3_krx_face_consolidation_notices.json
@@ -28,6 +33,7 @@ concurrency:
 
 jobs:
   collect:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 28
     permissions:
@@ -50,17 +56,23 @@ jobs:
           git rev-parse HEAD:docs/v22-market-catalog.json > /tmp/regular-close-catalog-sha
           git rev-parse HEAD:v3_regular_close_indicators.py HEAD:v3_regular_close_contract.py HEAD:v3_ma240_cross_research.py HEAD:v3_ma_slope_transition.py HEAD:v3_pattern_first_observations.py HEAD:technical_v22.py HEAD:v3_krx_close_momentum_recovery.py HEAD:v3_krx_face_consolidation_notices.json > /tmp/regular-close-code-shas
           python v3_regular_close_indicators.py
+          git rev-parse HEAD:docs/data.json > /tmp/regular-close-market-sha
+          git rev-parse HEAD:v3_public_saved_close_momentum.py > /tmp/regular-close-momentum-code-sha
+          python v3_public_saved_close_momentum.py
       - name: Publish source-bound derived indicators and progress
         id: publish
         run: |
           set -euo pipefail
-          if [[ -z $(git status --porcelain -- docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json) ]]; then
+          if [[ -z $(git status --porcelain -- docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json docs/v3-public-saved-close-momentum.json) ]]; then
             echo 'changed=false' >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add docs/v3-regular-close-indicators.json docs/v3-regular-close-history-progress.json
+          if [[ -f docs/v3-public-saved-close-momentum.json ]]; then
+            git add docs/v3-public-saved-close-momentum.json
+          fi
           git commit -m 'Publish official close-derived daily and weekly price observations'
           for attempt in 1 2 3; do
             git fetch origin main
@@ -70,6 +82,11 @@ jobs:
             fi
             if ! git rev-parse origin/main:v3_regular_close_indicators.py origin/main:v3_regular_close_contract.py origin/main:v3_ma240_cross_research.py origin/main:v3_ma_slope_transition.py origin/main:v3_pattern_first_observations.py origin/main:technical_v22.py origin/main:v3_krx_close_momentum_recovery.py origin/main:v3_krx_face_consolidation_notices.json | cmp -s /tmp/regular-close-code-shas; then
               echo '::error::regular_close_implementation_changed_during_collection'
+              exit 1
+            fi
+            if [[ $(git rev-parse origin/main:docs/data.json) != $(cat /tmp/regular-close-market-sha) ||
+                  $(git rev-parse origin/main:v3_public_saved_close_momentum.py) != $(cat /tmp/regular-close-momentum-code-sha) ]]; then
+              echo '::error::regular_close_market_or_momentum_code_changed_during_collection'
               exit 1
             fi
             git rebase origin/main
@@ -87,6 +104,7 @@ jobs:
         run: |
           set -euo pipefail
           gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
+          gh workflow run v3-current-observed-scorecard.yml --repo "$GITHUB_REPOSITORY" --ref main -f mode=write
           if python - <<'PY'
           import json
           from pathlib import Path
@@ -96,3 +114,54 @@ jobs:
           then
             gh workflow run v3-regular-close-indicators.yml --repo "$GITHUB_REPOSITORY" --ref main
           fi
+
+  replay-public-momentum:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt 'exchange-calendars==4.13.1'
+      - name: Verify stored-source fallback feeds the current public scorecard
+        env:
+          V3_PRIVATE_ARCHIVE_REPO: ${{ secrets.V3_PRIVATE_ARCHIVE_REPO }}
+          V3_PRIVATE_ARCHIVE_TOKEN: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+        run: |
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
+          cp docs/v3-current-observed-all-listed.csv /tmp/before-momentum.csv
+          python v3_public_saved_close_momentum.py
+          python v3_current_observed_scorecard.py --mode write --refresh-derived
+          python - <<'PY'
+          import csv
+          import json
+          from pathlib import Path
+
+          def rows(path):
+              with open(path, encoding='utf-8-sig') as stream:
+                  return {row['종목코드']: row for row in csv.DictReader(stream)}
+
+          before = rows('/tmp/before-momentum.csv')
+          after = rows('docs/v3-current-observed-all-listed.csv')
+          summary = json.loads(Path('docs/v3-current-observed-all-listed-summary.json').read_bytes())
+          assert before.keys() == after.keys()
+          changes = 0
+          allowed = {
+              '모멘텀_잠정점수', '모멘텀_산출배점', '관측잠정합계_100점중',
+              '산출가능배점_100점중', '미확보배점_100점중',
+          }
+          for code, old in before.items():
+              new = after[code]
+              diff = {key for key in old if old[key] != new[key]}
+              if diff:
+                  assert diff <= allowed and old['모멘텀_산출배점'] == '8'
+                  assert new['모멘텀_산출배점'] == '15'
+                  assert int(new['산출가능배점_100점중']) - int(old['산출가능배점_100점중']) == 7
+                  changes += 1
+          assert changes == summary.get('regular_close_momentum_replayed_issuers', 0)
+          print(json.dumps({'public_issuers_recovered': changes, 'weight_increase': changes * 7}))
+          PY
