@@ -170,6 +170,29 @@
           "provider_calls": 0,
           "recoverability_proven": false,
           "next_batch_run": 45771370744
+        },
+        "original_queue_progress": {
+          "asof": "2026-11-25",
+          "initial_inventory_run": 45770867460,
+          "last_completed_runs": [
+            45773094187,
+            45773264102,
+            45773727800
+          ],
+          "last_published_commit": "3e7f971915362fa2bc47b0483e219537c8dfda76",
+          "unreviewed_issuer_years": 231,
+          "reviewed_still_missing_issuer_years": 498,
+          "priority_unreviewed_issuer_years": 0,
+          "conditional_90_unreviewed_issuer_years": 0,
+          "basis": "last pre-batch exact inventory minus 32 completed zero-recovery reviews; no final post-batch dry run yet",
+          "latest_burst_completed": 96,
+          "latest_burst_recovered_fields": 0,
+          "latest_burst_reason_counts": {
+            "no_missing_supported_fact": 64,
+            "no_verified_scope_anchor": 25,
+            "unusable_original_facts": 7
+          },
+          "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40"
         }
       }
     },
