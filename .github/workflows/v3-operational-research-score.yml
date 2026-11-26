@@ -105,7 +105,7 @@ on:
       # after a changed, verified push. Do not repeat it on every completion.
       # The hourly schedule remains the recovery path for failed dispatches.
       - Full-Market 100-Stock Batches
-      - V3 Actual Money Personal Participation Score
+      # Actual-money publisher explicitly dispatches after a changed verified push.
     types: [completed]
   schedule:
     - cron: '23 * * * *'
