@@ -17,9 +17,9 @@ on:
         type: boolean
         default: false
       remaining_batches:
-        description: 'Maximum sequential batches including this run (1 to 3)'
+        description: 'Maximum sequential batches including this run (1 to 5)'
         type: number
-        default: 3
+        default: 5
 permissions:
   contents: read
 jobs:
@@ -69,7 +69,7 @@ jobs:
           REMAINING_BATCHES: ${{ inputs.remaining_batches }}
         run: |
           set -euo pipefail
-          case "$REMAINING_BATCHES" in 1|2|3) ;; *) echo 'invalid_cashflow_batch_budget'; exit 1 ;; esac
+          case "$REMAINING_BATCHES" in 1|2|3|4|5) ;; *) echo 'invalid_cashflow_batch_budget'; exit 1 ;; esac
           python -c 'import json; print(json.load(open("docs/v22-market-catalog.json"))["date"])' > "$RUNNER_TEMP/cashflow-source-date"
           interrupted=0
           extra_args=()
@@ -148,6 +148,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-current-observed-scorecard.yml/dispatches" -f ref=main -f 'inputs[mode]=write' --silent
+      - name: Verify the exact post-publication remaining queue even on the last batch
+        if: steps.collect.outputs.interrupted == '0' && steps.publish.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          python v3_dart_xbrl_cashflow_recovery.py --mode dry-run --limit 1 | tee "$RUNNER_TEMP/cashflow-next-plan.json"
       - name: Continue a bounded unreviewed queue only after verified progress
         if: steps.collect.outputs.interrupted == '0' && steps.publish.outputs.changed == 'true' && steps.replay.outputs.required == 'false' && !inputs.recheck_equivalent_contexts && inputs.remaining_batches > 1
         env:
@@ -155,8 +160,7 @@ jobs:
           REMAINING_BATCHES: ${{ inputs.remaining_batches }}
         run: |
           set -euo pipefail
-          case "$REMAINING_BATCHES" in 2|3) ;; *) exit 1 ;; esac
-          python v3_dart_xbrl_cashflow_recovery.py --mode dry-run --limit 1 > "$RUNNER_TEMP/cashflow-next-plan.json"
+          case "$REMAINING_BATCHES" in 2|3|4|5) ;; *) exit 1 ;; esac
           ready="$(python - <<'PY'
           import json, os
           from pathlib import Path
