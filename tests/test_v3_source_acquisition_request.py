@@ -52,6 +52,7 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
             ('v3-rolling-dart-annual-book.yml', 'collect'),
             ('v3-dart-bulk-four-year.yml', 'collect'),
             ('v3-xbrl-eps-recovery.yml', 'recover'),
+            ('v3-xbrl-cashflow-recovery.yml', 'recover'),
             ('v3-krx-money-week-repair.yml', 'recover'),
             ('v3-saved-close-path-recovery.yml', 'recover'),
             ('v3-dart-revenue-2022.yml', 'collect'),
@@ -68,6 +69,8 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
                 self.assertEqual(report['points_added_by_dispatch'], 0)
                 if workflow == 'v3-dart-bulk-four-year.yml':
                     self.assertEqual(command[-4:], ['-f', 'mode=live', '-f', 'groups=3'])
+                elif workflow == 'v3-xbrl-cashflow-recovery.yml':
+                    self.assertEqual(command[-2:], ['-f', 'recheck_equivalent_contexts=false'])
                 elif workflow in ('v3-dart-revenue-2022.yml', 'v3-dart-owner-profit-probe.yml'):
                     self.assertEqual(command[-2:], ['-f', 'mode=live'])
                 else:
