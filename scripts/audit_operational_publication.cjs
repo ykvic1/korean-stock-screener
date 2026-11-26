@@ -57,10 +57,15 @@ function audit(docs){
   assert.ok(details.includes('잠정 운영점수'),'rendered details');
   for(const pillar of composite.pillars)assert.equal(pillar.candidate,source.areas[pillar.key].points,'area zero fallback display');
   if(source.available<100)assert.ok(details.includes('미확보 부분의 평가점수는 0점으로 반영합니다.'),'missing score policy');
-  if(operational.missingComponents(v).some(g=>!g.partiallyObserved))assert.ok(details.includes('원천 미확보'),'missing component rendered explicitly');
+  if(operational.missingComponents(v).some(g=>!g.partiallyObserved)){
+   assert.ok(details.includes('원천 미확보'),'missing component rendered explicitly');
+   assert.ok(details.includes('— (미관측)'),'missing component not rendered as observed zero');
+  }
+  if(Object.values(v.parts).some(ps=>Object.values(ps).some(p=>p[0]===0)))
+   assert.match(details,/: 0\.00 \/ [\d.]+ · 확보 [\d.]+점 · 관측일/,'observed zero still rendered numerically');
   if(v.score===null){
    assert.equal(v.rank,null,'unobserved issuer rank');
-   assert.ok(details.includes('0.0 / 100 (관측 없음·순위 제외)'),'no observation display is zero, no rank');unobserved++;
+   assert.ok(details.includes('— / 100 (관측 없음·순위 제외)'),'unobserved score explicitly distinct from observed zero, no rank');unobserved++;
   }else{
    assert.equal(v.stop_adjustment,0,'stop adjustment removed');ranked++;
   }
