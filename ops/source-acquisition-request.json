@@ -1,6 +1,6 @@
 {
-  "id": "20261126-manual-same-close-path-recovery-01",
+  "id": "20261126-manual-original-xbrl-cashflow-priority-04",
   "asof": "2026-11-25",
-  "workflow": "v3-saved-close-path-recovery.yml",
+  "workflow": "v3-xbrl-cashflow-recovery.yml",
   "mode": "recover"
 }
