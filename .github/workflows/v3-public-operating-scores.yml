@@ -1,0 +1,67 @@
+name: Verify public operating scores
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/v3-public-operating-scores.yml
+      - verify_public_operating_scores.py
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-public-operating-scores.yml
+      - verify_public_operating_scores.py
+  schedule:
+    - cron: '50 22 * * 1-5' # 07:50 KST Tue-Sat, after the morning refresh guard
+  workflow_dispatch:
+    inputs:
+      asof:
+        description: 'Expected transaction date (YYYY-MM-DD), optional'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install verifier dependencies
+        run: pip install -r requirements.txt 'exchange-calendars==4.13.1'
+      - name: Reconcile the checked-in files
+        if: github.event_name == 'pull_request'
+        run: |
+          asof=$(jq -er '.asof' docs/v3-operational-research-scores.json)
+          python verify_public_operating_scores.py --asof "$asof" --docs docs
+      - name: Reconcile files served by Pages
+        if: github.event_name != 'pull_request'
+        env:
+          EXPECTED_ASOF: ${{ inputs.asof }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          asof="$EXPECTED_ASOF"
+          if [[ -z "$asof" && "$EVENT_NAME" != schedule ]]; then
+            asof=$(jq -er '.asof' docs/v3-operational-research-scores.json)
+          fi
+          if [[ -z "$asof" ]]; then
+            asof=$(python - <<'PY'
+          from datetime import datetime, timedelta
+          from zoneinfo import ZoneInfo
+          import exchange_calendars as xcals
+
+          yesterday = datetime.now(ZoneInfo("Asia/Seoul")).date() - timedelta(days=1)
+          session = xcals.get_calendar("XKRX").date_to_session(
+              yesterday.isoformat(), direction="previous"
+          )
+          print(session.date().isoformat())
+          PY
+            )
+          fi
+          python verify_public_operating_scores.py --asof "$asof" | tee -a "$GITHUB_STEP_SUMMARY"
