@@ -1,0 +1,749 @@
+{
+  "asof": "2026-11-25",
+  "four_year_revenue_ready": 0,
+  "points_added": 0,
+  "provider_calls": 122,
+  "reasons": {
+    "no_statement": 4,
+    "unusable_original": 19,
+    "verified_period": 33
+  },
+  "records": [
+    {
+      "code": "001720",
+      "scope": "CFS",
+      "status": "no_statement",
+      "year": 2022
+    },
+    {
+      "code": "001720",
+      "scope": "CFS",
+      "status": "no_statement",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "f54db67c849845c79f26b9484067baa3a01631a145ef7e9f77fbb5a494729f8a",
+      "code": "001720",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240612000337",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "8b45790cb791ac0e19ce235778e30ab4a75ebfffb3e696a1e88f1c0d49dd6e52",
+      "code": "001720",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250829000681",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "003610",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "archive_sha256": "70bd7f86e0219ac110dac33c05183ea4933e12965ab7aade8e6fc4c855c7143e",
+      "code": "003610",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2023-09-30",
+      "period_start": "2022-10-01",
+      "receipt_id": "20231221000198",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "a4c8ee1283b9422fef3e90fbb7f399525ce9cd8a7d0218b4f26c6bc899209477",
+      "code": "003610",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-09-30",
+      "period_start": "2023-10-01",
+      "receipt_id": "20241219000406",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "492d020a2381f73ac1cc7e5767fcbc4a779993e87f351d794fcecbfc5eb960f2",
+      "code": "003610",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251222000124",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "008870",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "archive_sha256": "3fd47c4752ce3439d4ec015fb9f2709e7af903d3af7b75cfc4dd5ae1c7d245a1",
+      "code": "008870",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2023-09-30",
+      "period_start": "2022-10-01",
+      "receipt_id": "20231214000541",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "bd816d349d00da5111e1f716342d134be93abb9de9c0e3f74a22f1718acc370c",
+      "code": "008870",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-09-30",
+      "period_start": "2023-10-01",
+      "receipt_id": "20241219000451",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "5c3cbe6fcc0937b4210b8f3cbb4ff726f0c3311bb89f9c6322cce155b6280d09",
+      "code": "008870",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251215000379",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "017250",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "archive_sha256": "7fcfad93b4ffa8b20c0f21a93cc24ddd4620fc80beb25def18c7d47f2b7fd375",
+      "code": "017250",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2023-09-30",
+      "period_start": "2022-10-01",
+      "receipt_id": "20231219000378",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "55343eb55e8e38b92e607a10734e10c961b450cf79ab590ce233045361c909e9",
+      "code": "017250",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-09-30",
+      "period_start": "2023-10-01",
+      "receipt_id": "20241216000266",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "89c97ae43ecf33de669630410fe140550259f69f3ce74500be3a935a7b9fb832",
+      "code": "017250",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251217000580",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "018500",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "018500",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "221c2a022065bc5e4b98f0ad26e589d1263a832088a1015b66150b62c26290ba",
+      "code": "018500",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240619000177",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "6248e048713473d90cd3a0ff9f10981040a8e3838de8bd37f62a16f8da309c1d",
+      "code": "018500",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000195",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "033200",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "033200",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "da17103e602831ee38993704339e417d38ba54892f3dc42c4816aa3a77811e4e",
+      "code": "033200",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240619000222",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "e00c508bc8b28b8b13e1f1794a472f97b32706c2b2f5ea30c8f77c7c2c309c09",
+      "code": "033200",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000340",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "042520",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "archive_sha256": "399ad27967edcb911075d22342f6ae6bba40b6e49adf193f67384a24334182ae",
+      "code": "042520",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2023-09-30",
+      "period_start": "2022-10-01",
+      "receipt_id": "20231219000383",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "8fec16ebaa5b9ef1b826230fc1e3aea4e9d7e700e12dcf3d601344f2a7e3d5cd",
+      "code": "042520",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-09-30",
+      "period_start": "2023-10-01",
+      "receipt_id": "20241219000524",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "968599990581d77a0b2851a8a90a82cc79ade18d7f729acdb3244e017a140db5",
+      "code": "042520",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251218000494",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "060310",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "060310",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "f4a6e793a95ee30719ab9c5fdc827da379910b5a8f4b61bcaeb3fe8852c9072e",
+      "code": "060310",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240619000239",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "16194d6ad59936c8f897de82a83029f8fedaa36e37a98fed61f3fd286439da77",
+      "code": "060310",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000208",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "092440",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "092440",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "fe80a9dad01e2b8a8e548377abae805ad37270ee36d2b45eeeae9903b87983af",
+      "code": "092440",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240613000239",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "96f16983eed42ad625faa863d51a2b70cff334d0efb2ac2ebe70c953d7482cf8",
+      "code": "092440",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250612000335",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "093380",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "archive_sha256": "8cf5b6084fd0e9b3186a256fc29a13f873f68d64017acca603f02b9ef727e370",
+      "code": "093380",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2023-08-31",
+      "period_start": "2022-09-01",
+      "receipt_id": "20231113000480",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "5d9cc15579d36000f59862e55408fdb0c7102cb345c8732b17b6793943179d68",
+      "code": "093380",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-08-31",
+      "period_start": "2023-09-01",
+      "receipt_id": "20241111000376",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "04e263635b64163a97aec735d8209462ab34f701c59b987f450765766672e4a4",
+      "code": "093380",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-08-31",
+      "period_start": "2024-09-01",
+      "receipt_id": "20251117000158",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "097870",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "097870",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "4e97d93e7b9a41f15a0733d66bc7d960b239720fa1d2e552b1704f87b4c55209",
+      "code": "097870",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-06-30",
+      "period_start": "2023-07-01",
+      "receipt_id": "20240919000173",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "d63daa5d4f050301d0482de38c8e67b09489fa5d4996860816a39a8d5e8c550e",
+      "code": "097870",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-06-30",
+      "period_start": "2024-07-01",
+      "receipt_id": "20250919000095",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "099750",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "099750",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "e6847594e0d6b1236f68fbb6a85d955421a7a7ef5322e0836e4522e5c13c9622",
+      "code": "099750",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240619000159",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "cf3bf90ba9aa666788d3d669d06def73f8e53062bf49bbdc939ac42de181d97b",
+      "code": "099750",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000187",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "169330",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2022
+    },
+    {
+      "code": "169330",
+      "scope": "CFS",
+      "status": "unusable_original",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "7677489533857d168618e1ece5fea2d59f3e9166bfd6ea022e40d5618d1c8de5",
+      "code": "169330",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2024-06-30",
+      "period_start": "2023-07-01",
+      "receipt_id": "20240919000168",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "9b7ced7d35351bdc2ce2fb361f9c3e6dfcb9b441b99cc2e35b70f7659e4f0b92",
+      "code": "169330",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "operating_income",
+        "revenue"
+      ],
+      "period_end": "2025-06-30",
+      "period_start": "2024-07-01",
+      "receipt_id": "20250922000295",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    },
+    {
+      "code": "289080",
+      "scope": "CFS",
+      "status": "no_statement",
+      "year": 2022
+    },
+    {
+      "code": "289080",
+      "scope": "CFS",
+      "status": "no_statement",
+      "year": 2023
+    },
+    {
+      "archive_sha256": "91e49ac6c5c066b0810143533238531f505332419d874a608eae9854e9432335",
+      "code": "289080",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "revenue"
+      ],
+      "period_end": "2024-03-31",
+      "period_start": "2023-04-01",
+      "receipt_id": "20240620000411",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2024
+    },
+    {
+      "archive_sha256": "ed28395c4b198b7215d9824b40b3a265aea4d3d47f2c4f8d3176d1817ba0b6f9",
+      "code": "289080",
+      "observed_fields": [
+        "assets",
+        "equity",
+        "liabilities",
+        "operating_cashflow",
+        "revenue"
+      ],
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250619000224",
+      "scope": "CFS",
+      "status": "verified_period",
+      "year": 2025
+    }
+  ],
+  "research_only": true,
+  "selected": 56,
+  "verified_years": 33,
+  "schema": "v3-noncalendar-history-evidence-v1",
+  "source_run": 45778634105,
+  "source_job": 139768366141,
+  "source_commit": "9a2901b15d994ff0b594a66ff764716f27c145cf",
+  "score_promoted": false
+}
