@@ -17,6 +17,17 @@ from v3_dart_bulk_history import _mapping,verified_company_mapping_cache,_valid_
 from v3_saved_annual_income_overlap_audit import _valid_book
 from v3_eps_parallel_collection import collect
 
+# Independently located historical annual filing periods. These only
+# nominate a month for an exact-receipt original XBRL check; no score admission.
+HISTORICAL_MONTHS = {
+    ('021880', '20250617000184', 2025, 'CFS'): 3,
+    ('032800', '20250917000341', 2025, 'CFS'): 6,
+}
+
+def historical_month(code, annual):
+    return HISTORICAL_MONTHS.get((code, annual.get('receipt_id'),
+                                  annual.get('year'), annual.get('fs_div')))
+
 def annual_period(start,end,year,month,received):
     try:
         s,e=date.fromisoformat(start),date.fromisoformat(end)
@@ -79,7 +90,7 @@ def inspect(raw,annual,ids,month,received):
     return 'verified_period',next(iter(found))
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');args=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');p.add_argument('--historical-month-recheck',action='store_true');args=p.parse_args()
     root=Path('docs')
     read=lambda n:json.loads((root/n).read_text())
     catalog=read('v22-market-catalog.json');book=read('v3-dart-book-reference.json');priority=read('v3-operational-evidence-priority.json')
@@ -96,6 +107,8 @@ def main():
         if not re.fullmatch(r'[0-9]{14}',receipt):continue
         received=date.fromisoformat(receipt[:4]+'-'+receipt[4:6]+'-'+receipt[6:8])
         if received<=date(year,12,31) and received<=cutoff:selected.append((row['code'],a,received))
+    if args.historical_month_recheck:
+        selected=[v for v in selected if historical_month(v[0],v[1]) is not None]
     if len(selected)>25 or len({v[0] for v in selected})!=len(selected):raise ValueError('cohort_not_bounded')
     result={'asof':day,'selected':len(selected),'verified':0,'provider_calls':0,'points_added':0,'research_only':True,'records':[]}
     if args.mode=='dry-run' or not selected:print(json.dumps(result));return
@@ -125,9 +138,15 @@ def main():
             with request('company.json',{'corp_code':mapping[code]}) as res:profile=res.json()
             ids=company_ids(profile,mapping[code],code)
             raw_month=profile.get('acc_mt','')
-            if not isinstance(raw_month,str) or not re.fullmatch(r'0[1-9]|1[012]',raw_month) or raw_month=='12':
-                return dict(record,status='no_non_december_profile_month')
-            month=int(raw_month)
+            old_month=historical_month(code,a) if args.historical_month_recheck else None
+            if old_month is not None:
+                month=old_month
+                record['historical_month_candidate']=month
+                record['month_basis']='receipt_bound_historical_period_candidate'
+            else:
+                if not isinstance(raw_month,str) or not re.fullmatch(r'0[1-9]|1[012]',raw_month) or raw_month=='12':
+                    return dict(record,status='no_non_december_profile_month')
+                month=int(raw_month)
             with request('fnlttXbrl.xml',{'rcept_no':a['receipt_id'],'reprt_code':'11011'},True) as res:raw=xp._read_response_limited(res)
             try:status,period=inspect(raw,a,ids,month,received)
             except (xp.XbrlPilotError,ValueError):return dict(record,status='unusable_or_ambiguous_original')

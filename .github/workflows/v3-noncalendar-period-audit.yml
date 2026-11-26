@@ -2,8 +2,13 @@ name: V3 Non-December Annual Receipt Period Evidence
 on:
   push:
     branches: [main]
-    paths: [.github/workflows/v3-noncalendar-period-audit.yml]
+    paths: [.github/workflows/v3-noncalendar-period-audit.yml, v3_dart_noncalendar_period_audit.py]
   workflow_dispatch:
+    inputs:
+      cohort:
+        type: choice
+        default: historical-month-recheck
+        options: [historical-month-recheck, all]
 permissions:
   contents: read
 concurrency:
@@ -23,23 +28,42 @@ jobs:
           path: .cache/v3-dart-company-codes.json
           key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
       - name: Verify exact fiscal period boundaries
+        env:
+          COHORT: ${{ inputs.cohort || 'historical-month-recheck' }}
         run: |
           python -m py_compile v3_dart_noncalendar_period_audit.py
           python - <<'PY'
           from datetime import date
-          from v3_dart_noncalendar_period_audit import annual_period
+          from v3_dart_noncalendar_period_audit import annual_period, historical_month
           assert annual_period('2024-10-01','2025-09-30',2025,9,date(2025,12,15))
           assert annual_period('2024-04-01','2025-03-31',2025,3,date(2025,6,1))
           assert not annual_period('2025-01-01','2025-09-30',2025,9,date(2025,12,15))
           assert not annual_period('2024-10-01','2025-09-30',2025,9,date(2025,9,30))
           assert not annual_period('2024-10-01','2025-09-30',2025,12,date(2025,12,15))
           assert not annual_period('2023-10-01','2024-09-30',2025,9,date(2025,12,15))
-          print('6 annual period boundary checks passed')
+          a={'receipt_id':'20250617000184','year':2025,'fs_div':'CFS'}
+          assert historical_month('021880',a)==3
+          assert historical_month('032800',a) is None
+          assert historical_month('021880',dict(a,year=2026)) is None
+          assert historical_month('021880',dict(a,fs_div='OFS')) is None
+          assert historical_month('021880',dict(a,receipt_id='20250617000185')) is None
+          assert historical_month('032800',dict(a,receipt_id='20250917000341'))==6
+          assert not annual_period('2025-04-01','2025-09-30',2025,9,date(2025,12,1))
+          print('13 annual period and receipt-bound month checks passed')
           PY
-          python v3_dart_noncalendar_period_audit.py --mode dry-run
+          if [ "$COHORT" = all ]; then
+            python v3_dart_noncalendar_period_audit.py --mode dry-run
+          else
+            python v3_dart_noncalendar_period_audit.py --mode dry-run --historical-month-recheck
+          fi
       - name: Inspect existing annual receipt exact scope and period, no source archive or score writes
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
+          COHORT: ${{ inputs.cohort || 'historical-month-recheck' }}
         run: |
           python -m pip install 'requests>=2.31,<3'
-          python v3_dart_noncalendar_period_audit.py --mode live
+          if [ "$COHORT" = all ]; then
+            python v3_dart_noncalendar_period_audit.py --mode live
+          else
+            python v3_dart_noncalendar_period_audit.py --mode live --historical-month-recheck
+          fi
