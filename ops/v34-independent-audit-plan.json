@@ -20,18 +20,30 @@
       "id": "P0-01",
       "task": "Verify source session scope and provider permissions before expansion",
       "status": "open",
-      "acceptance": "Separate regular price, combined or regular volume and turnover policy; confirm permitted storage and public derived outputs; no assumed license."
+      "acceptance": "Separate regular price, combined or regular volume and turnover policy; confirm permitted storage and public derived outputs; no assumed license.",
+      "evidence": {
+        "terms": "https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO002.jsp",
+        "provider_approval": "unverified",
+        "public_scope_expansion_allowed": false
+      }
     },
     {
       "id": "P1-01",
       "task": "Daily price continuity break census",
-      "status": "implemented_pending_run",
-      "acceptance": "Read-only aggregate causes across official retained 260-session archive, no inferred corporate actions, no changes to scores."
+      "status": "verified",
+      "acceptance": "Read-only aggregate causes across official retained 260-session archive, no inferred corporate actions, no changes to scores.",
+      "evidence": {
+        "run": 45745190369,
+        "complete": 1999,
+        "reference_discontinuity": 436,
+        "name_identity_mismatch": 76,
+        "missing_issuer_observation": 82
+      }
     },
     {
       "id": "P1-02",
       "task": "Resolve verified name and corporate action identity transitions",
-      "status": "open",
+      "status": "shadow_replay_implemented_pending_run",
       "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers."
     },
     {
