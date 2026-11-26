@@ -1,24 +1,24 @@
 {
   "schema": "v32-market-index-reference-1",
-  "asof": "2026-11-25",
+  "asof": "2026-11-26",
   "source": "FinanceDataReader KS11/KQ11 (secondary index reference)",
   "official_krx_index_certified": false,
   "new_provider_calls": 0,
   "markets": {
     "KOSPI": {
-      "asof": "2026-11-25",
+      "asof": "2026-11-26",
       "return_pct": {
-        "20": -21.8702,
-        "60": -32.042,
-        "120": -46.5486
+        "20": -20.6554,
+        "60": -30.604,
+        "120": -46.4726
       }
     },
     "KOSDAQ": {
-      "asof": "2026-11-25",
+      "asof": "2026-11-26",
       "return_pct": {
-        "20": -15.6415,
-        "60": -22.3256,
-        "120": -38.0361
+        "20": -12.9469,
+        "60": -21.7912,
+        "120": -36.0925
       }
     }
   }
