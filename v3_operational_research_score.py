@@ -497,6 +497,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             for area in parts:
                 for key,p in parts[area].items():
                     older=prior.get('parts',{}).get(area,{}).get(key)
+                    if [area,key] in prior.get('noncalendar_annual_source',{}).get('parts',[]):
+                        continue  # re-admit only against current receipt and fiscal proof
                     if (older and finite(older.get('points')) and finite(older.get('available'))
                         and 0<=older['points']<=older['available']<=SPECS[area][key]+1e-6
                         and older['asof']<=day and (p is None or older['asof']>p['asof']
@@ -531,10 +533,6 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             risk['warnings']=prior.get('risk_warnings',[])
         # Receipt-linked fiscal evidence must not survive a changed receipt
         # through generic score retention. Only missing parts are recovered.
-        old_noncalendar=(prior or {}).get('noncalendar_annual_source',{})
-        for area,key in old_noncalendar.get('parts',[]):
-            if parts[area][key]==(prior or {}).get('parts',{}).get(area,{}).get(key):
-                parts[area][key]=None
         recovered_noncalendar=noncalendar.get(code)
         used_noncalendar=[]
         if recovered_noncalendar:
