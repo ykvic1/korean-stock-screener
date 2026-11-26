@@ -1205,7 +1205,7 @@ assert.ok(css.includes('.u-scoresix span.u-total-factor')&&
  css.includes('box-shadow:inset 0 0 0 1.5px #e66a72'),
  'each unverified factor card should have a red inner outline');
 assert.ok(source.includes('shownComposite.pillars.map')&&
- source.includes("p.candidate===null?'—':p.candidate.toFixed(1)"),
+ source.includes("p.available===0||p.candidate===null?'—':p.candidate.toFixed(1)"),
  'calculated provisional research candidates remain visible');
 assert.ok(source.includes('researchComposite(r)')&&
  source.includes('산출 가능 배점'),
@@ -2647,4 +2647,24 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.match(detail,/가장 오래된 세부 관측/);
  assert.match(detail,/— \(미관측\)|추가 근거 필요/);
  assert.match(detail,/관측일 .*일 경과/);
+}
+
+// V3.4 optional evidence filter: no re-ranking or ticker search suppression.
+{
+ const make=(code,available,rank)=>({r:{code,v3_operational:{available,rank}}});
+ const rows=[make('000001',89.99,1),make('000002',100,2),make('000003',95,3),make('000004',90,4),{r:{code:'000005'}}];
+ assert.strictEqual(unified.filterOperationalCoverage(rows,'','all'),rows);
+ assert.deepEqual(unified.filterOperationalCoverage(rows,'','90').map(x=>x.r.code),['000002','000003','000004']);
+ assert.deepEqual(unified.filterOperationalCoverage(rows,'','95').map(x=>x.r.v3_operational.rank),[2,3]);
+ assert.deepEqual(unified.filterOperationalCoverage(rows,'','100').map(x=>x.r.code),['000002']);
+ assert.strictEqual(unified.filterOperationalCoverage(rows,'000001','100'),rows);
+ assert.strictEqual(unified.filterOperationalCoverage(rows,'','invalid'),rows);
+ for(const page of [entry,html])assert.match(page,/id="operationalCoverageMin"/);
+ const report=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/v3-operational-research-scores.json'),'utf8'));
+ const actual=Object.entries(report.rows).map(([code,r])=>({r:{code,v3_operational:r}}));
+ for(const minimum of ['90','95','100']){
+  const selected=unified.filterOperationalCoverage(actual,'',minimum);
+  assert.equal(selected.length,Object.values(report.rows).filter(r=>r.available>=Number(minimum)).length);
+  assert.ok(selected.every(x=>actual.includes(x)));
+ }
 }
