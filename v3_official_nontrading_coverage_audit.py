@@ -66,6 +66,53 @@ def audit(catalog, scores, status, panels):
             'scores_changed': False}
 
 
+def continuity_audit(catalog, scores, panels):
+    """Explain the first daily tail break exactly as the current scorer sees it.
+
+    Diagnostic only: a reference discontinuity is NOT proof of a corporate action.
+    The daily scorer does not pass face notices. Do not silently bridge gaps.
+    """
+    from v3_regular_close_indicators import continuous_tail
+    from v3_regular_close_contract import SESSIONS
+    if len(panels) != SESSIONS or any(p is None for p in panels):
+        raise ValueError('incomplete_continuity_archive')
+    groups = {}
+    for member in catalog['rows']:
+        code = member['code']
+        records = [p['rows'].get(code) for p in panels]
+        n = len(continuous_tail(records, member))
+        reason = 'complete'
+        if n < SESSIONS:
+            index = SESSIONS - n - 1
+            row = records[index]
+            nxt = records[index + 1] if n else None
+            if row is None:
+                reason = 'missing_issuer_observation'
+            elif row[0] != member['market']:
+                reason = 'market_identity_mismatch'
+            elif normalized_name(row[1]) != normalized_name(member['name']):
+                reason = 'name_identity_mismatch'
+            elif nxt is not None and nxt[4] != row[2]:
+                reason = ('reference_missing' if nxt[4] is None
+                          else 'reference_close_discontinuity')
+            elif nxt is not None and abs(nxt[2] / row[2] - 1) > .5:
+                reason = 'large_price_jump'
+            else:
+                raise ValueError('unexplained_daily_tail_boundary')
+        group = groups.setdefault(reason, {'issuers': 0, 'full_100': 0,
+                                            'missing_weight': 0.0})
+        group['issuers'] += 1
+        group['full_100'] += scores[code] == 100
+        group['missing_weight'] += 100 - scores[code]
+    for group in groups.values():
+        group['missing_weight'] = round(group['missing_weight'], 6)
+    return {'sessions_examined': SESSIONS, 'first_boundary_groups': groups,
+            'issuer_count': len(scores), 'cause_is_not_verified_corporate_action': True,
+            'missing_weight_is_associated_not_attributable_to_boundary': True,
+            'weekly_continuity_separately_unverified': True,
+            'provider_calls': 0, 'scores_changed': False}
+
+
 def self_test():
     m = {'code': '123456', 'market': 'KOSPI', 'name': 'Example'}
     def p(v, name='Example'):
@@ -75,6 +122,14 @@ def self_test():
     assert trailing_zero(m, [p(False, 'Other'), p(False)]) == 1
     assert trailing_zero(m, [p(False), p(None)]) == 0
     assert trailing_zero(m, [p(False)] * WINDOW) == WINDOW
+    from v3_regular_close_contract import SESSIONS
+    catalog = {'rows': [m]}
+    scores = {'123456': 90}
+    for boundary, reason in [(p(False, 'Other'), 'name_identity_mismatch'),
+                             ({'rows': {}}, 'missing_issuer_observation'),
+                             (p(False), 'complete')]:
+        result = continuity_audit(catalog, scores, [boundary] + [p(False)] * (SESSIONS - 1))
+        assert result['first_boundary_groups'][reason]['issuers'] == 1
 
 
 def main():
@@ -105,9 +160,11 @@ def main():
     if (len(scores) != len(rows) or sum(v == 100 for v in scores.values())
             != comparison['operational_coverage']['available_100_count']):
         raise ValueError('csv_comparison_mismatch')
-    days = history_dates(day)[-WINDOW:]
+    from v3_regular_close_contract import SESSIONS
+    days = history_dates(day)[-SESSIONS:]
     panels = [read_day((args.archive / archive_path(d)).read_bytes(), d) for d in days]
-    result = audit(catalog, scores, status, panels)
+    result = audit(catalog, scores, status, panels[-WINDOW:])
+    result['daily_continuity'] = continuity_audit(catalog, scores, panels)
     # A prior valid row is retained by design; audit sensitivity uses the actual
     # published weights, not an invented all-current data snapshot.
     result['score_row_asof_counts'] = dict(Counter(r['기준일'] for r in rows))
