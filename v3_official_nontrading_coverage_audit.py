@@ -113,6 +113,47 @@ def continuity_audit(catalog, scores, panels):
             'provider_calls': 0, 'scores_changed': False}
 
 
+
+def face_shadow(catalog, scores, panels):
+    """Replay the already verified weekly face-action gate on daily tails.
+
+    Measure improvement only. No issuer-level restricted values leave this audit,
+    no raw bars are modified, and no production observations are promoted.
+    """
+    from v3_regular_close_indicators import continuous_tail
+    from v3_krx_close_momentum_recovery import load_face_notices
+    from v3_regular_close_contract import SESSIONS, DAILY_SESSIONS
+    if len(panels) != SESSIONS or any(p is None for p in panels):
+        raise ValueError('incomplete_face_shadow_archive')
+    notices, _ = load_face_notices()
+    positions = {p['date']: i for i, p in enumerate(panels)}
+    if len(positions) != SESSIONS:
+        raise ValueError('duplicate_face_shadow_session')
+    counts = Counter()
+    for member in catalog['rows']:
+        code = member['code']
+        records = [p['rows'].get(code) for p in panels]
+        before = continuous_tail(records, member)
+        matches = {positions[d]: n for d, n in notices.get(code, {}).items()
+                   if d in positions}
+        after = continuous_tail(records, member, matches)
+        n, m = len(before), len(after)
+        if m < n:
+            raise ValueError('face_shadow_lost_existing_continuity')
+        counts['issuers'] += 1
+        if matches:
+            counts['issuers_with_existing_dated_notice'] += 1
+        if m > n:
+            counts['verified_tail_extensions'] += 1
+            counts['added_observed_sessions'] += m - n
+            counts['incomplete_score_issuers_with_extension'] += scores[code] < 100
+            for threshold in (90, 120, DAILY_SESSIONS, SESSIONS):
+                if n < threshold <= m:
+                    counts['crossed_' + str(threshold) + '_session_threshold'] += 1
+    return {'counts': dict(counts), 'provider_calls': 0,
+            'production_changed': False, 'score_recovery_not_proven': True}
+
+
 def self_test():
     m = {'code': '123456', 'market': 'KOSPI', 'name': 'Example'}
     def p(v, name='Example'):
@@ -165,6 +206,7 @@ def main():
     panels = [read_day((args.archive / archive_path(d)).read_bytes(), d) for d in days]
     result = audit(catalog, scores, status, panels[-WINDOW:])
     result['daily_continuity'] = continuity_audit(catalog, scores, panels)
+    result['verified_face_daily_shadow'] = face_shadow(catalog, scores, panels)
     # A prior valid row is retained by design; audit sensitivity uses the actual
     # published weights, not an invented all-current data snapshot.
     result['score_row_asof_counts'] = dict(Counter(r['기준일'] for r in rows))
