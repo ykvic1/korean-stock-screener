@@ -1,0 +1,31 @@
+{
+  "market_asof": "2026-11-25",
+  "reviewed_on": "2026-11-26",
+  "provider_api_calls": 0,
+  "current_model_source_scope_unchanged": true,
+  "records": [
+    {
+      "stock_code": "323990",
+      "issuer": "박셀바이오",
+      "fiscal_year": 2022,
+      "ledger_scope": "OFS",
+      "DART_annual_receipt_number": "20230315000527",
+      "public_filing_reference": "https://kind.krx.co.kr/external/2023/03/08/000973/20230308002546/00591.htm",
+      "review_status": "no_numeric_revenue_in_reviewed_statement",
+      "statement": "Separate annual income statement displays a dash in the revenue line. The existing FY2023 comparative registry reports an anchor mismatch. Do not insert a numeric zero or treat the issuer as excluded."
+    },
+    {
+      "stock_code": "388790",
+      "issuer": "라이콤",
+      "fiscal_year": 2022,
+      "ledger_scope": "OFS",
+      "DART_annual_receipt_number": "20230331001886",
+      "DART_later_comparative_receipt_number": "20240319000576",
+      "public_filing_reference": "https://kind.krx.co.kr/external/2024/03/19/000725/20240319003241/11011.htm",
+      "review_status": "comparative_financial_identity_differs_from_ledger_annual_row",
+      "statement": "The subsequent audited annual report has a numeric prior-year revenue and identifies its comparative financial statements as pre-merger operating-company statements, distinct from the legal SPAC predecessor. The verified 2023 current-period revenue agrees with the ledger. Preserve both receipt identities. Only an approved accounting-identity and original-filing reconciliation can admit the historical operating-company observation."
+    }
+  ],
+  "production_ledger_writes": 0,
+  "score_changes": 0
+}
