@@ -185,6 +185,37 @@ class OriginalRecoveryTests(unittest.TestCase):
         with self.assertRaises(RecoveryError):
             targets(s,{'000002'},1,near_90={'000001'})
 
+    def test_one_year_to_full_coverage_precedes_seed_but_preserves_near_90(self):
+        complete = {**prior(), 'free_cashflow_krw': 80}
+        s = {'records': {
+            '000001': {'years': {'2024': prior()}},
+            '000002': {'years': {'2023': complete, '2024': prior(), '2025': complete}},
+        }}
+        p = {'000001', '000002'}
+        seed = [('000001', 2024)]
+        self.assertEqual(targets(s,p,1,seed,completion_priority={'000002'})[0][0],'000002')
+        self.assertEqual(targets(s,p,1,seed,near_90={'000001'},completion_priority={'000002'})[0][0],'000001')
+        s['records']['000002']['years']['2023'] = {**complete, 'major_annual_receipt_matched': False}
+        self.assertEqual(targets(s,p,1,seed,completion_priority={'000002'})[0][0],'000001')
+
+    def test_negative_original_review_does_not_require_score_replay(self):
+        import v3_dart_cashflow_enrichment as c
+        from v3_dart_reported_capex_total import requires_score_replay
+
+        def state(row):
+            return c.summary('2026-11-06',{'005930':{}},
+                {'005930':{'scope':'CFS','years':{'2024':row}}},'c'*64)
+
+        before = state(prior())
+        common = {'reason':'no_missing_supported_fact','archive_hash':'a'*64,'profile_hash':'b'*64}
+        negative = state(merge(prior(),{},**common))
+        positive = state(merge(prior(),extract(xml()),**common))
+        prev = {'cashflow_snapshot_sha256':'old','rows':[]}
+        next_ = {'cashflow_snapshot_sha256':'new','rows':[]}
+        self.assertFalse(requires_score_replay(before,negative,prev,next_,original_xbrl=True))
+        self.assertTrue(requires_score_replay(before,positive,prev,next_,original_xbrl=True))
+        self.assertTrue(requires_score_replay(before,negative,prev,{**next_,'rows':[{}]},original_xbrl=True))
+
     def test_snapshot_verifies_original_provenance_and_formulas(self):
         import v3_dart_cashflow_enrichment as c
         out=merge(prior(),extract(xml()),reason='no_missing_supported_fact',archive_hash='a'*64,profile_hash='b'*64)
