@@ -3,7 +3,7 @@
   "reviewed_on": "2026-11-26",
   "comparison_market_asof": "2026-11-25",
   "base_main": "9d5db5e4e7d012c703670cd7e1dd1daa1af9dad5",
-  "stage": "official_KRX_facts_pending_DART_ledger_reconciliation",
+  "stage": "KIND_cashflow_and_DART_anchor_reconciled_pending_production_source_verification",
   "source_api_calls": 0,
   "observations": [
     {
@@ -19,7 +19,16 @@
       "ppe_cash_payments_krw": 489049025,
       "intangible_cash_payments_krw": 72869900,
       "review_role": "missing_period_candidate",
-      "main_period_status": "N"
+      "main_period_status": "N",
+      "assets_krw": 99103198099,
+      "investing_cashflow_krw": -1990331344,
+      "other_investing_cashflow_krw": -1428412419,
+      "anchor_check": {
+        "DART_receipt": null,
+        "scope_matches": false,
+        "cashflow_fields_match": [],
+        "assets_match": false
+      }
     },
     {
       "stock_code": "089890",
@@ -34,7 +43,20 @@
       "ppe_cash_payments_krw": 177759860,
       "intangible_cash_payments_krw": 23943200,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "assets_krw": 85940029006,
+      "investing_cashflow_krw": 996960272,
+      "other_investing_cashflow_krw": 1198663332,
+      "anchor_check": {
+        "DART_receipt": "20250811000151",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "089890",
@@ -49,7 +71,20 @@
       "ppe_cash_payments_krw": 359391026,
       "intangible_cash_payments_krw": 125794400,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "assets_krw": 92264013118,
+      "investing_cashflow_krw": -3269498297,
+      "other_investing_cashflow_krw": -2784312871,
+      "anchor_check": {
+        "DART_receipt": "20260323001563",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "382800",
@@ -64,7 +99,16 @@
       "ppe_cash_payments_krw": 3240341792,
       "intangible_cash_payments_krw": 67694900,
       "review_role": "missing_period_candidate",
-      "main_period_status": "N"
+      "main_period_status": "N",
+      "assets_krw": 116341188019,
+      "investing_cashflow_krw": -2045196068,
+      "other_investing_cashflow_krw": 1262840624,
+      "anchor_check": {
+        "DART_receipt": null,
+        "scope_matches": false,
+        "cashflow_fields_match": [],
+        "assets_match": false
+      }
     },
     {
       "stock_code": "382800",
@@ -79,7 +123,20 @@
       "ppe_cash_payments_krw": 12242196861,
       "intangible_cash_payments_krw": 33533331,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "assets_krw": 135086453187,
+      "investing_cashflow_krw": -17100350231,
+      "other_investing_cashflow_krw": -4824620039,
+      "anchor_check": {
+        "DART_receipt": "20250319000712",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "382800",
@@ -94,7 +151,20 @@
       "ppe_cash_payments_krw": 8101090321,
       "intangible_cash_payments_krw": 19378055,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "assets_krw": 139485581860,
+      "investing_cashflow_krw": -9164378901,
+      "other_investing_cashflow_krw": -1043910525,
+      "anchor_check": {
+        "DART_receipt": "20260312000549",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "065710",
@@ -106,10 +176,24 @@
       "source_url": "https://kind.krx.co.kr/external/2026/03/19/000030/20260319000267/11011.htm",
       "statement": "2-4. 연결 현금흐름표",
       "operating_cashflow_krw": 10801226288,
-      "ppe_cash_payments_krw": 180894685,
+      "ppe_cash_payments_krw": 240894685,
       "intangible_cash_payments_krw": 10470000,
       "review_role": "missing_period_candidate",
-      "main_period_status": "P"
+      "main_period_status": "P",
+      "ppe_statement_line_krw": 180894685,
+      "disaggregated_ppe_cash_payments_krw": 60000000,
+      "assets_krw": 103880709547,
+      "investing_cashflow_krw": -4934827372,
+      "other_investing_cashflow_krw": -4683462687,
+      "anchor_check": {
+        "DART_receipt": "20240327000119",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "065710",
@@ -121,10 +205,25 @@
       "source_url": "https://kind.krx.co.kr/external/2026/03/19/000030/20260319000267/11011.htm",
       "statement": "2-4. 연결 현금흐름표",
       "operating_cashflow_krw": -2709279544,
-      "ppe_cash_payments_krw": 49054964,
+      "ppe_cash_payments_krw": 80872941,
       "intangible_cash_payments_krw": 933253010,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "ppe_statement_line_krw": 49054964,
+      "disaggregated_ppe_cash_payments_krw": 31817977,
+      "assets_krw": 101975372921,
+      "investing_cashflow_krw": 4596770540,
+      "other_investing_cashflow_krw": 5610896491,
+      "anchor_check": {
+        "DART_receipt": "20250312000874",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     },
     {
       "stock_code": "065710",
@@ -136,10 +235,25 @@
       "source_url": "https://kind.krx.co.kr/external/2026/03/19/000030/20260319000267/11011.htm",
       "statement": "2-4. 연결 현금흐름표",
       "operating_cashflow_krw": 36273527961,
-      "ppe_cash_payments_krw": 62287619,
+      "ppe_cash_payments_krw": 208336456,
       "intangible_cash_payments_krw": 14316840,
       "review_role": "existing_period_crosscheck",
-      "main_period_status": "V"
+      "main_period_status": "V",
+      "ppe_statement_line_krw": 62287619,
+      "disaggregated_ppe_cash_payments_krw": 146048837,
+      "assets_krw": 103409688237,
+      "investing_cashflow_krw": 2622923548,
+      "other_investing_cashflow_krw": 2845576844,
+      "anchor_check": {
+        "DART_receipt": "20260319000025",
+        "scope_matches": true,
+        "cashflow_fields_match": [
+          "operating_cashflow_krw",
+          "ppe_capex_krw",
+          "intangible_capex_krw"
+        ],
+        "assets_match": true
+      }
     }
   ],
   "unresolved": [
@@ -169,9 +283,25 @@
     }
   ],
   "merge_requirements": [
-    "Verify DART receipt identity or its correspondence to the KIND filings and reconcile existing 2024 and 2025 receipt-bound amounts against current main.",
-    "Use the latest main ledger with stock, fiscal year, source, receipt and scope as identity. Retain every existing fact unless independently reconciled.",
-    "A blank or dash is neither a numeric observation nor a structural exclusion."
+    "Use latest main and stock, fiscal year, provider, receipt and scope as the source identity.",
+    "Admit only production-validator accepted DART proofs. Do not overwrite existing matched observations.",
+    "Treat blanks, dashes and unresolved sign differences as pending evidence."
   ],
-  "operational_score_changed": false
+  "operational_score_changed": false,
+  "reconciled_against_main_asof": "2026-11-25",
+  "promotion_status": {
+    "382800": {
+      "route": "reviewed_fcf_comparative",
+      "status": "Two CFS anchors match. Original FY2023 is OFS. Existing comparative production verifier requires the DART FY2025 balance-sheet and cash-flow viewer URLs and source byte hashes."
+    },
+    "089890": {
+      "route": "reviewed_fcf_comparative",
+      "status": "Two CFS anchors match. Original FY2023 is OFS. Existing comparative production verifier requires the DART FY2025 balance-sheet and cash-flow viewer URLs and source byte hashes."
+    },
+    "065710": {
+      "route": "reviewed_disaggregated_capex",
+      "status": "Two CFS anchors match after including the separate vehicle acquisition lines. The later report shows a FY2023 construction acquisition outflow, but the FY2023 original KIND report shows that line unsigned as positive. The remaining FY2023 PPE proof requires the original DART statement or signed supporting notes."
+    }
+  },
+  "seoho_original_kind_url": "https://kind.krx.co.kr/external/2024/03/27/000116/20240327000475/11011.htm"
 }
