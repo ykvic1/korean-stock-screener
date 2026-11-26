@@ -49,7 +49,9 @@
             "notice_full_text_verified": false,
             "effective_date_verified": false,
             "public_derived_output_permission_verified": false,
-            "policy": "No public expansion or new derived scoring based on FSC data until current terms and provider permission confirmed. Do not assume API key approval grants redistribution."
+            "policy": "No public expansion or new derived scoring based on FSC data until current terms and provider permission confirmed. Do not assume API key approval grants redistribution.",
+            "explicit_unauthorized_third_party_provision_and_redistribution_prohibited": true,
+            "commercial_use_requires_paid_krx_purchase": true
           }
         },
         "historical_krx_money_backfill_run": 45754970899,
@@ -176,23 +178,27 @@
           "initial_inventory_run": 45770867460,
           "last_completed_runs": [
             45774408740,
-            45774633988
+            45774633988,
+            45774923805
           ],
-          "last_published_commit": "c273662443ed0915976901a943f54c2592507e42",
-          "unreviewed_issuer_years": 167,
-          "reviewed_still_missing_issuer_years": 562,
+          "last_published_commit": "93a9d5e30110fc1368324dbc1036c55a202ff8c3",
+          "unreviewed_issuer_years": 135,
+          "reviewed_still_missing_issuer_years": 594,
           "priority_unreviewed_issuer_years": 0,
           "conditional_90_unreviewed_issuer_years": 0,
-          "basis": "last pre-batch inventory 199 less 32 completed no-recovery reviews; subsequent run in progress",
-          "latest_burst_completed": 64,
+          "basis": "pre-batch exact inventory 167 less 32 completed zero-recovery reviews",
+          "latest_burst_completed": 96,
           "latest_burst_recovered_fields": 0,
           "latest_burst_reason_counts": {
-            "no_missing_supported_fact": 58,
+            "no_missing_supported_fact": 89,
             "no_verified_scope_anchor": 1,
-            "unusable_original_facts": 5
+            "unusable_original_facts": 6
           },
           "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40",
-          "in_progress_run": 45774923805
+          "in_progress_run": 45774923805,
+          "terminal_burst_run": 45775366875,
+          "terminal_burst_max_batches": 5,
+          "terminal_inventory_verified": false
         }
       }
     },
@@ -348,6 +354,21 @@
           "catalog_blob": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
           "all_three_blob_ids_identical": true,
           "performance_validated": false
+        },
+        "retained_row_independent_check": {
+          "asof": "2026-11-25",
+          "csv_blob": "4c640e22b794537940a2e25fd30a672273038e06",
+          "catalog_blob": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
+          "all_rows": 2593,
+          "current_date_rows": 2580,
+          "retained_rows": 13,
+          "retained_date": "2026-11-20",
+          "all_retained_catalog_insufficient_history": true,
+          "all_retained_published_price_null": true,
+          "all_retained_zero_volume_reference_false": true,
+          "retained_total_available_weight": 58.625,
+          "listing_date_independently_verified": false,
+          "excluded_rows": 0
         }
       }
     }
