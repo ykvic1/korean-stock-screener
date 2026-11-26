@@ -1,6 +1,6 @@
 {
-  "id": "20261126-manual-price-path-recovery-01",
+  "id": "20261126-manual-fy2022-revenue-recovery-01",
   "asof": "2026-11-25",
-  "workflow": "v3-saved-close-path-recovery.yml",
-  "mode": "recover"
+  "workflow": "v3-dart-revenue-2022.yml",
+  "mode": "collect"
 }
