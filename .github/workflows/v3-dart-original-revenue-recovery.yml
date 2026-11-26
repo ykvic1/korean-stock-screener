@@ -29,6 +29,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install 'requests>=2.31,<3'
+      - name: Test original annual revenue source validation
+        run: python -m unittest discover -s tests -p 'test_v3_dart_original_revenue_recovery.py' -v
       - name: Review original annual receipts
         id: collect
         env:
@@ -53,8 +55,31 @@ jobs:
           git pull --rebase origin main
           git push origin HEAD:main
           echo 'changed=true' >> "$GITHUB_OUTPUT"
-      - name: Refresh operational availability
+      - name: Check whether verified observed revenue changed
         if: steps.publish.outputs.changed == 'true'
+        id: replay
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+
+          path = "docs/v3-dart-original-revenue-recovery.json"
+          def observed(ref):
+              data = json.loads(subprocess.check_output(["git", "show", f"{ref}:{path}"]))
+              if data["schema"] != "v3-dart-original-annual-sales-receipt-v1":
+                  raise ValueError("unknown_revenue_checkpoint_schema")
+              return {key: row for key, row in data["records"].items()
+                      if row["status"] == "observed"}
+          try:
+              required = observed("HEAD^") != observed("HEAD")
+          except (subprocess.CalledProcessError, ValueError, KeyError, TypeError, AttributeError):
+              # An unreadable parent cannot establish a review-only change.
+              required = True
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"required={str(required).lower()}\n")
+          print(json.dumps({"original_revenue_score_replay_required": required}))
+          PY
+      - name: Refresh operational availability
+        if: steps.replay.outputs.required == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run v3-operational-research-score.yml --repo "$GITHUB_REPOSITORY" --ref main
