@@ -25,15 +25,31 @@ def metrics(years,cap):
     return out
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');args=p.parse_args()
+    p=argparse.ArgumentParser()
+    p.add_argument('--mode',choices=('dry-run','live'),default='dry-run')
+    p.add_argument('--followup',action='store_true',help='Stage the two verified FY2025 follow-up receipts')
+    args=p.parse_args()
     read=lambda n:json.loads(Path(n).read_text())
     cat=read('docs/v22-market-catalog.json');book=read('docs/v3-dart-book-reference.json')
-    evidence=read('ops/v3-noncalendar-history-evidence-20261125.json')
+    path='ops/v3-noncalendar-history-evidence-20261125.json'
+    source_run=45778634105
+    expected_count=33
+    if args.followup:
+        path='ops/v3-noncalendar-history-followup-20261125.json'
+        source_run=45821091852
+        expected_count=2
+    evidence=read(path)
     day=cat['date'];cutoff=date.fromisoformat(day)
-    if evidence['asof']!=day or book['asof']!=day or evidence['schema']!='v3-noncalendar-history-evidence-v1' or evidence['source_run']!=45778634105:raise ValueError('unaligned_source')
+    if evidence['asof']!=day or book['asof']!=day or evidence['schema']!='v3-noncalendar-history-evidence-v1' or evidence['source_run']!=source_run:raise ValueError('unaligned_source')
     members={v['code']:v for v in cat['rows']};current={v['code']:v.get('annual') for v in book['records']}
     selected=[v for v in evidence['records'] if v['status']=='verified_period']
-    if len(selected)!=33 or len({(v['code'],v['year']) for v in selected})!=33:raise ValueError('invalid_verified_cohort')
+    if args.followup:
+        selected=[v for v in selected if v['year']==2025]
+        if {v['code'] for v in selected}!={'021880','032800'}:
+            raise ValueError('unexpected_followup_issuer')
+    if (len(selected)!=expected_count
+        or len({(v['code'],v['year']) for v in selected})!=expected_count):
+        raise ValueError('invalid_verified_cohort')
     for v in selected:
         code=v['code'];r=v['receipt_id'];received=date.fromisoformat(r[:4]+'-'+r[4:6]+'-'+r[6:8])
         if code not in members or received>cutoff or not annual_period(v['period_start'],v['period_end'],v['year'],int(v['period_end'][5:7]),received) or not re.fullmatch('[a-f0-9]{64}',v['archive_sha256']):raise ValueError('invalid_period_evidence')
