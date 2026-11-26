@@ -716,10 +716,13 @@ if(replaced.linked!==priced-1||replaced.missing!==1||replaced.unpriced!==0||
 """
         subprocess.run(['node','-e',script],cwd=ROOT,check=True)
 
-    def test_operational_score_refreshes_immediately_on_completed_source_jobs(self):
+    def test_operational_score_source_triggers_keep_daily_and_hourly_recovery(self):
         workflow=(ROOT/'.github/workflows/v3-operational-research-score.yml').read_text()
-        self.assertIn('- Full-Market 100-Stock Batches',workflow)
-        self.assertIn('- V3 Actual Money Personal Participation Score',workflow)
+        triggers=workflow.split('  workflow_run:',1)[1].split('  schedule:',1)[0]
+        self.assertIn('- Full-Market 100-Stock Batches',triggers)
+        self.assertNotIn('- V3 Actual Money Personal Participation Score',triggers)
+        self.assertNotIn('- V3 Latest Annual EPS Share-Basis Audit',triggers)
+        self.assertIn("cron: '23 * * * *'",workflow)
         self.assertIn("github.event.workflow_run.conclusion == 'success'",workflow)
         self.assertIn("github.event.workflow_run.head_branch == 'main'",workflow)
         self.assertIn('provider calls or collection locks',workflow)

@@ -96,7 +96,13 @@ class EPSBasisAuditTests(unittest.TestCase):
         text=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-eps-basis-audit.yml').read_text()
         self.assertIn('git add docs/v3-eps-basis-audit.json',text)
         self.assertNotIn('git add docs/v3-dart-reported-eps.json',text)
-        self.assertNotIn('v3-operational-research-score.yml/dispatches',text)
+        dispatch=text.split('      - name: Refresh operating scores after publishing changed EPS evidence',1)[1]
+        dispatch=dispatch.split('      - name: Check finite remaining audit queue',1)[0]
+        self.assertIn("if: steps.publish.outputs.changed == 'true'",dispatch)
+        self.assertIn('v3-operational-research-score.yml/dispatches',dispatch)
+        self.assertIn('-f ref=main',dispatch)
+        self.assertIn('continue-on-error: true',dispatch)
+        self.assertLess(text.index('git push origin HEAD:main'),text.index(dispatch))
         self.assertIn('head_repository.full_name == github.repository',text)
         self.assertIn("steps.collect.outputs.reviewed != '0'",text)
         self.assertLess(text.index('Verify and publish valid audit'),text.index('Surface interruption'))
