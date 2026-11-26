@@ -1,6 +1,6 @@
 {
-  "id": "20261118-replay-aligned-close-20261117-01",
-  "asof": "2026-11-17",
-  "workflow": "v3-current-observed-scorecard.yml",
-  "mode": "write"
+  "id": "20261126-public-ma240-close-20261125",
+  "asof": "2026-11-25",
+  "workflow": "v3-ma240-source-completion.yml",
+  "mode": "recover"
 }
