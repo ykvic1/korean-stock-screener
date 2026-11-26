@@ -1,6 +1,7 @@
 """Recover MA, RSI and completed-week patterns after an official gap repair."""
 from __future__ import annotations
 
+import argparse
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
@@ -376,7 +377,7 @@ def needs_weekly_position(stock, row):
             and stock.get('v3_weekly_position_gap_recovery') is None)
 
 
-def selected(market, priority, report):
+def selected(market, priority, report, *, priority_only=False):
     day = market['date']
     if (day < DATES[-1] or priority['asof'] != day or report['asof'] != day
             or priority['operational_source_digest'] != report['source_digest']):
@@ -389,7 +390,7 @@ def selected(market, priority, report):
         code = stock['code']
         row = report['rows'][code]
         if (stock['price_date'] == day and stock['market'] in MARKETS
-            and (code in focus or 90 <= row['available'] < 100)
+            and (code in focus or (not priority_only and 90 <= row['available'] < 100))
             and (availability(stock.get('v3_ma_slope_transition'), day) != (2., 3.)
                  or needs_weekly_position(stock, row) or needs_weekly_rsi(stock, row)
                  or needs_daily_pattern(stock, row)
@@ -401,9 +402,10 @@ def selected(market, priority, report):
     return result
 
 
-def run(market, priority, report, client, *, load_listing=load_dated_listing):
+def run(market, priority, report, client, *, load_listing=load_dated_listing,
+        priority_only=False):
     day = market['date']
-    candidates = selected(market, priority, report)
+    candidates = selected(market, priority, report, priority_only=priority_only)
     target_day = date.fromisoformat(day)
     completed_friday = (target_day - timedelta(days=(target_day.weekday() - 4) % 7)).isoformat()
     first = (target_day - timedelta(days=1140)).isoformat()
@@ -626,6 +628,7 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
                 stock.update(updates)
                 recovered.update(updates.keys())
     return {'asof': day, 'gap_session': GAP, 'comparison_sessions': close_anchors,
+            'conditional_90_chart_priority_only': priority_only,
             'official_repair_sessions': list(REPAIR_SESSIONS),
             'selected': len(targets), 'counts': dict(counts), 'recovered_fields': dict(recovered),
             'long_ma_comparison_sessions': list(long_ma_refs),
@@ -639,6 +642,9 @@ def run(market, priority, report, client, *, load_listing=load_dated_listing):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--priority-only', action='store_true')
+    args = parser.parse_args()
     root = Path('docs')
     data = root/'data.json'
     raw = data.read_bytes()
@@ -648,7 +654,8 @@ def main():
         return json.loads((root/name).read_text(encoding='utf-8'))
 
     result = run(market, load('v3-operational-evidence-priority.json'),
-                 load('v3-operational-research-scores.json'), KRXClient(os.environ.get('KRX_API_KEY', '')))
+                 load('v3-operational-research-scores.json'), KRXClient(os.environ.get('KRX_API_KEY', '')),
+                 priority_only=args.priority_only)
     result['input_market_sha256'] = sha256(raw).hexdigest()
     if any(result['recovered_fields'].get(key) for key in ('pattern_research', 'pattern_weekly_research')):
         compute_candidates(market['stocks'])
