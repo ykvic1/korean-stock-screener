@@ -177,28 +177,61 @@
           "asof": "2026-11-25",
           "initial_inventory_run": 45770867460,
           "last_completed_runs": [
-            45774408740,
-            45774633988,
-            45774923805
+            45775366875,
+            45775628558,
+            45775872629
           ],
-          "last_published_commit": "93a9d5e30110fc1368324dbc1036c55a202ff8c3",
-          "unreviewed_issuer_years": 135,
-          "reviewed_still_missing_issuer_years": 594,
+          "last_published_commit": "a36cbd93fcc0fd29e2fe1da7a3117265bcc746d8",
+          "unreviewed_issuer_years": 39,
+          "reviewed_still_missing_issuer_years": 690,
           "priority_unreviewed_issuer_years": 0,
           "conditional_90_unreviewed_issuer_years": 0,
-          "basis": "pre-batch exact inventory 167 less 32 completed zero-recovery reviews",
+          "basis": "verified exact post-publication dry-run inventory in job 139759510864",
           "latest_burst_completed": 96,
           "latest_burst_recovered_fields": 0,
           "latest_burst_reason_counts": {
-            "no_missing_supported_fact": 89,
-            "no_verified_scope_anchor": 1,
-            "unusable_original_facts": 6
+            "no_missing_supported_fact": 95,
+            "unusable_original_facts": 1
           },
           "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40",
-          "in_progress_run": 45774923805,
+          "in_progress_run": 45776099190,
           "terminal_burst_run": 45775366875,
           "terminal_burst_max_batches": 5,
-          "terminal_inventory_verified": false
+          "terminal_inventory_verified": false,
+          "unreviewed_issuers": 13
+        },
+        "annual_conditional_cohort_screen": {
+          "asof": "2026-11-25",
+          "conditional_90_issuers": 25,
+          "all_catalog_priced": true,
+          "all_catalog_revenue_and_operating_profit_null": true,
+          "with_saved_cashflow_issuer_record": 6,
+          "without_saved_cashflow_issuer_record": 19,
+          "no_saved_cashflow_codes": [
+            "001720",
+            "003610",
+            "008870",
+            "017250",
+            "018500",
+            "021880",
+            "032800",
+            "033200",
+            "042520",
+            "060310",
+            "092440",
+            "093380",
+            "097870",
+            "099750",
+            "169330",
+            "289080",
+            "334890",
+            "377190",
+            "396690"
+          ],
+          "fiscal_calendar_or_receipt_reason_verified": false,
+          "source_recoverability_proven": false,
+          "provider_calls": 0,
+          "points_added": 0
         }
       }
     },
