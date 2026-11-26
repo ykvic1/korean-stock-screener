@@ -178,7 +178,7 @@ jobs:
           fi
           # Avoid overlapping an independently requested run; shared writer
           # concurrency also serializes this finite continuation.
-          pending="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3-xbrl-cashflow-recovery.yml --limit 20 --json databaseId,status --jq '[.[] | select(.databaseId != (env.GITHUB_RUN_ID | tonumber) and .status != "completed")] | length')"
+          pending="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3-xbrl-cashflow-recovery.yml --limit 20 --json databaseId,status --jq "[.[] | select(.databaseId != $GITHUB_RUN_ID and .status != \"completed\")] | length")"
           if [[ "$pending" != 0 ]]; then
             echo 'Another recovery is already pending; stop this burst.'
             exit 0
