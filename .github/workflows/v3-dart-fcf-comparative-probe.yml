@@ -67,7 +67,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /tmp/v3-cf-comparative-counts.json
-          key: v3-cf-comparative-complete-v1-${{ matrix.partition }}-${{ hashFiles('v3_dart_fcf_comparative_probe.py', 'v3_dart_bulk_history.py', 'v3_operational_research_score.py', 'docs/data.json', 'docs/v22-market-catalog.json', 'docs/v3-dart-bulk-history.json', 'docs/v3-dart-book-reference.json', 'docs/v3-dart-cashflow-reference.json', 'docs/v3-operational-research-scores.json', 'docs/v3-operational-research-comparison.json', 'docs/v3-operational-evidence-priority.json') }}
+          key: v3-cf-comparative-complete-v1-${{ matrix.partition }}-${{ hashFiles('.github/workflows/v3-dart-fcf-comparative-probe.yml', '*.py', 'docs/data.json', 'docs/v22-market-catalog.json', 'docs/v3-dart-bulk-history.json', 'docs/v3-dart-book-reference.json', 'docs/v3-dart-cashflow-reference.json', 'docs/v3-operational-research-scores.json', 'docs/v3-operational-research-comparison.json', 'docs/v3-operational-evidence-priority.json') }}
       - name: Restore verified DART company code mapping
         if: ${{ github.event_name != 'pull_request' && steps.previous_audit.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@v4

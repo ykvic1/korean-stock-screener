@@ -333,8 +333,26 @@ class ComparativeProbeTests(unittest.TestCase):
         self.assertIn("github.event_name != 'pull_request'", workflow)
         self.assertNotIn("git push", workflow)
         self.assertNotIn("git add", workflow)
-        self.assertNotIn("docs/v3-dart-cashflow-reference.json", workflow)
-        self.assertNotIn("docs/v3-operational-research-scores.json", workflow)
+        # Source paths may occur only in a read-only fingerprint key. They
+        # must never be cached, exported, written or passed to a shell command.
+        keys = [line for line in workflow.splitlines()
+                if line.strip().startswith("key: v3-cf-comparative-complete-v1-")]
+        self.assertEqual(len(keys), 1)
+        self.assertIn("hashFiles(", keys[0])
+        other_lines = "\n".join(line for line in workflow.splitlines()
+                                if line != keys[0])
+        for protected in ("docs/v3-dart-cashflow-reference.json",
+                          "docs/v3-operational-research-scores.json"):
+            self.assertIn(protected, keys[0])
+            self.assertNotIn(protected, other_lines)
+        self.assertNotIn("contents: write", workflow)
+        self.assertNotIn("actions/upload-artifact", workflow)
+        self.assertEqual(workflow.count("path: /tmp/v3-cf-comparative-counts.json"), 2)
+        self.assertIn("steps.complete_partition.outputs.complete == 'true'", workflow)
+        self.assertIn("a.get('quarantined_issuers')==0", workflow)
+        self.assertIn("a.get('unprocessed_issuers')==0", workflow)
+        self.assertIn("a.get('scores_or_fcf_source_promoted') is False", workflow)
+        self.assertIn("steps.previous_audit.outputs.cache-hit != 'true'", workflow)
 
 
 if __name__ == "__main__":
