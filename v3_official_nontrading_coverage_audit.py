@@ -66,6 +66,52 @@ def audit(catalog, scores, status, panels):
             'scores_changed': False}
 
 
+def recovery_cohort_audit(catalog, scores, panels, priority):
+    """Separate long nontrading from remaining recovery work, without exclusions."""
+    if (priority['asof'] != catalog['date']
+            or priority['listed_total'] != len(scores)
+            or priority.get('missing_is_not_zero') is not True
+            or priority['available_100_count'] != sum(v == 100 for v in scores.values())):
+        raise ValueError('unaligned_recovery_priority')
+    coverage = priority['coverage_90_first']
+    if (coverage.get('independent_source_recoverability_not_proven') is not True
+            or coverage.get('recovery_not_a_score_or_observation') is not True):
+        raise ValueError('unverified_recovery_priority')
+    below90 = {code for code, weight in scores.items() if weight < 90}
+    if len(below90) != coverage['below_90_issuers']:
+        raise ValueError('below90_priority_mismatch')
+    long_zero = {m['code'] for m in catalog['rows']
+                 if trailing_zero(m, panels) == WINDOW}
+    remaining = below90 - long_zero
+    families = coverage['family_conditional_priority_codes']
+    conditional = set()
+    by_family = {}
+    for family, codes in families.items():
+        group = set(codes)
+        if (len(group) != len(codes) or not group <= below90
+                or len(group) != coverage['family_upper_bound_counts'][family]):
+            raise ValueError('invalid_conditional_priority_group')
+        conditional.update(group)
+        by_family[family] = {'all_below90_candidates': len(group),
+                             'outside_long_nontrading': len(group - long_zero)}
+    if (len(conditional) != coverage['one_source_family_upper_bound_count']
+            or len(below90 - conditional) != coverage['multiple_source_families_needed_at_minimum']):
+        raise ValueError('conditional_priority_union_mismatch')
+    return {
+        'long_nontrading_threshold_sessions': WINDOW,
+        'long_nontrading_issuers': len(long_zero),
+        'long_nontrading_below90': len(below90 & long_zero),
+        'remaining_below90_outside_long_nontrading': len(remaining),
+        'conditional_single_family_outside_long_nontrading': len(remaining & conditional),
+        'multiple_families_needed_outside_long_nontrading': len(remaining - conditional),
+        'long_nontrading_missing_weight': round(sum(100 - scores[c] for c in long_zero), 6),
+        'conditional_by_family': by_family,
+        'exclusion_applied': False,
+        'provider_calls': 0,
+        'source_recoverability_proven': False,
+    }
+
+
 def missing_boundary_class(records, index):
     # Absence before first retained record is not proof of listing date.
     if index == len(records) - 1:
@@ -354,6 +400,28 @@ def self_test():
     assert relabel_reviewed_renames([prior,current],m,rd,{})[1] == 0
     assert relabel_reviewed_renames([prior,[*current[:3],11,*current[4:]]],m,rd,{(rd[1],m['code']):notice})[1] == 0
     assert relabel_reviewed_renames([prior,[*current[:4],99,current[5]]],m,rd,{(rd[1],m['code']):notice})[1] == 0
+    cohort = {'date': '2026-11-25', 'rows': [m]}
+    priority = {'asof': cohort['date'], 'listed_total': 1,
+                'missing_is_not_zero': True, 'available_100_count': 0,
+                'coverage_90_first': {
+                    'independent_source_recoverability_not_proven': True,
+                    'recovery_not_a_score_or_observation': True, 'below_90_issuers': 1,
+                    'family_conditional_priority_codes': {'price': [m['code']]},
+                    'family_upper_bound_counts': {'price': 1},
+                    'one_source_family_upper_bound_count': 1,
+                    'multiple_source_families_needed_at_minimum': 0}}
+    result = recovery_cohort_audit(cohort, {m['code']: 85}, [p(False)] * WINDOW, priority)
+    assert result['long_nontrading_below90'] == 1
+    assert result['remaining_below90_outside_long_nontrading'] == 0
+    assert result['long_nontrading_missing_weight'] == 15
+    result = recovery_cohort_audit(cohort, {m['code']: 85}, [p(True)] * WINDOW, priority)
+    assert result['conditional_single_family_outside_long_nontrading'] == 1
+    try:
+        recovery_cohort_audit(cohort, {m['code']: 95}, [p(True)] * WINDOW, priority)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('misaligned priority accepted')
     from v3_regular_close_contract import SESSIONS
     from datetime import date, timedelta
     days = [(date(2025, 1, 1) + timedelta(days=i)).isoformat() for i in range(SESSIONS)]
@@ -401,6 +469,10 @@ def main():
     panels = [read_day((args.archive / archive_path(d)).read_bytes(), d) for d in days]
     result = audit(catalog, scores, status, panels[-WINDOW:])
     result['daily_continuity'] = continuity_audit(catalog, scores, panels)
+    priority = json.loads((root / 'v3-operational-evidence-priority.json').read_bytes())
+    if priority['operational_source_digest'] != comparison['operational_coverage']['source_digest']:
+        raise ValueError('unaligned_priority_digest')
+    result['recovery_cohort'] = recovery_cohort_audit(catalog, scores, panels[-WINDOW:], priority)
     operational = json.loads((root / 'v3-operational-research-scores.json').read_bytes())
     if (operational['asof'] != day or operational['format'] != 'compact-parts-v1'
             or set(operational['rows']) != set(scores)
