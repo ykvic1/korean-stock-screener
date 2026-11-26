@@ -113,7 +113,14 @@ def main():
             return dict(rec,status='verified_period',receipt_id=annual['receipt_id'],period_start=period[0],period_end=period[1],archive_sha256=digest,observed_fields=sorted(annual['values']))
         def checkpoint(rec):
             out['records'].append(rec);out['verified_years']+=int(rec['status']=='verified_period')
-        collect(selected,fetch,checkpoint,workers=4,max_choices=56,deadline=time.monotonic()+480)
+        # Shared reader has a deliberate hard cap of 32 choices per call.
+        # Run disjoint cohorts, preserving the shared per-issuer profile cache.
+        for offset in range(0,len(selected),28):
+            batch=selected[offset:offset+28]
+            before=len(out['records'])
+            collect(batch,fetch,checkpoint,workers=4,max_choices=28,deadline=time.monotonic()+300)
+            if len(out['records'])-before!=len(batch):
+                raise ValueError('incomplete_bounded_noncalendar_batch')
     finally:
         for s in clients:s.close()
         out['records'].sort(key=lambda x:(x['code'],x['year']))
@@ -122,5 +129,6 @@ def main():
         print(json.dumps(out,sort_keys=True))
 if __name__=='__main__':
     try:main()
-    except Exception:
-        print(json.dumps({'status':'blocked_noncalendar_historical_audit'}));raise SystemExit(1)
+    except Exception as exc:
+        reason=str(exc) if isinstance(exc,ValueError) and re.fullmatch(r'[a-z_]{1,100}',str(exc)) else type(exc).__name__
+        print(json.dumps({'status':'blocked_noncalendar_historical_audit','reason':reason}));raise SystemExit(1)
