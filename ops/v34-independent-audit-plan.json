@@ -73,6 +73,20 @@
           "full_260_extensions": 2,
           "added_observed_sessions": 480,
           "production_changed": false
+        },
+        "conditional_chart_priority_audit": {
+          "asof": "2026-11-25",
+          "conditional_candidates": 54,
+          "official_source_rows": 54,
+          "continuous_at_least_121_sessions": 22,
+          "continuous_260_sessions": 12,
+          "daily_rsi_observations": 22,
+          "weekly_rsi_observations": 2,
+          "weekly_ma120_observations": 1,
+          "price_unresolved_with_zero_listing_volume_reference": 1,
+          "score_recovery_verified": false,
+          "raw_prices_exported": false,
+          "source_indicators_blob": "f0b9f7f79d27ec7d69fbcd54cc0b966cff7ab4f2"
         }
       }
     },

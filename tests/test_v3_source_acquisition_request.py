@@ -1,6 +1,7 @@
 """Explicit new-session collection must not pretend old sources are current."""
 from copy import deepcopy
 from datetime import datetime
+from pathlib import Path
 import json
 from types import SimpleNamespace
 import unittest
@@ -16,6 +17,20 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
         self.request = {'id': '20261117-catchup', 'asof': '2026-11-16',
                         'workflow': 'full-market-batches.yml', 'mode': 'publish'}
         self.now = datetime(2026, 11, 17, 9, tzinfo=KST)
+
+    def test_morning_guard_can_recover_krx_close_after_market_is_current(self):
+        workflow = (Path(__file__).resolve().parents[1] /
+                    '.github/workflows/v3-morning-refresh-guard.yml').read_text()
+        self.assertIn("cron: '55 22 * * 1-5'", workflow)
+        self.assertIn("cron: '40 23 * * 1-5'", workflow)
+        self.assertIn('date_to_session(day, direction="previous")', workflow)
+        source = workflow.split('name: Recover missing KRX close', 1)[1]
+        self.assertIn('"$score" == "$ASOF" && "$close_stale" == false', source)
+        self.assertIn('Normal source or score work is $status', source)
+        self.assertLess(source.index('main_sha='), source.index('gh workflow run v3-regular-close-indicators.yml'))
+        self.assertLess(source.index('gh workflow run v3-regular-close-indicators.yml'),
+                        source.index('gh workflow run v3-current-observed-scorecard.yml'))
+        self.assertNotIn('gh workflow run full-market-batches.yml', source)
 
     def test_friday_to_monday_catchup_keeps_saved_catalog_unchanged(self):
         original = deepcopy(self.catalog)
