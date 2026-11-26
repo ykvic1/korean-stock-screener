@@ -115,8 +115,20 @@
     {
       "id": "P2-02",
       "task": "Review unused code and Pages size",
-      "status": "open",
-      "acceptance": "Measure actual published artifact, retain required history privately only when permitted, no blind deletion."
+      "status": "published_artifact_measured",
+      "acceptance": "Measure actual published artifact, retain required history privately only when permitted, no blind deletion.",
+      "evidence": {
+        "pages_run": 45750948194,
+        "artifact_id": 15085402200,
+        "compressed_bytes": 98825085,
+        "retained_backup_bytes": 692242690,
+        "retained_backup_files": 83,
+        "archive_excluded_in_build_log": true,
+        "tracked_bytes_of_published_entries": 237778341,
+        "published_file_entries": 869,
+        "generated_entries_without_tracked_size": 13,
+        "backup_files_deleted": 0
+      }
     },
     {
       "id": "P2-03",

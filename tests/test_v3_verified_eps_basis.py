@@ -1,3 +1,4 @@
+from pathlib import Path
 import copy
 import unittest
 from unittest.mock import patch
@@ -61,9 +62,10 @@ class VerifiedEPSBasisTests(unittest.TestCase):
                 if (area,key)!=('valuation','per_eps_quality_growth'):self.assertEqual(upgraded[area][key],value)
         self.assertEqual(sum(ops.BUDGET.values()),100)
 
-    def test_workflow_replays_after_trusted_audit_completion(self):
-        from pathlib import Path
-        text=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-operational-research-score.yml').read_text()
-        self.assertIn('- V3 Latest Annual EPS Share-Basis Audit',text)
-        self.assertIn('head_repository.full_name == github.repository',text)
-        self.assertIn('v3_verified_eps_basis.py',text)
+    def test_verified_eps_admission_keeps_trusted_workflow_inputs(self):
+        workflows=Path(__file__).resolve().parents[1]/'.github/workflows'
+        publisher=(workflows/'v3-operational-research-score.yml').read_text()
+        collector=(workflows/'v3-eps-basis-audit.yml').read_text()
+        self.assertIn('head_repository.full_name == github.repository',collector)
+        self.assertIn("github.event.workflow_run.head_branch == 'main'",collector)
+        self.assertIn('v3_verified_eps_basis.py',publisher)

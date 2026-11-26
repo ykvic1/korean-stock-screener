@@ -31,6 +31,9 @@ jobs:
           python-version: '3.11'
       - run: |
           python v3_eps_basis_audit.py --mode dry-run --limit 16
+      - name: Test EPS audit publication handoff
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: python -m unittest discover -s tests -p 'test_v3_eps_basis_audit.py' -k test_workflow_writes_audit_only_and_continues_after_verified_progress
   audit:
     needs: offline
     if: github.event_name != 'pull_request'
@@ -96,6 +99,12 @@ jobs:
       - name: Surface interruption after preserving valid audit results
         if: steps.collect.outputs.interrupted == '1'
         run: exit 1
+      - name: Refresh operating scores after publishing changed EPS evidence
+        if: steps.publish.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-operational-research-score.yml/dispatches" -f ref=main --silent
       - name: Check finite remaining audit queue after publication
         id: remaining
         if: steps.collect.outputs.interrupted == '0' && steps.collect.outputs.reviewed != '0' && steps.publish.outputs.changed == 'true'

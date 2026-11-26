@@ -98,14 +98,13 @@ on:
       - .github/workflows/v3-operational-research-score.yml
   workflow_run:
     workflows:
-      - V3 Latest Annual EPS Share-Basis Audit
       - V3 DART FY2023 Strict Comparative Revenue Recovery
       - V3 DART 2022 Receipt-Matched Revenue Recovery
       # Current-observed publication explicitly dispatches this replay only
       # after a changed, verified push. Do not repeat it on every completion.
       # The hourly schedule remains the recovery path for failed dispatches.
       - Full-Market 100-Stock Batches
-      # Actual-money publisher explicitly dispatches after a changed verified push.
+      # Actual-money and EPS-basis publishers dispatch after a changed verified push.
     types: [completed]
   schedule:
     - cron: '23 * * * *'
