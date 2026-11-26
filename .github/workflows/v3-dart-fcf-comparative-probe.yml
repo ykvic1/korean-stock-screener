@@ -45,21 +45,40 @@ jobs:
         with:
           python-version: '3.11'
       - name: Strict source identities and missing-fact tests
+        id: inventory
         run: |
           python -m py_compile v3_dart_fcf_comparative_probe.py
           python -m unittest discover -s tests -p 'test_v3_dart_fcf_comparative_probe.py' -v
-          python v3_dart_fcf_comparative_probe.py --mode dry-run --limit 120 --cohort-index 0
+          python v3_dart_fcf_comparative_probe.py --mode dry-run --limit 120 --cohort-index 0 | tee /tmp/v3-cf-comparative-inventory.json
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          a=json.loads(Path('/tmp/v3-cf-comparative-inventory.json').read_text())
+          # Only a full-cohort sweep is independent of the rotating cohort index.
+          n=a.get('eligible_one_gap_fcf_issuers')
+          full=(type(n) is int and 0 < n <= 120 and
+                a.get('selection_covers_all_eligible') is True)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('full_cohort='+str(full).lower()+'\n')
+          PY
+      - name: Restore completed identical-input aggregate audit
+        id: previous_audit
+        if: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && steps.inventory.outputs.full_cohort == 'true' }}
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/v3-cf-comparative-counts.json
+          key: v3-cf-comparative-complete-v1-${{ matrix.partition }}-${{ hashFiles('v3_dart_fcf_comparative_probe.py', 'v3_dart_bulk_history.py', 'v3_operational_research_score.py', 'docs/data.json', 'docs/v22-market-catalog.json', 'docs/v3-dart-bulk-history.json', 'docs/v3-dart-book-reference.json', 'docs/v3-dart-cashflow-reference.json', 'docs/v3-operational-research-scores.json', 'docs/v3-operational-research-comparison.json', 'docs/v3-operational-evidence-priority.json') }}
       - name: Restore verified DART company code mapping
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' && steps.previous_audit.outputs.cache-hit != 'true' }}
         uses: actions/cache/restore@v4
         with:
           path: .cache/v3-dart-company-codes.json
           key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
       - name: Install official client for bounded live research
-        if: ${{ github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'live' }}
+        if: ${{ (github.event_name == 'schedule' || github.event_name == 'push' || inputs.mode == 'live') && steps.previous_audit.outputs.cache-hit != 'true' }}
         run: python -m pip install 'requests>=2.31,<3'
       - name: Sample FY2025 prior-year columns without promoting scores
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.event_name != 'pull_request' && steps.previous_audit.outputs.cache-hit != 'true' }}
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           MODE: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && 'live' || inputs.mode }}
@@ -70,8 +89,39 @@ jobs:
           # Only fixed aggregate counters (no codes/receipts/amounts) appear
           # in the job log, so progress is auditable without private access.
           python v3_dart_fcf_comparative_probe.py --mode "$MODE" --limit 120 --cohort-index "$COHORT" --partition-index "$PARTITION" --partition-count 3 --audit-annual-receipts | tee /tmp/v3-cf-comparative-counts.json
+      - name: Verify complete live partition before caching aggregate
+        id: complete_partition
+        if: ${{ (github.event_name == 'schedule' || github.event_name == 'push') && steps.inventory.outputs.full_cohort == 'true' && steps.previous_audit.outputs.cache-hit != 'true' }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          a=json.loads(Path('/tmp/v3-cf-comparative-counts.json').read_text())
+          n=a.get('sampled_issuers',0)
+          complete=(a.get('status')=='comparison_candidates_not_original_receipts' and
+                    type(n) is int and n > 0 and a.get('completed_issuers')==n and
+                    a.get('unprocessed_issuers')==0 and a.get('quarantined_issuers')==0 and
+                    a.get('candidate_fact_counts',{}).get('sampled_official_annual_lists')==n and
+                    a.get('amounts_published') is False and
+                    a.get('scores_or_fcf_source_promoted') is False)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('complete='+str(complete).lower()+'\n')
+          PY
+      - name: Cache aggregate only after completed audit
+        if: ${{ steps.complete_partition.outputs.complete == 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/v3-cf-comparative-counts.json
+          key: ${{ steps.previous_audit.outputs.cache-primary-key }}
+      - name: Report reused identical-input audit without claiming new observations
+        if: ${{ steps.previous_audit.outputs.cache-hit == 'true' }}
+        run: |
+          echo 'Identical input audit reused; current provider calls: 0; new observations: 0.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Identical input audit reused; current provider calls: 0; new observations: 0.'
       - name: Aggregate-only report; no original-year or investment certification
         if: always()
+        env:
+          REUSED_AUDIT: ${{ steps.previous_audit.outputs.cache-hit }}
         run: |
           python - <<'PY'
           import json,os
@@ -82,6 +132,8 @@ jobs:
               'No stock IDs, amounts, API keys, FCF ledger changes or score promotion.']
           if p.is_file() and p.stat().st_size:
               a=json.loads(p.read_text(encoding='utf8'))
+              if os.getenv('REUSED_AUDIT')=='true':
+                  lines.append('Reused prior identical-input aggregate; provider_calls below are historical, not new calls.')
               for k in ('asof','eligible_one_gap_fcf_issuers','sampled_issuers','completed_issuers','quarantined_issuers','unprocessed_issuers','selection_covers_all_eligible','partition_index','partition_count','status','provider_calls'):
                   lines.append('- '+k+': '+str(a.get(k)))
               for k,v in a.get('candidate_fact_counts',{}).items():
