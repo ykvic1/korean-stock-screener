@@ -7,8 +7,8 @@ on:
     - cron: '10 21 * * 1-5' # 06:10 KST Tue-Sat
     - cron: '40 21 * * 1-5' # 06:40 KST Tue-Sat: score recovery
     - cron: '10 22 * * 1-5' # 07:10 KST Tue-Sat
-    - cron: '55 22 * * 1-5' # 07:55 KST Tue-Sat: retry a missing previous-session batch
-    - cron: '40 23 * * 1-5' # 08:40 KST Tue-Sat: recover missing morning follow-ups
+    - cron: '40 22 * * 1-5' # 07:40 KST Tue-Sat: final pre-08:00 score recovery
+    - cron: '40 23 * * 1-5' # 08:40 KST Tue-Sat: independent official-close or late recovery
   workflow_run:
     workflows: [Rolling OpenDART Annual Book Reference - Current Listed]
     types: [completed]
@@ -70,6 +70,8 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
               f.write(f"asof={target}\n")
               f.write(f"market_stale={str(any(d != target for d in dates)).lower()}\n")
+              # The official close-derived source is a later cross-check.
+              # Before 08:00, aligned market and score dates suffice here.
               close_due = (now.hour, now.minute) >= (8, 35)
               f.write(f"regular_close_due={str(close_due).lower()}\n")
           PY

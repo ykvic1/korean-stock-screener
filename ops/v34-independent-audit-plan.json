@@ -34,10 +34,13 @@
           "url": "https://www.data.go.kr/data/15094808/openapi.do",
           "available_after_next_business_day_kst": "13:00",
           "meets_morning_deadline": false,
-          "regular_only_volume_and_turnover_verified": false
+          "regular_only_volume_and_turnover_verified": false,
+          "afternoon_check_kst": "14:00",
+          "private_access_or_publication_permission_verified": false
         },
         "historical_krx_money_backfill_run": 45754970899,
-        "historical_krx_money_scoring_allowed": false
+        "historical_krx_money_scoring_allowed": false,
+        "morning_publish_local_deadline": "08:00"
       }
     },
     {
