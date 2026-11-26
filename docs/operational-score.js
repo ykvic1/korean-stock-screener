@@ -67,6 +67,7 @@ function attach(model,report){
    delete r.v3_operational;
    delete r.v3_operational_version;
    delete r.v3_operational_session_scope;
+   delete r.v3_operational_market_asof;
    r.v3_operational_evidence_missing=true;
    continue;
   }
@@ -75,12 +76,13 @@ function attach(model,report){
    delete r.v3_operational;
    delete r.v3_operational_version;
    delete r.v3_operational_session_scope;
+   delete r.v3_operational_market_asof;
    r.v3_operational_identity_blocked=true;
    continue;
   }
   delete r.v3_operational_identity_blocked;
   r.v3_operational=v;r.v3_operational_version=report.version;
-  r.v3_operational_session_scope=report.session_scope||null;n++;
+  r.v3_operational_session_scope=report.session_scope||null;r.v3_operational_market_asof=model.date;n++;
  }
  model.operationalVersion=report.version;return n;
 }
@@ -113,7 +115,7 @@ function attachAllListed(model,report){
      price_date:null,score:null,coverage_pct:null,components:null,
      unpriced_operational_only:true,v3_operational:v,
      v3_operational_version:report.version,
-     v3_operational_session_scope:report.session_scope||null},q:null,rec:null,
+     v3_operational_session_scope:report.session_scope||null,v3_operational_market_asof:model.date},q:null,rec:null,
      watch:null,quant:false,researchCandidate:false,qualified:false,
      caution:false,risk:null,highRisk:true,financialRef:null,
      rollingBook:null,fourYearRef:null,decision:null});
@@ -211,20 +213,48 @@ function sessionScopeMarkup(r){
   '가격 일치나 가격 지표 재산출은 거래량·거래대금의 정규장 검증을 뜻하지 않습니다.</p>';
 }
 
+// Display observed dates, not a new scoring or eligibility rule.
+function observationAge(p,marketDay){
+ if(!Array.isArray(p)||!isDay(p[2])||!isDay(marketDay)||p[2]>marketDay)return null;
+ return Math.round((Date.parse(marketDay+'T00:00:00Z')-Date.parse(p[2]+'T00:00:00Z'))/86400000);
+}
+function freshnessSummary(v,marketDay){
+ const groups={daily:{count:0,older:0,maxAge:0},weekly:{count:0,older:0,maxAge:0},
+  otherMarket:{count:0,older:0,maxAge:0},financial:{count:0,older:0,maxAge:0}};
+ if(!isDay(marketDay))return null;
+ for(const [area,ps] of Object.entries(v.parts||{}))for(const [key,p] of Object.entries(ps||{})){
+  const age=observationAge(p,marketDay);if(age===null)continue;
+  const cadence=['weekly_pattern','weekly_rsi','long_ma_position','weekly_ma_slope_turn','weekly_structure_increment'].includes(key)?'weekly':
+   ['daily_pattern','daily_rsi','daily_ma_slope_turn','ma20_ma60_cross_near_ma240','independent_breakout_confirmation'].includes(key)?'daily':
+   area==='financial'||area==='valuation'?'financial':'otherMarket';
+  const g=groups[cadence];g.count++;g.maxAge=Math.max(g.maxAge,age);
+  // A conservative review flag, not a determination of invalidity.
+  if(cadence!=='financial'&&age>=(cadence==='weekly'?14:7))g.older++;
+ }
+ return groups;
+}
+function freshnessMarkup(v,marketDay){
+ const groups=freshnessSummary(v,marketDay);if(!groups)return '';
+ const names={daily:'일봉',weekly:'주봉',otherMarket:'기타 시장지표',financial:'재무·가치'};
+ const info=Object.entries(groups).filter(([,g])=>g.count).map(([k,g])=>
+  names[k]+' '+g.count+'개 · 최대 '+g.maxAge+'일 경과'+(g.older?' · 확인 필요 '+g.older+'개':''));
+ return '<p class="u-muted">자료 시점 (시장 기준 '+esc(marketDay)+', 달력일): '+info.join(' / ')+
+  ' · 일봉·기타 7일, 주봉 14일 이상은 검토 표시일 뿐 점수 변경 없음. 재무·가치 관측일은 공시일과 다를 수 있습니다. 확보배점 100은 최신성 보장이 아닙니다.</p>';
+}
 function markup(r,currentOnly=false){const v=r?.v3_operational;if(!v&&currentOnly)return '<p class="u-muted">현재 점수 자료 미연결 · 이전 점수를 대입하지 않습니다.</p>';if(!v)return r?.v3_operational_identity_blocked?
  '<p class="u-muted">종목명 또는 시장구분 불일치 · 이 종목의 신규 운영점수 연결만 보류합니다. 기존 모델은 비교용으로 유지합니다.</p>':
  r?.v3_operational_evidence_missing?
  '<p class="u-muted">이 종목의 신규 운영점수 근거가 현재 저장본에 없습니다. 다른 종목의 과거 점수를 대입하지 않습니다.</p>':
  '<p class="u-muted">신규 운영점수 연결 대기 · 기존 모델은 아래 비교용으로 유지합니다.</p>';
- return '<section class="u-operational-detail"><h3>'+(currentOnly?'현재 점수 · 세부 근거':'잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a'))+'</h3><p><strong>'+(v.score===null?'0.0 / 100 (관측 없음·순위 제외)':v.score.toFixed(1)+' / 100')+
-  '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 최초 관측 '+esc(v.oldest_asof)+
-  '</p>'+reconciliationMarkup(v)+(currentOnly?'':regularCloseMarkup(v)+sessionScopeMarkup(r))+
+ return '<section class="u-operational-detail"><h3>'+(currentOnly?'현재 점수 · 세부 근거':'잠정 운영점수 · '+(r.v3_operational_version===VERSION?'R1e':r.v3_operational_version==='v3-stable-r1d-operational-research'?'R1d':r.v3_operational_version==='v3-stable-r1c-operational-research'?'R1c':r.v3_operational_version==='v3-stable-r1b-operational-research'?'R1b':'R1a'))+'</h3><p><strong>'+(v.score===null?'— / 100 (관측 없음·순위 제외)':v.score.toFixed(1)+' / 100')+
+  '</strong> · 확보배점 '+v.available.toFixed(1)+' / 100 · 기준일 '+esc(v.asof)+' · 가장 오래된 세부 관측 '+esc(v.oldest_asof)+
+  '</p>'+freshnessMarkup(v,r.v3_operational_market_asof||v.asof)+reconciliationMarkup(v)+(currentOnly?'':regularCloseMarkup(v)+sessionScopeMarkup(r))+
   '<p class="u-muted">재무 자료일 '+esc(v.risk_asof||'미확인')+' (확인된 위험 하한 · '+(v.risk_status==='partial'?'일부 확인':'위험 미확인')+')</p>'+
   (v.risk_warnings.length?'<p class="u-muted">'+v.risk_warnings.map(esc).join(' · ')+'</p>':'')+
   (currentOnly?'':'<p>기존 모델 '+(finite(v.legacy_score)?v.legacy_score.toFixed(1)+'점':'미관측')+' · 신규 '+(v.rank??'—')+'위 / 기존 '+(v.legacy_rank??'—')+'위</p>')+
   (!currentOnly&&finite(v.prior_operational_score)?'<p class="u-muted">직전 운영모델 '+v.prior_operational_score.toFixed(1)+'점 · '+(v.prior_operational_rank??'—')+'위 (점수 계산식 변경 전 비교)</p>':'')+
   '<table><thead><tr><th>영역</th><th>점수</th><th>확보/전체</th></tr></thead><tbody>'+Object.entries(BUDGET).map(([a,max])=>
-   '<tr><td>'+LABELS[a]+'</td><td>'+v.areas[a].points.toFixed(2)+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+
+   '<tr><td>'+LABELS[a]+'</td><td>'+(v.areas[a].available>0?v.areas[a].points.toFixed(2):'— (미관측)')+'</td><td>'+v.areas[a].available.toFixed(1)+' / '+max+'</td></tr>').join('')+
   (scoreReconciliation(v)?'<tr class="u-score-table-gross"><th scope="row">영역 합계 (감점 전)</th><td>'+v.base.toFixed(2)+'</td><td>'+v.available.toFixed(1)+' / 100</td></tr>'+
    '<tr class="u-score-table-deduction"><th scope="row">'+(r.v3_operational_version===VERSION?'시총·재무위험 순감점 (손절 미반영)':'시총·재무위험·과거 손절보정 순감점')+'</th><td>'+
     (scoreReconciliation(v).netDeduction>0?'−':scoreReconciliation(v).netDeduction<0?'+':'')+
@@ -232,7 +262,7 @@ function markup(r,currentOnly=false){const v=r?.v3_operational;if(!v&&currentOnl
    '<tr class="u-score-table-final"><th scope="row">최종 운영점수</th><td>'+v.score.toFixed(1)+'</td><td>/ 100</td></tr>':'')+
   '</tbody></table><p class="u-muted">영역별 표시 점수는 소수 둘째 자리로 반올림되어 합계와 약간 다를 수 있습니다. 최종점수는 반올림 전 원본으로 계산합니다.</p>'+
   missingMarkup(v)+
-  '<details><summary>'+(currentOnly?'평가항목별 점수':'신규 점수 세부 근거')+'</summary>'+Object.entries(MAXES).map(([a,limits])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(limits).map(([k,max])=>{const p=v.parts[a]?.[k];return '<li>'+esc(COMPONENTS[k])+': '+(p?p[0].toFixed(2):'0.00')+' / '+max.toFixed(2)+' · 확보 '+(p?p[1].toFixed(2):'0.00')+'점'+(p?' · '+esc(p[2]):' · 원천 미확보')+'</li>';}).join('')+'</ul>').join('')+
+  '<details><summary>'+(currentOnly?'평가항목별 점수':'신규 점수 세부 근거')+'</summary>'+Object.entries(MAXES).map(([a,limits])=>'<h4>'+LABELS[a]+'</h4><ul>'+Object.entries(limits).map(([k,max])=>{const p=v.parts[a]?.[k];return '<li>'+esc(COMPONENTS[k])+': '+(p?p[0].toFixed(2):'— (미관측)')+' / '+max.toFixed(2)+' · 확보 '+(p?p[1].toFixed(2):'0.00')+'점'+(p?' · 관측일 '+esc(p[2])+(observationAge(p,r.v3_operational_market_asof||v.asof)!==null?' · '+observationAge(p,r.v3_operational_market_asof||v.asof)+'일 경과':''):' · 원천 미확보')+'</li>';}).join('')+'</ul>').join('')+
   '<p>MA 기울기 전환은 종목별 일·주봉 가격 이력이 준비된 경우에만 관측합니다. 거래 구조 12점은 완성된 장기 거래대금 자료가 있을 때만 분해하여 반영하고, 독립 돌파 확인 1.2점은 60거래일 고점 돌파 뒤 5일 이상 가격 유지가 관측된 경우에만 반영합니다. 부채 상환·반복 현금흐름 위험은 검증 중입니다. 결측을 100점으로 환산하지 않습니다.</p></details>'+
   (currentOnly?'<details class="u-price-source-details"><summary>가격·거래량 원천 검증 안내</summary>'+regularCloseMarkup(v)+sessionScopeMarkup(r)+'</details><p class="u-muted">투자성과·손절확률 미검증</p>':'<p class="u-muted">단계적 전환 모델 · 과거 성과·손절확률 미검증 · 기존 점수 이력 별도 유지</p>')+'</section>';
 }
@@ -256,6 +286,6 @@ function collectionStatus(record,currentDay){
  return '초기 데이터 수집 완료 (결측 제외) · 마감 기준 '+record.asof+
    ' · 일일 자동 갱신 계속 · 정식 검증 진행 중';
 }
-const api={collectionStatus,VERSION,BUDGET,validSessionScope,sessionScopeMarkup,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
+const api={collectionStatus,observationAge,freshnessSummary,freshnessMarkup,VERSION,BUDGET,validSessionScope,sessionScopeMarkup,attach,attachAllListed,validRow,compare,composite,missingComponents,scoreReconciliation,reconciliationMarkup,regularCloseMarkup,markup};
 root.V3OperationalScore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
