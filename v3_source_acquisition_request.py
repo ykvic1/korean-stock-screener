@@ -19,6 +19,8 @@ ALLOWED = {
     'v3-xbrl-eps-recovery.yml': 'recover',
     'v3-krx-money-week-repair.yml': 'recover',
     'v3-saved-close-path-recovery.yml': 'recover',
+    'v3-dart-revenue-2022.yml': 'collect',
+    'v3-dart-owner-profit-probe.yml': 'collect',
     'v3-regular-close-indicators.yml': 'derive',
 }
 
@@ -71,6 +73,8 @@ def prepare(request, catalog, repository, *, now=None):
         command += ['-f', 'asof=' + request['asof']]
     elif workflow == 'v3-dart-bulk-four-year.yml':
         command += ['-f', 'mode=live', '-f', 'groups=3']
+    elif workflow in ('v3-dart-revenue-2022.yml', 'v3-dart-owner-profit-probe.yml'):
+        command += ['-f', 'mode=live']
     return command, {
         'requested': workflow, 'asof': request['asof'], 'request_id': request['id'],
         'previous_catalog_asof': catalog['date'],
