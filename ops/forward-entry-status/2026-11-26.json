@@ -1,0 +1,23 @@
+{
+  "schema": "v3-forward-opening-evidence-1",
+  "score_asof": "2026-11-26",
+  "score_observation_sha256": "8c2adc27468dca81afa5f2b353d785b4c709d2906edfd1f031669355105e22a8",
+  "score_captured_at_utc": "2026-11-26T18:34:07.684639+00:00",
+  "listed_count": 2593,
+  "ranked_count": 2574,
+  "entry_session_candidate": "2026-11-27",
+  "regular_open_utc": "2026-11-27T00:00:00+00:00",
+  "regular_close_utc": "2026-11-27T06:30:00+00:00",
+  "horizon_target_dates": {
+    "1": "2026-12-27",
+    "2": "2027-01-27",
+    "3": "2027-02-27",
+    "6": "2027-05-27",
+    "12": "2027-11-27"
+  },
+  "session_calendar_source": "xkrx_candidate_with_announced_overrides",
+  "issuer_continuity_certified": false,
+  "adjusted_entry_prices_certified": false,
+  "performance_validated": false,
+  "status": "waiting_for_session_close"
+}
