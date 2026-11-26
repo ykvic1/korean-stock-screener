@@ -21,7 +21,11 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
     def test_morning_guard_can_recover_krx_close_after_market_is_current(self):
         workflow = (Path(__file__).resolve().parents[1] /
                     '.github/workflows/v3-morning-refresh-guard.yml').read_text()
-        self.assertIn("cron: '55 22 * * 1-5'", workflow)
+        self.assertIn("cron: '40 22 * * 1-5'", workflow)
+        self.assertIn('(now.hour, now.minute) >= (8, 35)', workflow)
+        batch = (Path(__file__).resolve().parents[1] /
+                 '.github/workflows/full-market-batches.yml').read_text()
+        self.assertIn("cron: '50 21 * * 1-5'", batch)
         self.assertIn("cron: '40 23 * * 1-5'", workflow)
         self.assertIn('date_to_session(day, direction="previous")', workflow)
         source = workflow.split('name: Recover missing KRX close', 1)[1]
