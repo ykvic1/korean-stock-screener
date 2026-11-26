@@ -1,6 +1,6 @@
 {
-  "id": "20261126-krx-money-bulk-recovery-01",
+  "id": "20261126-manual-price-path-recovery-01",
   "asof": "2026-11-25",
-  "workflow": "v3-krx-money-week-repair.yml",
+  "workflow": "v3-saved-close-path-recovery.yml",
   "mode": "recover"
 }
