@@ -266,6 +266,31 @@ def annual_conditional_cohort(catalog,book,history,report,priority,cashflow):
         group['issuers']+=1
         group['book_status:'+str(row.get('status','absent'))]+=1
         group['valid_latest_annual_book']+=int(_valid_book(a,fiscal[-1],cutoff))
+        # Diagnose actual guard failures separately; never infer fiscal end
+        # from receipt date or accept an earlier/latest-year substitute.
+        if not _valid_book(a,fiscal[-1],cutoff):
+            if not isinstance(a,dict):
+                group['annual_guard_missing_record']+=1
+            else:
+                year=a.get('year')
+                group['annual_guard_saved_year:'+str(year if type(year) is int and 1900<=year<=2100 else 'invalid')]+=1
+                if year!=fiscal[-1]:group['annual_guard_year_mismatch']+=1
+                if a.get('fs_div') not in ('CFS','OFS'):group['annual_guard_scope_missing']+=1
+                if a.get('currency')!='KRW':group['annual_guard_currency_not_krw']+=1
+                if type(a.get('values')) is not dict:group['annual_guard_values_missing']+=1
+                if not _valid_receipt(a.get('receipt_id'),fiscal[-1],cutoff):
+                    group['annual_guard_receipt_invalid_for_target_year']+=1
+                    from datetime import date
+                    receipt=a.get('receipt_id')
+                    if type(receipt) is str and len(receipt)==14 and receipt.isdigit():
+                        try: received=date.fromisoformat(receipt[:4]+'-'+receipt[4:6]+'-'+receipt[6:8])
+                        except ValueError: pass
+                        else:
+                            if received<=date(fiscal[-1],12,31):
+                                group['annual_guard_receipt_on_or_before_calendar_year_end']+=1
+                            elif received>cutoff:
+                                group['annual_guard_receipt_after_cutoff']+=1
+
         group['four_year_attempted']+=int(all(str(y) in years for y in fiscal))
         group['four_year_nonempty']+=int(all(bool(years.get(str(y))) for y in fiscal))
         for year in fiscal:
