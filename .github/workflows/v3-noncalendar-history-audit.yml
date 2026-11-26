@@ -12,7 +12,7 @@ concurrency:
 jobs:
   evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 14
+    timeout-minutes: 16
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -37,7 +37,14 @@ jobs:
               try: normalize([bad],'00123456',2025,'CFS',cutoff)
               except ValueError: pass
               else: raise AssertionError('untrusted row accepted')
-          print('6 strict source guards passed')
+          from v3_eps_parallel_collection import collect
+          import time
+          observed=[]
+          choices=list(range(56))
+          for offset in range(0,len(choices),28):
+              collect(choices[offset:offset+28],lambda x:x,observed.append,workers=4,max_choices=28,deadline=time.monotonic()+300)
+          assert sorted(observed)==choices
+          print('6 strict source guards and 56-choice bounded batch test passed')
           PY
           python v3_dart_noncalendar_history_audit.py --mode dry-run
       - name: Check exact same-scope original receipts across four fiscal years
