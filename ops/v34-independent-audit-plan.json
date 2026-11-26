@@ -33,24 +33,26 @@
       "status": "verified",
       "acceptance": "Read-only aggregate causes across official retained 260-session archive, no inferred corporate actions, no changes to scores.",
       "evidence": {
-        "run": 45745190369,
+        "run": 45746940540,
         "complete": 1999,
         "reference_discontinuity": 436,
         "name_identity_mismatch": 76,
-        "missing_issuer_observation": 82
+        "no_prior_observation_in_window": 82,
+        "internal_missing_row": 0,
+        "listing_dates_verified": false
       }
     },
     {
       "id": "P1-02",
       "task": "Resolve verified name and corporate action identity transitions",
-      "status": "verified_tail_recovery_factor_replay_pending",
+      "status": "face_replay_verified_no_incremental_weight_rename_replay_pending",
       "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers.",
       "evidence": {
-        "run": 45745486635,
+        "run": 45746940540,
         "verified_tail_extensions": 40,
         "added_observed_sessions": 5204,
-        "full_260_session_extensions": 37,
-        "incomplete_score_issuers_with_extension": 27,
+        "official_candidate_weight": 275.3,
+        "net_new_weight_candidate": 0,
         "production_changed": false
       }
     },
@@ -76,8 +78,18 @@
     {
       "id": "P1-05",
       "task": "Expose per-factor observation dates and freshness",
-      "status": "open",
-      "acceptance": "Cadence-aware labels for retained technical versus annual observations without deleting valid history."
+      "status": "merged_offline_verified_publication_pending",
+      "acceptance": "Cadence-aware labels for retained technical versus annual observations without deleting valid history.",
+      "evidence": {
+        "pr": 1148,
+        "offline_run": 45747198608,
+        "mobile_run_before_assertion_only_fix": 45747009668,
+        "review_threshold_calendar_days": {
+          "daily": 7,
+          "weekly": 14
+        },
+        "changes_scores": false
+      }
     },
     {
       "id": "P2-01",
