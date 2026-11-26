@@ -1,0 +1,96 @@
+{
+  "schema": "manual-official-fcf-source-staging-v1",
+  "reviewed_on": "2026-11-26",
+  "market_asof": "2026-11-25",
+  "stage": "official_comparative_and_intangible_notes_observed_pending_production_receipt_verification",
+  "records": [
+    {
+      "code": "010640",
+      "name": "진양폴리",
+      "scope": "OFS",
+      "kind_receipt": "20260227003904",
+      "source_url": "https://kind.krx.co.kr/external/2026/02/27/001909/20260227003904/11011.htm",
+      "notes_url": "https://kind.krx.co.kr/external/2025/02/28/001472/20250228003098/11011.htm",
+      "notes_section": "10. 무형자산; 2024 and 2023 additions column dash for all three classes, acquisition cost unchanged",
+      "notes_acquisition_token_2023": "-",
+      "prior_status": [
+        "I",
+        "V",
+        "V"
+      ],
+      "years": [
+        {
+          "year": 2023,
+          "operating_cashflow_krw": 5411025798,
+          "ppe_cash_payments_krw": 6473275521,
+          "intangible_cash_payments_krw": null,
+          "assets_krw": 51748834667,
+          "investing_cashflow_krw": -5613416761
+        },
+        {
+          "year": 2024,
+          "operating_cashflow_krw": 5171566099,
+          "ppe_cash_payments_krw": 8754597102,
+          "intangible_cash_payments_krw": null,
+          "assets_krw": 57413480032,
+          "investing_cashflow_krw": -8691368544
+        },
+        {
+          "year": 2025,
+          "operating_cashflow_krw": 3082472914,
+          "ppe_cash_payments_krw": 20539613190,
+          "intangible_cash_payments_krw": null,
+          "assets_krw": 75820360310,
+          "investing_cashflow_krw": -20338493430
+        }
+      ]
+    },
+    {
+      "code": "017510",
+      "name": "세명전기",
+      "scope": "OFS",
+      "kind_receipt": "20260316001006",
+      "source_url": "https://kind.krx.co.kr/external/2026/03/16/000258/20260316001006/11011.htm",
+      "notes_url": "https://kind.krx.co.kr/external/2025/03/17/000267/20250317001407/11011.htm",
+      "notes_section": "14. 무형자산; 2023 acquisition columns dash for development costs and membership rights; government grant acquisition dash; development costs stated net of grants",
+      "notes_acquisition_token_2023": "-",
+      "prior_status": [
+        "I",
+        "V",
+        "V"
+      ],
+      "years": [
+        {
+          "year": 2023,
+          "operating_cashflow_krw": -5093115891,
+          "ppe_cash_payments_krw": 372798883,
+          "intangible_cash_payments_krw": null,
+          "assets_krw": 83331735609,
+          "investing_cashflow_krw": 1565803510
+        },
+        {
+          "year": 2024,
+          "operating_cashflow_krw": 15488244626,
+          "ppe_cash_payments_krw": 6800909,
+          "intangible_cash_payments_krw": 40021282,
+          "assets_krw": 88459708061,
+          "investing_cashflow_krw": -6288000695
+        },
+        {
+          "year": 2025,
+          "operating_cashflow_krw": 12171972761,
+          "ppe_cash_payments_krw": 258046320,
+          "intangible_cash_payments_krw": 259150625,
+          "assets_krw": 106780487966,
+          "investing_cashflow_krw": -14799803424
+        }
+      ]
+    }
+  ],
+  "source_checks": [
+    "FY2025 annual statements and FY2024 notes checked directly on KRX KIND.",
+    "Null intangible cash payments retained for omitted/blank lines; notes evidence is not converted to zero without production validation.",
+    "DART document access failed; do not generate or substitute raw-byte hashes."
+  ],
+  "production_score_changed": false
+}
