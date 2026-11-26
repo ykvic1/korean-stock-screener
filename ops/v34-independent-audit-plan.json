@@ -309,7 +309,15 @@
           "points_added": 0,
           "repeat_guard_commit": "08dba4904411eb70584d08a2c99f4a306e0f2662",
           "repeat_guard_validation_pending": true,
-          "policy": "Only aggregate candidate evidence; do not treat FY2025 comparative columns or listed receipt metadata as original FY2023/24 facts. Full identical-input completed aggregate sweeps may be reused; incomplete partitions, changed inputs and explicit manual live requests remain eligible."
+          "policy": "Only aggregate candidate evidence; do not treat FY2025 comparative columns or listed receipt metadata as original FY2023/24 facts. Full identical-input completed aggregate sweeps may be reused; incomplete partitions, changed inputs and explicit manual live requests remain eligible.",
+          "repeat_guard_first_run": {
+            "run": 45800150233,
+            "conclusion": "failure",
+            "reason": "legacy test forbade protected filenames even in a read-only hash expression",
+            "live_provider_calls": 0
+          },
+          "repeat_guard_fix_commit": "c5c63ec3de29c9d1353352ceda8912ea0558fca6",
+          "repeat_guard_fix_run": 45800603078
         },
         "prior_year_original_research_latest": {
           "run": 45797414670,
