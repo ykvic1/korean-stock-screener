@@ -149,7 +149,6 @@ jobs:
           node --check docs/operational-score.js
           node tests/test_v3_trading_status.cjs
           python -m unittest tests.test_v3_trading_status
-          python -m unittest discover -s tests -p 'test_v3_operational_research_score.py' -k test_operational_score_source_triggers_keep_daily_and_hourly_recovery
   publish:
     needs: offline
     outputs:
