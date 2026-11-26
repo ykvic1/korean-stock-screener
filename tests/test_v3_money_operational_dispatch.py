@@ -12,9 +12,14 @@ class OperationalDispatchTests(unittest.TestCase):
             '      - name: Refresh operational scores explicitly',1)[1]
 
     def test_only_successfully_published_ready_sources_dispatch_saved_score_replay(self):
-        self.assertIn("if: steps.projection.outputs.ready == 'true' && steps.publication.conclusion == 'success'",
+        self.assertIn("if: steps.projection.outputs.ready == 'true' && steps.publication.conclusion == 'success' && steps.publication.outputs.changed == 'true'",
             self.dispatch)
         self.assertIn('id: publication',self.live)
+        self.assertIn("echo 'changed=true'",self.live)
+        target=(Path(__file__).resolve().parents[1]/'.github/workflows/v3-operational-research-score.yml').read_text()
+        triggers=target.split('  workflow_run:',1)[1].split('  schedule:',1)[0]
+        self.assertNotIn('V3 Actual Money Personal Participation Score',triggers)
+        self.assertIn("cron: '23 * * * *'",target)
         self.assertIn('v3-operational-research-score.yml/dispatches',self.dispatch)
         self.assertIn('-f ref=main',self.dispatch)
         self.assertNotIn('KRX_API_KEY',self.dispatch)
