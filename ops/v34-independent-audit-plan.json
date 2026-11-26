@@ -43,8 +43,16 @@
     {
       "id": "P1-02",
       "task": "Resolve verified name and corporate action identity transitions",
-      "status": "shadow_replay_implemented_pending_run",
-      "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers."
+      "status": "verified_tail_recovery_factor_replay_pending",
+      "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers.",
+      "evidence": {
+        "run": 45745486635,
+        "verified_tail_extensions": 40,
+        "added_observed_sessions": 5204,
+        "full_260_session_extensions": 37,
+        "incomplete_score_issuers_with_extension": 27,
+        "production_changed": false
+      }
     },
     {
       "id": "P1-03",

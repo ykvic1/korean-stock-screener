@@ -114,6 +114,34 @@ def continuity_audit(catalog, scores, panels):
 
 
 
+def daily_factor_observations(tail, days, asof):
+    """Use the unchanged production daily formulas on an evidence-bound tail."""
+    import numpy as np
+    from v3_regular_close_contract import SESSIONS, DAILY_SESSIONS
+    from v3_pattern_first_observations import rsi_observation
+    from v3_ma_slope_transition import _series_points, WEIGHTS
+    from v3_ma240_cross_research import observe
+    closes = np.asarray([r[2] for r in tail[-DAILY_SESSIONS:]], dtype=float)
+    result = {}
+    if len(tail) >= 90:
+        rsi = rsi_observation(closes)
+        if rsi is not None:
+            result['daily_rsi'] = (1.2, float(1.2 if rsi['rsi30_cross_recent'] or
+                                            rsi['rsi_bullish_divergence_recent'] else 0))
+    turn = _series_points(closes, prior=60, recent=20, hold=5, floor=.0001,
+                          frame='daily', trusted_window=lambda n: len(closes) >= n)
+    if turn:
+        for period, value in turn.items():
+            if value is not None:
+                result['daily_ma_turn_' + period] = (WEIGHTS['daily'][period], value)
+    if len(tail) == SESSIONS:
+        traded = [int(r[5]) if r[5] is not None else None for r in tail]
+        cross = observe([r[2] for r in tail], traded, asof=asof, session_days=days)
+        if cross is not None:
+            result['ma240_cross'] = (6., 6. if cross['qualified'] else 0.)
+    return result
+
+
 def face_shadow(catalog, scores, panels):
     """Replay the already verified weekly face-action gate on daily tails.
 
@@ -130,6 +158,9 @@ def face_shadow(catalog, scores, panels):
     if len(positions) != SESSIONS:
         raise ValueError('duplicate_face_shadow_session')
     counts = Counter()
+    new_factors, changed_factors = Counter(), Counter()
+    candidate_weight = 0.
+    days = [p['date'] for p in panels]
     for member in catalog['rows']:
         code = member['code']
         records = [p['rows'].get(code) for p in panels]
@@ -147,11 +178,23 @@ def face_shadow(catalog, scores, panels):
             counts['verified_tail_extensions'] += 1
             counts['added_observed_sessions'] += m - n
             counts['incomplete_score_issuers_with_extension'] += scores[code] < 100
+            old = daily_factor_observations(before, days, catalog['date'])
+            new = daily_factor_observations(after, days, catalog['date'])
+            if old.keys() - new.keys():
+                raise ValueError('face_replay_lost_observed_factor')
+            for key in new.keys() - old.keys():
+                new_factors[key] += 1
+                candidate_weight += new[key][0]
+            for key in old.keys() & new.keys():
+                changed_factors[key] += old[key][1] != new[key][1]
             for threshold in (90, 120, DAILY_SESSIONS, SESSIONS):
                 if n < threshold <= m:
                     counts['crossed_' + str(threshold) + '_session_threshold'] += 1
-    return {'counts': dict(counts), 'provider_calls': 0,
-            'production_changed': False, 'score_recovery_not_proven': True}
+    return {'counts': dict(counts), 'new_official_daily_factor_counts': dict(new_factors),
+            'changed_existing_daily_factor_counts': dict(changed_factors),
+            'new_official_factor_weight_before_operational_overlap': round(candidate_weight, 6),
+            'provider_calls': 0, 'production_changed': False,
+            'score_recovery_not_proven': True}
 
 
 def self_test():
@@ -164,6 +207,10 @@ def self_test():
     assert trailing_zero(m, [p(False), p(None)]) == 0
     assert trailing_zero(m, [p(False)] * WINDOW) == WINDOW
     from v3_regular_close_contract import SESSIONS
+    from datetime import date, timedelta
+    days = [(date(2025, 1, 1) + timedelta(days=i)).isoformat() for i in range(SESSIONS)]
+    assert daily_factor_observations([], days, days[-1]) == {}
+    assert 'ma240_cross' in daily_factor_observations([p(True)['rows']['123456']] * SESSIONS, days, days[-1])
     catalog = {'rows': [m]}
     scores = {'123456': 90}
     for boundary, reason in [(p(False, 'Other'), 'name_identity_mismatch'),
