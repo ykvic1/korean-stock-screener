@@ -288,6 +288,36 @@
           "source_eligible_unfetched_company_years": 0,
           "source_route_closed": true,
           "non_december_calendar_issue_separate": true
+        },
+        "comparative_full_sweep_20261126": {
+          "run": 45796994847,
+          "job_ids": [
+            139830100303,
+            139830100448,
+            139830099985
+          ],
+          "asof": "2026-11-25",
+          "disjoint_partitions": 3,
+          "eligible_issuers": 54,
+          "completed_issuers": 54,
+          "provider_calls": 108,
+          "any_comparative_candidate_issuers": 8,
+          "all_missing_comparatives_and_listed_receipts_issuers": 4,
+          "joint_candidates_without_later_listed_filing": 4,
+          "original_disclosure_body_and_effective_dates_verified": false,
+          "amounts_published": false,
+          "points_added": 0,
+          "repeat_guard_commit": "08dba4904411eb70584d08a2c99f4a306e0f2662",
+          "repeat_guard_validation_pending": true,
+          "policy": "Only aggregate candidate evidence; do not treat FY2025 comparative columns or listed receipt metadata as original FY2023/24 facts. Full identical-input completed aggregate sweeps may be reused; incomplete partitions, changed inputs and explicit manual live requests remain eligible."
+        },
+        "prior_year_original_research_latest": {
+          "run": 45797414670,
+          "job": 139831516603,
+          "remaining": 0,
+          "selected": 0,
+          "provider_calls": 0,
+          "score_unchanged": true
         }
       }
     },
