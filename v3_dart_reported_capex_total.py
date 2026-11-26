@@ -158,19 +158,29 @@ def merge(old,normalized,proof,reason='no_reported_total'):
     verify(out);return out
 
 
-def requires_score_replay(before, after, previous_preview, current_preview):
+def requires_score_replay(before, after, previous_preview, current_preview, *,
+                          original_xbrl=False):
     """Compare validated checkpoints, ignoring unsuccessful review bookkeeping."""
+    if original_xbrl:
+        field = "original_xbrl_review"
+        reviewed = "original_xbrl_reviewed_years"
+        recovered = "original_xbrl_recovered_years"
+    else:
+        field = "reported_total_review"
+        reviewed = "reported_capex_total_reviewed_years"
+        recovered = "reported_combined_capex_company_years"
+
     def comparable_cashflow(state):
         state = deepcopy(state)
         metrics = state["metrics"]
-        metrics.pop("reported_capex_total_reviewed_years", None)
-        if metrics.get("reported_combined_capex_company_years") == 0:
-            del metrics["reported_combined_capex_company_years"]
+        metrics.pop(reviewed, None)
+        if metrics.get(recovered) == 0:
+            del metrics[recovered]
         for issuer in state["records"].values():
             for row in issuer["years"].values():
-                review = row.get("reported_total_review")
+                review = row.get(field)
                 if review is not None and review["reason"] != "recovered":
-                    del row["reported_total_review"]
+                    del row[field]
         return state
 
     def comparable_preview(preview):

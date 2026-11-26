@@ -283,16 +283,27 @@ def cashflow_90_focus(report,priority):
     return selected
 
 
-def targets(state,priority,limit,seed_years=(),*,near_90=(),recheck_legacy=False):
+def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=(),
+            recheck_legacy=False):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
     if not set(near_90)<=set(priority):raise RecoveryError('unverified_90_priority_issuer')
     if type(recheck_legacy) is not bool:raise RecoveryError('invalid_legacy_recheck_selector')
     queue=[]
+    completion_year_count = {}
     for code,issuer in state['records'].items():
         missing=[(year,row) for year,row in issuer['years'].items() if row.get('free_cashflow_krw') is None
                  and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
                  and (legacy_review_eligible(row) if recheck_legacy else row.get('original_xbrl_review') is None)]
-        if missing:queue.append((code not in near_90,code not in priority,len(missing),code,missing))
+        if not missing:
+            continue
+        years = issuer['years']
+        if (code in completion_priority and not recheck_legacy
+                and set(years) == set(map(str, cf.YEARS))
+                and all(row.get('major_annual_receipt_matched') is True for row in years.values())
+                and len(missing) == sum(row.get('free_cashflow_krw') is None
+                                        for row in years.values())):
+            completion_year_count[code] = len(missing)
+        queue.append((code not in near_90,code not in priority,len(missing),code,missing))
     candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
     # Sample membership never bypasses the 90-point and general priority tiers,
@@ -300,8 +311,8 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),recheck_legacy=False
     # original missing-year/issuer order inside each unseeded priority tier.
     seeds=set(seed_years)
     return sorted(candidates,key=lambda item:(
-        item[0] not in near_90,item[0] not in priority,
-        (item[0],int(item[1])) not in seeds))[:limit]
+        item[0] not in near_90,completion_year_count.get(item[0],len(cf.YEARS)+1),
+        item[0] not in priority,(item[0],int(item[1])) not in seeds))[:limit]
 
 
 def main():
@@ -323,7 +334,10 @@ def main():
         seeds=[(code,year) for code,year,*_ in xp.select_candidates(
             state,bulk,asof=catalog['date'],limit=xp.MAX_PROBES,
             cohort_index=a.structural_cohort_index,priority_codes=priority)]
+    # A reconciled priority issuer already above 90 has only FCF gaps.
+    completion_priority = {code for code in priority if report['rows'][code]['available'] >= 90}
     selected=targets(state,priority,a.limit,seeds,near_90=near_90,
+                     completion_priority=completion_priority,
                      recheck_legacy=a.recheck_equivalent_contexts)
     output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),
         'conditional_90_priority_issuers':len(near_90),
