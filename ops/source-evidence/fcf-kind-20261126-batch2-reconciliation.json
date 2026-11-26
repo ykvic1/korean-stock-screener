@@ -1,0 +1,86 @@
+{
+  "review_date": "2026-11-26",
+  "market_asof": "2026-11-25",
+  "main_at_review": "6b4c62a14d5d7186d893b5ae9255fcd682cc8596",
+  "official_data_api_calls": 0,
+  "cache_issuer_years_reviewed": 180,
+  "cache_issuer_count": 60,
+  "cached_receipt_matched_control_years": 101,
+  "batch2_seah": {
+    "stock_code": "306200",
+    "scope": "CFS",
+    "source_receipt": "20260312003743",
+    "source_url": "https://kind.krx.co.kr/external/2026/03/12/001556/20260312003743/11011.htm",
+    "original_DART_2025_receipt": "20260312000989",
+    "checks": [
+      {
+        "fiscal_year": 2025,
+        "retained_DART_CFS_receipt": "20260312000989",
+        "all_existing_CFS_anchors_match": true,
+        "independently_summed_other_investing_krw": -92859383824
+      },
+      {
+        "fiscal_year": 2024,
+        "retained_DART_CFS_receipt": "20250312000987",
+        "all_existing_CFS_anchors_match": true,
+        "independently_summed_other_investing_krw": -126383440203
+      },
+      {
+        "fiscal_year": 2023,
+        "retained_DART_CFS_receipt": null,
+        "all_existing_CFS_anchors_match": false,
+        "independently_summed_other_investing_krw": -46757893539
+      }
+    ],
+    "status": "KIND figures and two retained DART anchors reconcile. Production proof awaits the exact two FY2025 DART viewer responses and their byte hashes."
+  },
+  "new_candidates": [
+    {
+      "stock_code": "006200",
+      "company": "한국전자홀딩스",
+      "fiscal_year": 2023,
+      "scope": "CFS",
+      "official_origin": "KRX_KIND",
+      "kind_receipt": "20240320008680",
+      "original_url": "https://kind.krx.co.kr/external/2024/03/20/001888/20240320008680/11011.htm",
+      "comparison_url": "https://kind.krx.co.kr/external/2026/03/19/001133/20260319004746/11011.htm",
+      "dart_fiscal_receipt": "20240320001519",
+      "dart_comparative_receipt": "20260319000807",
+      "operating_cashflow_krw": 10846108370,
+      "ppe_cash_payments_krw": 10760785304,
+      "intangible_cash_payments_krw": 6094640,
+      "assets_krw": 503113632386,
+      "investing_cashflow_krw": -69651118378,
+      "verification": "PPE and intangible are explicit in original and later KIND reports. The two subsequent DART ledger years match comparative CFO, PPE, intangible and assets. Missing FY2023 cashflow row still requires production-grade raw DART proof."
+    },
+    {
+      "stock_code": "136490",
+      "company": "선진",
+      "fiscal_year": 2024,
+      "scope": "CFS",
+      "official_origin": "KRX_KIND",
+      "kind_receipt": "20250318008711",
+      "original_url": "https://kind.krx.co.kr/external/2025/03/18/001844/20250318008711/11011.htm",
+      "comparison_url": "https://kind.krx.co.kr/external/2026/03/20/000680/20260320002643/11011.htm",
+      "dart_fiscal_receipt": "20250318001380",
+      "operating_cashflow_krw": 122582294279,
+      "ppe_purchase_lines_krw": [
+        1366657020,
+        400730783,
+        947561744,
+        1896703950,
+        872981704,
+        27932581446,
+        6280078949
+      ],
+      "software_cash_payments_krw": 18302580,
+      "membership_cash_payments_krw": 62000000,
+      "assets_krw": 1284229686805,
+      "investing_cashflow_krw": -24663925150,
+      "verification": "FY2024 CFO matches both original and later KIND reports and CFS assets match the DART annual receipt. FY2025 membership-purchase line is separate from software and not part of the retained FY2025 intangible number. Preserve both source lines separately pending existing-rule review."
+    }
+  ],
+  "minimum_next_input": "Exact production-eligible DART statement responses and hashes or a new verified observation from an unreviewed authorized source.",
+  "promoted_new_issuer_years": 0,
+  "new_operational_100_issuers": 0
+}
