@@ -1,0 +1,195 @@
+{
+  "asof": "2026-11-25",
+  "points_added": 0,
+  "provider_calls": 36,
+  "reasons": {
+    "no_non_december_profile_month": 2,
+    "no_unique_explicit_scope_period_anchor": 3,
+    "verified_period": 14
+  },
+  "records": [
+    {
+      "archive_sha256": "8b45790cb791ac0e19ce235778e30ab4a75ebfffb3e696a1e88f1c0d49dd6e52",
+      "code": "001720",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250829000681",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "492d020a2381f73ac1cc7e5767fcbc4a779993e87f351d794fcecbfc5eb960f2",
+      "code": "003610",
+      "fiscal_year": 2025,
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251222000124",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "5c3cbe6fcc0937b4210b8f3cbb4ff726f0c3311bb89f9c6322cce155b6280d09",
+      "code": "008870",
+      "fiscal_year": 2025,
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251215000379",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "89c97ae43ecf33de669630410fe140550259f69f3ce74500be3a935a7b9fb832",
+      "code": "017250",
+      "fiscal_year": 2025,
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251217000580",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "6248e048713473d90cd3a0ff9f10981040a8e3838de8bd37f62a16f8da309c1d",
+      "code": "018500",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000195",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "code": "021880",
+      "fiscal_year": 2025,
+      "receipt_id": "20250617000184",
+      "scope": "CFS",
+      "status": "no_non_december_profile_month"
+    },
+    {
+      "code": "032800",
+      "fiscal_year": 2025,
+      "receipt_id": "20250917000341",
+      "scope": "CFS",
+      "status": "no_non_december_profile_month"
+    },
+    {
+      "archive_sha256": "e00c508bc8b28b8b13e1f1794a472f97b32706c2b2f5ea30c8f77c7c2c309c09",
+      "code": "033200",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000340",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "968599990581d77a0b2851a8a90a82cc79ade18d7f729acdb3244e017a140db5",
+      "code": "042520",
+      "fiscal_year": 2025,
+      "period_end": "2025-09-30",
+      "period_start": "2024-10-01",
+      "receipt_id": "20251218000494",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "16194d6ad59936c8f897de82a83029f8fedaa36e37a98fed61f3fd286439da77",
+      "code": "060310",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000208",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "96f16983eed42ad625faa863d51a2b70cff334d0efb2ac2ebe70c953d7482cf8",
+      "code": "092440",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250612000335",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "04e263635b64163a97aec735d8209462ab34f701c59b987f450765766672e4a4",
+      "code": "093380",
+      "fiscal_year": 2025,
+      "period_end": "2025-08-31",
+      "period_start": "2024-09-01",
+      "receipt_id": "20251117000158",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "d63daa5d4f050301d0482de38c8e67b09489fa5d4996860816a39a8d5e8c550e",
+      "code": "097870",
+      "fiscal_year": 2025,
+      "period_end": "2025-06-30",
+      "period_start": "2024-07-01",
+      "receipt_id": "20250919000095",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "cf3bf90ba9aa666788d3d669d06def73f8e53062bf49bbdc939ac42de181d97b",
+      "code": "099750",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250618000187",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "9b7ced7d35351bdc2ce2fb361f9c3e6dfcb9b441b99cc2e35b70f7659e4f0b92",
+      "code": "169330",
+      "fiscal_year": 2025,
+      "period_end": "2025-06-30",
+      "period_start": "2024-07-01",
+      "receipt_id": "20250922000295",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "archive_sha256": "ed28395c4b198b7215d9824b40b3a265aea4d3d47f2c4f8d3176d1817ba0b6f9",
+      "code": "289080",
+      "fiscal_year": 2025,
+      "period_end": "2025-03-31",
+      "period_start": "2024-04-01",
+      "receipt_id": "20250619000224",
+      "scope": "CFS",
+      "status": "verified_period"
+    },
+    {
+      "code": "334890",
+      "fiscal_year": 2025,
+      "receipt_id": "20251120000578",
+      "scope": "CFS",
+      "status": "no_unique_explicit_scope_period_anchor"
+    },
+    {
+      "code": "377190",
+      "fiscal_year": 2025,
+      "receipt_id": "20251205000436",
+      "scope": "CFS",
+      "status": "no_unique_explicit_scope_period_anchor"
+    },
+    {
+      "code": "396690",
+      "fiscal_year": 2025,
+      "receipt_id": "20251215000282",
+      "scope": "CFS",
+      "status": "no_unique_explicit_scope_period_anchor"
+    }
+  ],
+  "research_only": true,
+  "selected": 19,
+  "verified": 14,
+  "schema": "v3-noncalendar-fiscal-period-audit-v1",
+  "source_run": 45777365119,
+  "source_job": 139764177124,
+  "source_commit": "017bf4fdc0795546fa1c5b4ec7cbbb3ad7e0ea5a",
+  "score_promoted": false
+}
