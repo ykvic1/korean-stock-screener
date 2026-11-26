@@ -1,5 +1,10 @@
 import copy
+from datetime import date, timedelta
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 import v3_dart_cashflow_enrichment as cf
 import v3_dart_fcf_prior_comparative_probe as research
@@ -42,6 +47,37 @@ def inputs():
 
 
 class PromotionTests(unittest.TestCase):
+    def test_promote_persists_rebound_snapshot_without_new_evidence(self):
+        market, catalog, bulk = live_inputs()
+        day, members = cf.asof_members(market, catalog, bulk)
+        previous_day = (date.fromisoformat(day) - timedelta(days=1)).isoformat()
+        saved = cf.summary(previous_day, members, {}, cf.fingerprint(bulk))
+        research_state = {'schema': research.SCHEMA, 'scores_unchanged': True, 'records': {}}
+
+        with TemporaryDirectory() as directory:
+            docs = Path(directory)
+            files = {
+                'data.json': market,
+                'v22-market-catalog.json': catalog,
+                'v3-dart-bulk-history.json': bulk,
+                'v3-dart-cashflow-reference.json': saved,
+                'v3-fcf-prior-comparative-research.json': research_state,
+            }
+            for name, data in files.items():
+                (docs / name).write_text(json.dumps(data), encoding='utf-8')
+            snapshot = docs / 'v3-dart-cashflow-reference.json'
+            with patch.object(promo, 'Path', return_value=docs):
+                with patch('sys.argv', ['promotion', '--mode', 'dry-run']):
+                    promo.main()
+                self.assertEqual(json.loads(snapshot.read_text(encoding='utf-8')), saved)
+                with patch('sys.argv', ['promotion', '--mode', 'promote']):
+                    promo.main()
+
+            updated = json.loads(snapshot.read_text(encoding='utf-8'))
+            self.assertTrue(cf.verify_state(updated, market, catalog, bulk))
+            self.assertEqual(updated['asof'], day)
+            self.assertEqual(updated['records'], saved['records'])
+
     def test_only_explicit_zero_ppe_pair_and_cfo_is_promoted(self):
         cash, state = inputs()
         updated, codes = promo.apply(cash, state)

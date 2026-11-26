@@ -209,7 +209,8 @@ def main():
                   for year,old in cash['records'][code]['years'].items()),
               'scores_unchanged_until_replay': True,
               'historical_pit_certified': False}
-    if args.mode == 'promote' and codes:
+    # Persist receipt reconciliation even when no comparative adds a fact.
+    if args.mode == 'promote' and (codes or cash != saved):
         target = root / 'v3-dart-cashflow-reference.json'
         if target.is_symlink():
             raise ComparativePromotionError('unsafe_cashflow_promotion_output')
