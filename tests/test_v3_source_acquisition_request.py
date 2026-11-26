@@ -51,6 +51,7 @@ class SourceAcquisitionRequestTest(unittest.TestCase):
         for workflow, mode in (
             ('v3-rolling-dart-annual-book.yml', 'collect'),
             ('v3-dart-bulk-four-year.yml', 'collect'),
+            ('v3-xbrl-eps-recovery.yml', 'recover'),
             ('v3-regular-close-indicators.yml', 'derive'),
         ):
             with self.subTest(workflow=workflow):
