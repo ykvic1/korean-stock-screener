@@ -101,7 +101,9 @@ on:
       - V3 Latest Annual EPS Share-Basis Audit
       - V3 DART FY2023 Strict Comparative Revenue Recovery
       - V3 DART 2022 Receipt-Matched Revenue Recovery
-      - V3 Current Close All-Listed Observed Partial CSV (live source ceiling)
+      # Current-observed publication explicitly dispatches this replay only
+      # after a changed, verified push. Do not repeat it on every completion.
+      # The hourly schedule remains the recovery path for failed dispatches.
       - Full-Market 100-Stock Batches
       - V3 Actual Money Personal Participation Score
     types: [completed]
