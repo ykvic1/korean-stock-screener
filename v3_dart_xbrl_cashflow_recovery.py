@@ -289,7 +289,7 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=
     if not set(near_90)<=set(priority):raise RecoveryError('unverified_90_priority_issuer')
     if type(recheck_legacy) is not bool:raise RecoveryError('invalid_legacy_recheck_selector')
     queue=[]
-    one_year_completion = set()
+    completion_year_count = {}
     for code,issuer in state['records'].items():
         missing=[(year,row) for year,row in issuer['years'].items() if row.get('free_cashflow_krw') is None
                  and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
@@ -297,12 +297,12 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=
         if not missing:
             continue
         years = issuer['years']
-        if (code in completion_priority and not recheck_legacy and len(missing) == 1
+        if (code in completion_priority and not recheck_legacy
                 and set(years) == set(map(str, cf.YEARS))
-                and all(row.get('free_cashflow_krw') is not None
-                        and row.get('major_annual_receipt_matched') is True
-                        for year, row in years.items() if year != missing[0][0])):
-            one_year_completion.add(code)
+                and all(row.get('major_annual_receipt_matched') is True for row in years.values())
+                and len(missing) == sum(row.get('free_cashflow_krw') is None
+                                        for row in years.values())):
+            completion_year_count[code] = len(missing)
         queue.append((code not in near_90,code not in priority,len(missing),code,missing))
     candidates=[(code,year,row) for _,_,_,code,missing in sorted(queue) for year,row in sorted(missing)]
     # Revisit the deterministic structural sample with this stronger verifier.
@@ -311,7 +311,7 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=
     # original missing-year/issuer order inside each unseeded priority tier.
     seeds=set(seed_years)
     return sorted(candidates,key=lambda item:(
-        item[0] not in near_90,item[0] not in one_year_completion,
+        item[0] not in near_90,completion_year_count.get(item[0],len(cf.YEARS)+1),
         item[0] not in priority,(item[0],int(item[1])) not in seeds))[:limit]
 
 

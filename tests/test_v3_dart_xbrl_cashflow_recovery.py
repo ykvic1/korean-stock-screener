@@ -185,7 +185,7 @@ class OriginalRecoveryTests(unittest.TestCase):
         with self.assertRaises(RecoveryError):
             targets(s,{'000002'},1,near_90={'000001'})
 
-    def test_one_year_to_full_coverage_precedes_seed_but_preserves_near_90(self):
+    def test_shortest_full_coverage_chain_precedes_seed_but_preserves_near_90(self):
         complete = {**prior(), 'free_cashflow_krw': 80}
         s = {'records': {
             '000001': {'years': {'2024': prior()}},
@@ -195,8 +195,13 @@ class OriginalRecoveryTests(unittest.TestCase):
         seed = [('000001', 2024)]
         self.assertEqual(targets(s,p,1,seed,completion_priority={'000002'})[0][0],'000002')
         self.assertEqual(targets(s,p,1,seed,near_90={'000001'},completion_priority={'000002'})[0][0],'000001')
-        s['records']['000002']['years']['2023'] = {**complete, 'major_annual_receipt_matched': False}
-        self.assertEqual(targets(s,p,1,seed,completion_priority={'000002'})[0][0],'000001')
+        s['records']['000002']['years']['2023'] = prior()
+        s['records']['000003'] = {'years': dict.fromkeys(('2023', '2024', '2025'), prior())}
+        p.add('000003')
+        full = {'000002', '000003'}
+        self.assertEqual(targets(s,p,1,[('000003',2025)],completion_priority=full)[0][0],'000002')
+        s['records']['000002']['years']['2023'] = {**prior(), 'original_xbrl_review': {'contract': 'x'}}
+        self.assertEqual(targets(s,p,1,seed,completion_priority=full)[0][0],'000003')
 
     def test_negative_original_review_does_not_require_score_replay(self):
         import v3_dart_cashflow_enrichment as c
