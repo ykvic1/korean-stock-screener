@@ -117,6 +117,7 @@ def continuity_audit(catalog, scores, panels):
 def daily_factor_observations(tail, days, asof):
     """Use the unchanged production daily formulas on an evidence-bound tail."""
     import numpy as np
+    from datetime import date
     from v3_regular_close_contract import SESSIONS, DAILY_SESSIONS
     from v3_pattern_first_observations import rsi_observation
     from v3_ma_slope_transition import _series_points, WEIGHTS
@@ -136,7 +137,8 @@ def daily_factor_observations(tail, days, asof):
                 result['daily_ma_turn_' + period] = (WEIGHTS['daily'][period], value)
     if len(tail) == SESSIONS:
         traded = [int(r[5]) if r[5] is not None else None for r in tail]
-        cross = observe([r[2] for r in tail], traded, asof=asof, session_days=days)
+        cross = observe([r[2] for r in tail], traded, asof=asof,
+                        session_days=[date.fromisoformat(d) for d in days])
         if cross is not None:
             result['ma240_cross'] = (6., 6. if cross['qualified'] else 0.)
     return result
