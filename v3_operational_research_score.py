@@ -36,6 +36,7 @@ from v3_dart_reviewed_fcf_comparative import OUTPUT as REVIEWED_FCF_OUTPUT, comp
 from v3_dart_reviewed_ordinary_eps import OUTPUT as REVIEWED_EPS_OUTPUT, reviewed_eps_parts
 from v3_regular_close_contract import admitted_rows as regular_close_rows
 from v3_reviewed_annual_flows import full_year_parts
+from v3_noncalendar_annual_parts import admitted as noncalendar_parts, OUTPUT as NONCALENDAR_OUTPUT
 from session_policy import REQUIRED_SESSION, required_volume_session
 
 VERSION = 'v3-stable-r1e-operational-research'
@@ -360,13 +361,15 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
           eps_basis_source=None,eps_prior_research=None,cashflow_source=None,
           current_source_hashes=None,original_revenue_source=None,reviewed_margin_source=None,
           reviewed_revenue_source=None,reviewed_fcf_source=None,reviewed_eps_source=None,
-          regular_close_source=None):
+          regular_close_source=None, noncalendar_source=None):
     day=catalog['date']
     if (market['date']!=day or ledger['market_asof']!=day or ledger.get('missing_is_not_zero') is not True
         or ledger.get('investment_score_certified') is not False or history.get('asof',day)>day):raise ValueError('unaligned_operational_sources')
     stocks={r['code']:r for r in market['stocks']}
     short_periods=reviewed_short_periods(history,annual_book,day)
     recovered_annual_flows=full_year_parts(catalog,history,annual_book,cashflow_source,short_periods)
+    noncalendar=noncalendar_parts(catalog,history,annual_book,noncalendar_source,short_periods=short_periods,
+        operating_source=operating_comparative_source,reviewed_margin=reviewed_margin_source)
     regular_closes=regular_close_rows(regular_close_source,catalog)
     money=usable_records(money_source,catalog)
     money_components=usable_component_records(money_source,catalog)
@@ -526,6 +529,26 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         if short_period is None and prior and risk['status']=='unknown' and prior.get('risk_status')=='partial':
             risk['deduction']=prior['risk_deduction'];risk['status']='partial'
             risk['warnings']=prior.get('risk_warnings',[])
+        # Receipt-linked fiscal evidence must not survive a changed receipt
+        # through generic score retention. Only missing parts are recovered.
+        old_noncalendar=(prior or {}).get('noncalendar_annual_source',{})
+        for area,key in old_noncalendar.get('parts',[]):
+            if parts[area][key]==(prior or {}).get('parts',{}).get(area,{}).get(key):
+                parts[area][key]=None
+        recovered_noncalendar=noncalendar.get(code)
+        used_noncalendar=[]
+        if recovered_noncalendar:
+            extra,proof,leverage=recovered_noncalendar
+            for area,ps in extra.items():
+                for key,part in ps.items():
+                    if parts[area][key] is None:
+                        parts[area][key]=part
+                        used_noncalendar.append([area,key])
+            if ['financial','balance_sheet_strength'] in used_noncalendar and financial_sector is False and leverage is not None:
+                # Preserve existing risk deductions; same original equity/assets guard.
+                observed_risk=round(5*smooth((.22-(1-leverage/100))/.22),4)
+                risk['deduction']=max(risk['deduction'],observed_risk)
+                risk['status']='partial'
         areas={a:{'points':round(sum(p['points'] for p in ps.values() if p),6),
                   'available':round(sum(p['available'] for p in ps.values() if p),6)} for a,ps in parts.items()}
         available=round(sum(v['available'] for v in areas.values()),6)
@@ -546,6 +569,8 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
             'legacy_score':legacy[code]['adjusted_score'],'legacy_rank':legacy[code]['personal_rank'],
             'prior_operational_score':previous_score,'prior_operational_rank':previous_rank,
             'parts':parts,'areas':areas,'rank':None}
+        if used_noncalendar:
+            rows[code]['noncalendar_annual_source']=dict(recovered_noncalendar[1],parts=used_noncalendar)
         if short_period is not None:
             rows[code]['annual_period_review'] = short_period
         if full_year is not None:
@@ -574,6 +599,7 @@ def build(market,catalog,ledger,history,money_source,personal,industry=None,
         'revenue_growth_source_summary':revenue_summary,
         'operating_margin_source_summary':operating_summary,
         'eps_basis_source_summary':eps_basis_summary,
+        'noncalendar_source_summary':{'admitted_issuers':len(noncalendar), 'applied_issuers':sum(bool(r.get('noncalendar_annual_source')) for r in rows.values()),'applied_parts':sum(len(r.get('noncalendar_annual_source',{}).get('parts',[])) for r in rows.values())},
         'regular_close_source_summary':{
             'asof':day,'admitted_issuers':len(regular_closes),
             'daily_rsi_recomputed':sum('daily_rsi' in r.get('regular_close_recomputed_parts',[]) for r in rows.values()),
@@ -672,7 +698,8 @@ def main():
         'reviewed_revenue_source':'v3-dart-reviewed-original-revenue.json',
         'reviewed_fcf_source':REVIEWED_FCF_OUTPUT,
         'reviewed_eps_source':REVIEWED_EPS_OUTPUT,
-        'regular_close_source':'v3-regular-close-indicators.json'}
+        'regular_close_source':'v3-regular-close-indicators.json',
+        'noncalendar_source':NONCALENDAR_OUTPUT}
     basis_inputs={key:read(name) if (root/name).exists() else None for key,name in basis_files.items()}
     previous=read(OUTPUT) if (root/OUTPUT).exists() else None
     if can_hold_previous_during_temporal_lag(inputs[0],inputs[1],inputs[2],inputs[3],previous):
@@ -714,7 +741,7 @@ def main():
                      'v3_path_provisional_factors.py','v3_unscored_path_observations.py',
                      'v3_dart_original_revenue_recovery.py',
                      'v3_dart_reviewed_fcf_comparative.py','v3_dart_cashflow_factor_preview.py',
-                     'v3_reviewed_annual_flows.py',
+                     'v3_reviewed_annual_flows.py','v3_noncalendar_annual_parts.py',
                      'v3_dart_reviewed_ordinary_eps.py','session_policy.py','v3_aftermarket_cutoff.py')}
     report['factor_state_sha256']=sha256(json.dumps(
         {code:row['parts'] for code,row in report['rows'].items()},
