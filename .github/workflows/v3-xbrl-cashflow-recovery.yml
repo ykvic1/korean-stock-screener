@@ -16,6 +16,10 @@ on:
         description: 'One-time recheck of old v1 no-result records after explicit annual context equivalence fix'
         type: boolean
         default: false
+      remaining_batches:
+        description: 'Maximum sequential batches including this run (1 to 3)'
+        type: number
+        default: 3
 permissions:
   contents: read
 jobs:
@@ -62,8 +66,11 @@ jobs:
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           RECHECK_EQUIVALENT_CONTEXTS: ${{ inputs.recheck_equivalent_contexts }}
+          REMAINING_BATCHES: ${{ inputs.remaining_batches }}
         run: |
           set -euo pipefail
+          case "$REMAINING_BATCHES" in 1|2|3) ;; *) echo 'invalid_cashflow_batch_budget'; exit 1 ;; esac
+          python -c 'import json; print(json.load(open("docs/v22-market-catalog.json"))["date"])' > "$RUNNER_TEMP/cashflow-source-date"
           interrupted=0
           extra_args=()
           if [[ "${RECHECK_EQUIVALENT_CONTEXTS:-false}" == 'true' ]]; then
@@ -76,7 +83,7 @@ jobs:
           # receipt-checked issuer-years, 90-point candidates first. The
           # collector retains its six-minute source deadline and per-year
           # verified checkpoints; it does not infer missing CAPEX or scores.
-          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 32 --structural-cohort-index 20 "${extra_args[@]}"; then interrupted=1; fi
+          if ! python v3_dart_xbrl_cashflow_recovery.py --mode live --limit 32 --structural-cohort-index 20 "${extra_args[@]}" | tee "$RUNNER_TEMP/cashflow-batch-result.json"; then interrupted=1; fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Verify and publish derived observations before reporting any interruption
         id: publish
@@ -141,6 +148,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-current-observed-scorecard.yml/dispatches" -f ref=main -f 'inputs[mode]=write' --silent
+      - name: Continue a bounded unreviewed queue only after verified progress
+        if: steps.collect.outputs.interrupted == '0' && steps.publish.outputs.changed == 'true' && steps.replay.outputs.required == 'false' && !inputs.recheck_equivalent_contexts && inputs.remaining_batches > 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REMAINING_BATCHES: ${{ inputs.remaining_batches }}
+        run: |
+          set -euo pipefail
+          case "$REMAINING_BATCHES" in 2|3) ;; *) exit 1 ;; esac
+          python v3_dart_xbrl_cashflow_recovery.py --mode dry-run --limit 1 > "$RUNNER_TEMP/cashflow-next-plan.json"
+          ready="$(python - <<'PY'
+          import json, os
+          from pathlib import Path
+          root = Path(os.environ["RUNNER_TEMP"])
+          before = json.loads((root / "cashflow-batch-result.json").read_text())
+          after = json.loads((root / "cashflow-next-plan.json").read_text())
+          day = json.loads(Path("docs/v22-market-catalog.json").read_text())["date"]
+          old = before["saved_original_queue"]["unreviewed_issuer_years"]
+          new = after["saved_original_queue"]["unreviewed_issuer_years"]
+          ready = (day == (root / "cashflow-source-date").read_text().strip()
+                   and before["completed"] > 0 and 0 < new < old
+                   and after["provider_calls"] == 0 and after["selected_issuer_years"] == 1)
+          print(str(ready).lower())
+          PY
+          )"
+          if [[ "$ready" != true ]]; then
+            echo 'No verified further queue progress; stop this burst.'
+            exit 0
+          fi
+          # Avoid overlapping an independently requested run; shared writer
+          # concurrency also serializes this finite continuation.
+          pending="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow v3-xbrl-cashflow-recovery.yml --limit 20 --json databaseId,status --jq '[.[] | select(.databaseId != (env.GITHUB_RUN_ID | tonumber) and .status != "completed")] | length')"
+          if [[ "$pending" != 0 ]]; then
+            echo 'Another recovery is already pending; stop this burst.'
+            exit 0
+          fi
+          gh workflow run v3-xbrl-cashflow-recovery.yml --repo "$GITHUB_REPOSITORY" --ref main -f recheck_equivalent_contexts=false -f "remaining_batches=$((REMAINING_BATCHES-1))"
       - name: Surface source interruption after preserving validated observations
         if: steps.collect.outputs.interrupted == '1'
         run: exit 1
