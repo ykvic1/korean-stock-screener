@@ -588,5 +588,74 @@
   "source_run": 45779276676,
   "source_job": 139770506229,
   "source_commit": "4cc2b716c85c05db544f75605b5e9fc03da508f5",
-  "score_promoted": false
+  "score_promoted": false,
+  "followup": {
+    "asof": "2026-11-25",
+    "completed": 2,
+    "metric_counts": {
+      "liabilities_to_assets_pct": 2,
+      "sales_to_market_cap": 2
+    },
+    "points_added": 0,
+    "provider_calls": 2,
+    "reasons": {
+      "verified_same_receipt": 2
+    },
+    "records": [
+      {
+        "code": "021880",
+        "market": "KOSDAQ",
+        "metrics": {
+          "liabilities_to_assets_pct": 20.509834,
+          "sales_to_market_cap": 1.17658214
+        },
+        "receipt_proofs": [
+          {
+            "archive_sha256": "044485eef049569ec478b985aa085db7fd2ab2efbd3c2d542c8c607500991d47",
+            "code": "021880",
+            "normalized_values_sha256": "aea7d4be59c4cbd58b77c0bb1500083bf8dcac5047c10aef451c26288a0de081",
+            "period_end": "2025-03-31",
+            "period_start": "2024-04-01",
+            "receipt_id": "20250617000184",
+            "scope": "CFS",
+            "status": "verified_same_receipt",
+            "year": 2025
+          }
+        ],
+        "source_years": [
+          2025
+        ]
+      },
+      {
+        "code": "032800",
+        "market": "KOSDAQ",
+        "metrics": {
+          "liabilities_to_assets_pct": 44.677644,
+          "sales_to_market_cap": 1.93426575
+        },
+        "receipt_proofs": [
+          {
+            "archive_sha256": "925545ae30c3086e7d279fbddf4ee6d592b33a6fb4bcf62e25197131fe3dc41a",
+            "code": "032800",
+            "normalized_values_sha256": "dc47eacd163be6d066b13fe5b624798606b06361eaa75f8d2618d5c30e32595d",
+            "period_end": "2025-06-30",
+            "period_start": "2024-07-01",
+            "receipt_id": "20250917000341",
+            "scope": "CFS",
+            "status": "verified_same_receipt",
+            "year": 2025
+          }
+        ],
+        "source_years": [
+          2025
+        ]
+      }
+    ],
+    "research_only": true,
+    "selected": 2,
+    "source_run": 45821555730,
+    "source_job": 139914819950,
+    "source_commit": "8ca29a9598443871a8537278c555b19a779e9f8b",
+    "score_promoted": false
+  }
 }

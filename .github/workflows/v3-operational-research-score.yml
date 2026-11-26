@@ -35,6 +35,8 @@ on:
       - scripts/audit_operational_publication.cjs
       - tests/test_v3_operational_publication_audit.py
       - v3_operational_research_score.py
+      - v3_noncalendar_annual_parts.py
+      - docs/v3-noncalendar-verified-metrics.json
       - v3_price_outcome_triage.py
       - tests/test_v3_price_outcome_triage.py
       - v3_trading_status.py
@@ -85,6 +87,8 @@ on:
       - scripts/audit_operational_publication.cjs
       - tests/test_v3_operational_publication_audit.py
       - v3_operational_research_score.py
+      - v3_noncalendar_annual_parts.py
+      - docs/v3-noncalendar-verified-metrics.json
       - v3_price_outcome_triage.py
       - tests/test_v3_price_outcome_triage.py
       - v3_trading_status.py

@@ -37,8 +37,22 @@ def admitted(catalog,history,book,source,*,short_periods=(),operating_source=Non
         or source.get('reasons')!={'verified_same_receipt':33}):raise ValueError('noncalendar_source_inventory_mismatch')
     members={r['code']:r for r in catalog['rows']}
     annual={r['code']:r.get('annual') or {} for r in book['records'] if r.get('status')=='observed'}
+    records=source['records']
+    followup=source.get('followup')
+    if followup is not None:
+        extra=followup.get('records',[])
+        if (followup.get('asof')!=source['asof']
+            or followup.get('source_run')!=45821555730 or followup.get('source_job')!=139914819950
+            or followup.get('research_only') is not True or followup.get('score_promoted') is not False
+            or followup.get('completed')!=2 or followup.get('reasons')!={'verified_same_receipt':2}
+            or len(extra)!=2 or {row['code'] for row in extra}!={'021880','032800'}
+            or any(row['source_years']!=[2025]
+                   or set(row['metrics'])!={'sales_to_market_cap','liabilities_to_assets_pct'}
+                   for row in extra)):
+            raise ValueError('noncalendar_followup_inventory_mismatch')
+        records=records+extra
     candidates={};seen=set()
-    for row in source['records']:
+    for row in records:
         code=row['code']
         if code in seen:raise ValueError('noncalendar_duplicate_issuer')
         seen.add(code)
