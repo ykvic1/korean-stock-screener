@@ -158,6 +158,31 @@ def merge(old,normalized,proof,reason='no_reported_total'):
     verify(out);return out
 
 
+def requires_score_replay(before, after, previous_preview, current_preview):
+    """Compare validated checkpoints, ignoring unsuccessful review bookkeeping."""
+    def comparable_cashflow(state):
+        state = deepcopy(state)
+        metrics = state["metrics"]
+        metrics.pop("reported_capex_total_reviewed_years", None)
+        if metrics.get("reported_combined_capex_company_years") == 0:
+            del metrics["reported_combined_capex_company_years"]
+        for issuer in state["records"].values():
+            for row in issuer["years"].values():
+                review = row.get("reported_total_review")
+                if review is not None and review["reason"] != "recovered":
+                    del row["reported_total_review"]
+        return state
+
+    def comparable_preview(preview):
+        # The source digest includes the review markers. All resulting
+        # observations, source dates and other input hashes still matter.
+        return {key: value for key, value in preview.items()
+                if key != "cashflow_snapshot_sha256"}
+
+    return (comparable_cashflow(before) != comparable_cashflow(after)
+            or comparable_preview(previous_preview) != comparable_preview(current_preview))
+
+
 def targets(state,priority,limit,completion_priority=(),threshold_priority=(),*,only_sub90=False):
     if type(limit) is not int or not 1<=limit<=40:raise ReportedTotalError('invalid_reported_total_budget')
     completion_priority=set(completion_priority)
