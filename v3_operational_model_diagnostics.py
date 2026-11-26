@@ -63,6 +63,70 @@ def correlation_pairs(rows):
         'cross_sectional_correlation_is_not_predictive_validation':True}
 
 
+def market_session_exposure(report):
+    """Partition CURRENT published market-factor weights by source evidence.
+
+    A recomputation label is not a venue/session certification. MA components
+    may contain a mixture of official close periods and legacy observations.
+    Financial/valuation (including price-linked valuations) are outside this
+    75-point indicator-only audit, not declared session-verified.
+    """
+    from v3_ma_slope_transition import WEIGHTS
+    simple = {'daily_rsi', 'weekly_rsi', 'long_ma_position',
+              'ma20_ma60_cross_near_ma240'}
+    ma_fields = {'daily_ma_slope_turn': ('daily', 'regular_close_ma_periods'),
+                 'weekly_ma_slope_turn': ('weekly', 'regular_close_weekly_ma_periods')}
+    areas = ('volume', 'technical', 'momentum')
+    factors = {}
+    for area in areas:
+        for key, maximum in R1D_PART_LIMITS[area].items():
+            row = {'maximum_per_issuer': maximum, 'observed_weight': 0.,
+                   'official_close_recomputed_weight': 0., 'scope_unverified_weight': 0.,
+                   'missing_weight': 0., 'observed_issuers': 0,
+                   'fully_official_close_issuers': 0, 'mixed_source_issuers': 0}
+            for issuer in report['rows'].values():
+                part = issuer['parts'][area].get(key)
+                if part is None:
+                    row['missing_weight'] += maximum
+                    continue
+                weight = part[1]
+                official = 0.
+                used = issuer.get('regular_close_recomputed_parts', [])
+                if key in used:
+                    if key in simple:
+                        official = weight
+                    elif key in ma_fields:
+                        frame, field = ma_fields[key]
+                        periods = issuer.get(field, [])
+                        if (isinstance(periods, list) and len(set(periods)) == len(periods)
+                                and all(p in WEIGHTS[frame] for p in periods)):
+                            official = sum(WEIGHTS[frame][p] for p in periods)
+                        if official > weight + 1e-5:
+                            raise ValueError('official_close_weight_exceeds_observation')
+                        official = min(official, weight)
+                row['observed_issuers'] += 1
+                row['observed_weight'] += weight
+                row['official_close_recomputed_weight'] += official
+                row['scope_unverified_weight'] += weight - official
+                row['missing_weight'] += maximum - weight
+                row['fully_official_close_issuers'] += abs(official-weight) < 1e-5
+                row['mixed_source_issuers'] += 1e-5 < official < weight-1e-5
+            factors[area+':'+key] = {k: round(v,6) if isinstance(v,float) else v
+                                      for k,v in row.items()}
+    total = {key: round(sum(r[key] for r in factors.values()),6) for key in
+             ('observed_weight','official_close_recomputed_weight',
+              'scope_unverified_weight','missing_weight')}
+    maximum = len(report['rows'])*75
+    if (abs(total['observed_weight']+total['missing_weight']-maximum)>1e-3
+            or abs(total['official_close_recomputed_weight']+
+                   total['scope_unverified_weight']-total['observed_weight'])>1e-3):
+        raise ValueError('market_session_exposure_partition_mismatch')
+    return {'maximum_weight':maximum, **total, 'factors':factors,
+            'price_linked_valuation_excluded_not_certified':True,
+            'official_close_recomputation_is_not_full_session_certification':True,
+            'volume_turnover_obv_certified':False, 'scores_changed':False}
+
+
 def build(report,comparison,catalog):
     audit=r1d_public_reconciles(report,comparison,catalog)
     if audit is None:raise ValueError('unreconciled_model_diagnostic_inputs')
@@ -118,6 +182,7 @@ def build(report,comparison,catalog):
             'largest_penalized_rank_changes':changed[:50],
             'all_other_adjustments_preserved':True},
         'component_correlations':correlation_pairs(rows),
+        'market_session_exposure':market_session_exposure(report),
         'retained_older_component_issuer_count':sum(bool(r['oldest_asof']) and r['oldest_asof']<report['asof'] for r in rows.values()),
         'performance_validation':{'status':'unvalidated_no_point_in_time_outcomes',
             'horizon_returns':{k:None for k in ('1m','2m','3m','6m','12m')},
