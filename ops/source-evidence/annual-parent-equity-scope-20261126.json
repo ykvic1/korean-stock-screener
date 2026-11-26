@@ -1,0 +1,26 @@
+{
+  "comparison_market_asof": "2026-11-25",
+  "reviewed_on": "2026-11-26",
+  "records": [
+    {
+      "stock_code": "205500",
+      "issuer": "넥써쓰",
+      "fiscal_year": 2025,
+      "scope": "CFS",
+      "DART_annual_receipt": "20260318001674",
+      "public_annual_reference": "https://kind.krx.co.kr/external/2026/03/18/002458/20260318011473/11011.htm",
+      "public_XBRL_reference": "https://opendart.fss.or.kr/xbrl/viewer/main.do?rcpNo=20260318001674",
+      "references_in_filing": [
+        "2-1. 연결 재무상태표",
+        "3. 연결재무제표 주석 > 1.1 종속기업 현황"
+      ],
+      "review": "The annual statement total reconciles to the operating ledger. The consolidation note lists three subsidiaries at year-end and each has 100% ownership. The latest banked original filing review found no production-admissible parent equity fact, and the separate source review found neither explicit NCI nor owner equity. Preserve the disclosure locations for a distinct original-evidence review without inferring numeric NCI or promoting aggregate equity.",
+      "previous_original_review_result": "original_parent_equity_not_observed",
+      "previous_annual_account_review_result": "neither_owner_nor_explicit_nci",
+      "eligible_for_operational_merge": false
+    }
+  ],
+  "provider_api_calls": 0,
+  "production_ledger_writes": 0,
+  "score_changes": 0
+}
