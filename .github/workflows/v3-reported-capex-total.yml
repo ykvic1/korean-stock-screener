@@ -109,8 +109,36 @@ jobs:
             fi
           done
           exit 1
-      - name: Replay validated current observations even after a partial collection
+      - name: Compare the verified publication with its rebased parent
         if: steps.publish.outputs.changed == 'true'
+        id: replay
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          from v3_dart_reported_capex_total import requires_score_replay
+
+          def read(ref, path):
+              return json.loads(subprocess.check_output(["git", "show", f"{ref}:docs/{path}"]))
+
+          ledger = "v3-dart-cashflow-reference.json"
+          preview = "v3-dart-fcf-research-preview.json"
+          try:
+              required = requires_score_replay(
+                  read("HEAD^", ledger), read("HEAD", ledger),
+                  read("HEAD^", preview), read("HEAD", preview),
+              )
+          except (subprocess.CalledProcessError, ValueError, KeyError, TypeError, AttributeError):
+              # A missing or unreadable parent cannot prove a review-only change.
+              required = True
+          print(json.dumps({"fcf_score_replay_required": required}))
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"required={str(required).lower()}\n")
+          PY
+      - name: Replay validated current observations even after a partial collection
+        if: steps.replay.outputs.required == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

@@ -45,8 +45,35 @@ class ReportedTotalTests(unittest.TestCase):
         self.assertIn("inputs[focus]=sub90",manual)
         self.assertIn("group: korea-stock-screener-dart-cashflow",text)
         self.assertIn("v3-current-observed-scorecard.yml/dispatches",text)
+        self.assertIn("if: steps.replay.outputs.required == 'true'",text)
+        self.assertIn('read("HEAD^", ledger), read("HEAD", ledger)',text)
+        self.assertLess(text.index('git push origin HEAD:main'),
+                        text.index('Compare the verified publication'))
         self.assertNotIn("--recheck-equivalent-contexts",text)
 
+
+    def test_score_replay_ignores_negative_checks_but_keeps_source_and_factor_changes(self):
+        original = prior()
+        before = cf.summary(DAY, {CODE: {}}, {CODE: {
+            "scope": "CFS", "years": {"2025": original},
+        }}, "a" * 64)
+        reviewed = t.merge(original, None, None)
+
+        def state(row, major_hash="a" * 64):
+            return cf.summary(DAY, {CODE: {}}, {CODE: {
+                "scope": "CFS", "years": {"2025": row},
+            }}, major_hash)
+
+        previous_preview = {"cashflow_snapshot_sha256": "old", "rows": []}
+        new_preview = {"cashflow_snapshot_sha256": "new", "rows": []}
+        self.assertFalse(t.requires_score_replay(before, state(reviewed), previous_preview, new_preview))
+        self.assertTrue(t.requires_score_replay(before, state(recover(original)), previous_preview, new_preview))
+        self.assertTrue(t.requires_score_replay(before, state(reviewed, "b" * 64), previous_preview, new_preview))
+        self.assertTrue(t.requires_score_replay(
+            before, state(reviewed), previous_preview,
+            {**new_preview, "rows": [{"code": CODE, "financial_fcf_assets_candidate_points": 1}]},
+        ))
+        self.assertEqual(before["records"][CODE]["years"]["2025"], original)
 
     def test_reported_combined_total_computes_fcf_without_inventing_components(self):
         old=prior();out=recover(old)
