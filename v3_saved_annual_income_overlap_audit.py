@@ -236,6 +236,56 @@ def analyze(catalog,book,history,report):
             'strict_same_receipt_scope_krw_required':True}
 
 
+def annual_conditional_cohort(catalog,book,history,report,priority,cashflow):
+    """Classify actual saved evidence, without inferring fiscal month or recovery."""
+    day=catalog['date']
+    if any(x.get('asof')!=day for x in (book,history,report,priority,cashflow)):
+        raise IncomeOverlapError('annual_cohort_date_mismatch')
+    members={row['code'] for row in catalog['rows']}
+    codes=priority['coverage_90_first']['family_conditional_priority_codes']['dart_annual_fundamentals']
+    if len(set(codes))!=len(codes) or not set(codes)<=members:
+        raise IncomeOverlapError('annual_cohort_identity_mismatch')
+    if any(not 0<=report['rows'][code]['available']<90 for code in codes):
+        raise IncomeOverlapError('annual_cohort_score_mismatch')
+    cutoff=_day(day)
+    fiscal=history['fiscal_years']
+    annual={}
+    for row in book['records']:
+        code=row.get('code')
+        if code in codes:
+            if code in annual:raise IncomeOverlapError('annual_cohort_duplicate_book')
+            annual[code]=row
+    counts=Counter()
+    absent=Counter()
+    for code in codes:
+        row=annual.get(code,{})
+        years=history['records'].get(code,{}).get('years',{})
+        a=row.get('annual')
+        cf_missing=code not in cashflow['records']
+        group=absent if cf_missing else counts
+        group['issuers']+=1
+        group['book_status:'+str(row.get('status','absent'))]+=1
+        group['valid_latest_annual_book']+=int(_valid_book(a,fiscal[-1],cutoff))
+        group['four_year_attempted']+=int(all(str(y) in years for y in fiscal))
+        group['four_year_nonempty']+=int(all(bool(years.get(str(y))) for y in fiscal))
+        for year in fiscal:
+            scopes=years.get(str(year),{})
+            if not scopes:
+                group[f'empty_or_absent_year:{year}']+=1
+            elif any(_valid_receipt(scopes.get(scope,{}).get('receipt_id'),year,cutoff)
+                     for scope in ('CFS','OFS')):
+                group[f'valid_receipt_year:{year}']+=1
+            else:
+                group[f'no_valid_receipt_year:{year}']+=1
+        if any(_observed(years,scope,fiscal[-1],'revenue',cutoff) is not None
+               for scope in ('CFS','OFS')):
+            group['latest_positive_revenue_observed']+=1
+    return {'asof':day,'conditional_annual_90_issuers':len(codes),
+            'with_saved_cashflow':dict(counts),'without_saved_cashflow':dict(absent),
+            'fiscal_month_verified':False,'source_recoverability_proven':False,
+            'provider_calls':0,'points_added':0}
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--docs',type=Path,default=Path('docs'))
@@ -243,8 +293,12 @@ def main(argv=None):
     root=args.docs
     files=['v22-market-catalog.json','v3-dart-book-reference.json',
            'v3-dart-bulk-history.json','v3-operational-research-scores.json']
-    result=analyze(*(json.loads((root/name).read_text()) for name in files))
+    sources=[json.loads((root/name).read_text()) for name in files]
+    result=analyze(*sources)
     print(json.dumps(result,sort_keys=True))
+    priority=json.loads((root/'v3-operational-evidence-priority.json').read_text())
+    cashflow=json.loads((root/'v3-dart-cashflow-issuer-evidence.json').read_text())
+    print(json.dumps(annual_conditional_cohort(*sources,priority,cashflow),sort_keys=True))
 
 
 if __name__=='__main__':
