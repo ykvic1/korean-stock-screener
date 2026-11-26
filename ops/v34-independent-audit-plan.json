@@ -1,0 +1,87 @@
+{
+  "schema": "v34-independent-audit-plan-v1",
+  "asof": "2026-11-26",
+  "baseline": "2026-11-25",
+  "baseline_coverage": {
+    "listed": 2593,
+    "full_100": 1419,
+    "aggregate_weight_pct": 91.5603
+  },
+  "scope": "data reliability and operating stabilization; V3.3 scoring model retained",
+  "completion_policy": {
+    "fixed_96_percent_target": false,
+    "collect_only_verified_permitted_free_sources": true,
+    "stop_when_recoverable_sources_exhausted": true,
+    "no_imputation": true,
+    "no_unproven_exclusions": true
+  },
+  "work": [
+    {
+      "id": "P0-01",
+      "task": "Verify source session scope and provider permissions before expansion",
+      "status": "open",
+      "acceptance": "Separate regular price, combined or regular volume and turnover policy; confirm permitted storage and public derived outputs; no assumed license."
+    },
+    {
+      "id": "P1-01",
+      "task": "Daily price continuity break census",
+      "status": "implemented_pending_run",
+      "acceptance": "Read-only aggregate causes across official retained 260-session archive, no inferred corporate actions, no changes to scores."
+    },
+    {
+      "id": "P1-02",
+      "task": "Resolve verified name and corporate action identity transitions",
+      "status": "open",
+      "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers."
+    },
+    {
+      "id": "P1-03",
+      "task": "FCF intangible and other account gaps",
+      "status": "open",
+      "acceptance": "Trace receipt/scope/notes and existing staging; zero only when affirmatively supported, no fabricated hashes."
+    },
+    {
+      "id": "P1-04",
+      "task": "Structural gaps and long nontrading",
+      "status": "partially_verified",
+      "evidence": {
+        "run": 45742173839,
+        "zero_today": 107,
+        "zero_at_least_5": 100,
+        "zero_at_least_20": 93,
+        "zero_at_least_60": 72
+      },
+      "acceptance": "Distinguish confirmed structural limits from processing gaps; compare all-listed and eligible denominators, never equate a nontrading streak with certified halt reason."
+    },
+    {
+      "id": "P1-05",
+      "task": "Expose per-factor observation dates and freshness",
+      "status": "open",
+      "acceptance": "Cadence-aware labels for retained technical versus annual observations without deleting valid history."
+    },
+    {
+      "id": "P2-01",
+      "task": "Reduce duplicate scheduled collectors and serialize shared ledger/score publication",
+      "status": "open",
+      "acceptance": "Dependency and write inventory, regression before disabling workflows, daily refresh preserved."
+    },
+    {
+      "id": "P2-02",
+      "task": "Review unused code and Pages size",
+      "status": "open",
+      "acceptance": "Measure actual published artifact, retain required history privately only when permitted, no blind deletion."
+    },
+    {
+      "id": "P2-03",
+      "task": "Rank eligibility and reliability filters",
+      "status": "open",
+      "acceptance": "Preserve unnormalized score and legacy ranking; distinguish unobserved vs observed zero, assess alternate filters before policy change."
+    },
+    {
+      "id": "FINAL",
+      "task": "Independent before/after replay and acceptance",
+      "status": "open",
+      "acceptance": "Compare identical roster and source date, actual recovered weights, stale factors, regressions, no performance certification claim."
+    }
+  ]
+}
