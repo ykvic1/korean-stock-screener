@@ -126,7 +126,7 @@
     {
       "id": "P1-03",
       "task": "FCF intangible and other account gaps",
-      "status": "partial_comparative_guard_fixed_saved_queue_zero",
+      "status": "original_receipt_queue_exhausted_non_december_calendar_review_open",
       "acceptance": "Trace receipt/scope/notes and existing staging; zero only when affirmatively supported, no fabricated hashes.",
       "evidence": {
         "pr": 1151,
@@ -180,26 +180,29 @@
             45775366875,
             45775628558,
             45775872629,
-            45776099190
+            45776099190,
+            45776450281
           ],
-          "last_published_commit": "6b23be803c320a5e4517a83c9493a0445c9e74fe",
-          "unreviewed_issuer_years": 7,
-          "reviewed_still_missing_issuer_years": 722,
+          "last_published_commit": "fc0e9994e1b21582210c72649456c917d0ad42f9",
+          "unreviewed_issuer_years": 0,
+          "reviewed_still_missing_issuer_years": 729,
           "priority_unreviewed_issuer_years": 0,
           "conditional_90_unreviewed_issuer_years": 0,
-          "basis": "verified exact post-publication dry-run inventory in job 139760337705",
-          "latest_burst_completed": 128,
+          "basis": "verified final post-publication dry-run inventory job 139761374748",
+          "latest_burst_completed": 135,
           "latest_burst_recovered_fields": 0,
           "latest_burst_reason_counts": {
             "no_missing_supported_fact": 95,
             "unusable_original_facts": 1
           },
           "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40",
-          "in_progress_run": 45776450281,
+          "in_progress_run": null,
           "terminal_burst_run": 45775366875,
           "terminal_burst_max_batches": 5,
-          "terminal_inventory_verified": false,
-          "unreviewed_issuers": 3
+          "terminal_inventory_verified": true,
+          "unreviewed_issuers": 0,
+          "source_route_exhausted_for_current_receipts": true,
+          "repeat_only_on_new_receipt_or_verified_new_evidence": true
         },
         "annual_conditional_cohort_screen": {
           "asof": "2026-11-25",
@@ -267,6 +270,24 @@
           ],
           "exact_saved_receipt_period_scope_match_verified": false,
           "policy": "Do not change global receipt guard or assume calendar year from reporting label. Explicit fiscal-period proof and receipt/scope/currency matching required before any separate recovery; no points credited."
+        },
+        "terminal_cashflow_summary": {
+          "asof": "2026-11-25",
+          "attempted": 7198,
+          "observed": 6435,
+          "missing": 763,
+          "missing_categories": {
+            "fcf_observed_receipt_matched": 6435,
+            "fcf_observed_receipt_unmatched": 0,
+            "missing_both_capex": 243,
+            "missing_cfo_and_capex": 20,
+            "missing_cfo_only": 14,
+            "missing_intangible_only": 407,
+            "missing_ppe_only": 79
+          },
+          "source_eligible_unfetched_company_years": 0,
+          "source_route_closed": true,
+          "non_december_calendar_issue_separate": true
         }
       }
     },
