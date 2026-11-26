@@ -209,14 +209,18 @@ def main():
                   for year,old in cash['records'][code]['years'].items()),
               'scores_unchanged_until_replay': True,
               'historical_pit_certified': False}
+    result['reviewed_partial_capex_years'] = sum(
+        'existing_parts' in proposed['records'][code]['years'][year]['reviewed_disaggregated_capex']
+        for code, year in reviewed)
+    # Validate the exact proposed ledger in dry-run too, before any write.
+    day, members = cf.asof_members(market, catalog, bulk)
+    updated = cf.summary(day, members, proposed['records'], cf.fingerprint(bulk))
+    cf.verify_state(updated, market, catalog, bulk)
     # Persist receipt reconciliation even when no comparative adds a fact.
     if args.mode == 'promote' and (codes or cash != saved):
         target = root / 'v3-dart-cashflow-reference.json'
         if target.is_symlink():
             raise ComparativePromotionError('unsafe_cashflow_promotion_output')
-        day, members = cf.asof_members(market, catalog, bulk)
-        updated = cf.summary(day, members, proposed['records'], cf.fingerprint(bulk))
-        cf.verify_state(updated, market, catalog, bulk)
         write_json(target, updated)
         result['scores_unchanged_until_replay'] = True
     print(json.dumps(result, sort_keys=True))
