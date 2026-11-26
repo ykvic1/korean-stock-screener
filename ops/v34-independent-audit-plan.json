@@ -46,13 +46,18 @@
             "notice_list_url": "https://www.data.go.kr/main/selectDivNoticeDataListView.do",
             "notice_date": "2026-11-25",
             "notice_subject": "주식시세정보 Open API 서비스 외 9종 이용허락범위 유형 변경 및 신규 버전 배포 예정 안내",
-            "notice_full_text_verified": false,
-            "effective_date_verified": false,
+            "notice_full_text_verified": true,
+            "effective_date_verified": true,
             "public_derived_output_permission_verified": false,
             "policy": "No public expansion or new derived scoring based on FSC data until current terms and provider permission confirmed. Do not assume API key approval grants redistribution.",
             "explicit_unauthorized_third_party_provision_and_redistribution_prohibited": true,
-            "commercial_use_requires_paid_krx_purchase": true
-          }
+            "commercial_use_requires_paid_krx_purchase": true,
+            "notice_url": "https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000005172",
+            "announced_effective_date_kst": "2026-12-17",
+            "announced_license": "KOGL Type 1 with attribution; applies to existing and new API versions per provider notice",
+            "effective_terms_recheck_required": true
+          },
+          "policy": "Keep current restrictions until the announced effective date and verify the effective provider terms. Confirm KRX 09:00–15:30 session scope before using volume or turnover in R1e; use authorized access only."
         },
         "historical_krx_money_backfill_run": 45754970899,
         "historical_krx_money_scoring_allowed": false,
@@ -408,10 +413,31 @@
           ],
           "half_year_not_annualized": true,
           "exclusions_applied": 0,
-          "new_operational_weight": 0,
+          "new_operational_weight": 11,
           "exact_receipt_xbrl_recheck_commit": "6f9f64fef7a0d1123f12e8c8b658fbfe9ede29f6",
           "recheck_run": 45804144418,
-          "recheck_pending": true
+          "recheck_pending": false,
+          "recheck_verified_period_issuers": 2,
+          "history_run": 45821091852,
+          "history_years_reviewed": 8,
+          "history_years_verified": 4,
+          "four_year_revenue_ready": 0,
+          "metrics_stage_run": 45821555730,
+          "followup_operational_pr": 1165,
+          "followup_same_date_csv_before": "5cfcb4b835f060eb004b1013578bf10c32977d0f",
+          "followup_same_date_csv_after": "3d45be4da836e9f033f9c09df6a6e6ae7869bf19",
+          "followup_available_weight_changes": [
+            {
+              "code": "021880",
+              "previous_weight": 79.166667,
+              "current_weight": 84.666667
+            },
+            {
+              "code": "032800",
+              "previous_weight": 79.166667,
+              "current_weight": 84.666667
+            }
+          ]
         }
       }
     },
@@ -622,6 +648,43 @@
           ],
           "production_score_certified": false,
           "performance_validated": false
+        },
+        "market_date_20261126_checkpoint": {
+          "asof": "2026-11-26",
+          "pages_run": 45892503940,
+          "checked_commit": "2dcbb1d05893fe5592f08ae4c39b9c4ccf54a606",
+          "csv_blob": "027f8446f021d279edbe4b3b25d4dccf8ac536eb",
+          "listed": 2593,
+          "coverage_counts": {
+            "100": 1426,
+            "95_to_under_100": 382,
+            "90_to_under_95": 427,
+            "80_to_under_90": 53,
+            "70_to_under_80": 85,
+            "60_to_under_70": 55,
+            "under_60": 165
+          },
+          "row_dates": {
+            "2026-11-26": 2569,
+            "2026-11-25": 11,
+            "2026-11-20": 13
+          },
+          "aggregate_weight_pct": 91.647673,
+          "actual_score_100": 0,
+          "prior_same_date_csv_blob": "9b2fe0dbf74623676baab37f38b61def090c829b",
+          "same_date_available_weight_changes": [
+            {
+              "code": "154030",
+              "previous_weight": 94.5,
+              "current_weight": 100
+            },
+            {
+              "code": "223310",
+              "previous_weight": 85,
+              "current_weight": 94.5
+            }
+          ],
+          "public_url_file_reconciliation_verified": false
         }
       }
     }
