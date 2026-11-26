@@ -32,6 +32,11 @@ class ObservedPublicationDispatchTests(unittest.TestCase):
         self.assertIn("permissions:\n  contents: write\n", source)
         self.assertIn("  actions: write", source)
         self.assertIn("  workflow_dispatch:", operational)
+        triggers = operational.split("  workflow_run:", 1)[1].split("  schedule:", 1)[0]
+        self.assertNotIn("V3 Current Close All-Listed Observed Partial CSV (live source ceiling)", triggers)
+        self.assertIn("cron: '23 * * * *'", operational)
+        self.assertIn("Full-Market 100-Stock Batches", triggers)
+
         self.assertIn("group: v3-operational-research-score-publisher", operational)
         self.assertNotIn("docs/v3-operational-research-scores.json", source.split("  push:", 1)[1].split("  schedule:", 1)[0])
         self.assertNotIn("git push --force", source)

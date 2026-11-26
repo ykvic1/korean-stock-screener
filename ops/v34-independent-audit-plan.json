@@ -45,7 +45,7 @@
     {
       "id": "P1-02",
       "task": "Resolve verified name and corporate action identity transitions",
-      "status": "face_replay_verified_no_incremental_weight_rename_replay_pending",
+      "status": "existing_face_and_rename_shadow_verified_remaining_evidence_open",
       "acceptance": "Evidence-bound event, effective date and adjustment; compare recovered observations and unchanged unaffected issuers.",
       "evidence": {
         "run": 45746940540,
@@ -53,14 +53,27 @@
         "added_observed_sessions": 5204,
         "official_candidate_weight": 275.3,
         "net_new_weight_candidate": 0,
-        "production_changed": false
+        "production_changed": false,
+        "rename": {
+          "run": 45747383096,
+          "validated_events": 2,
+          "full_260_extensions": 2,
+          "added_observed_sessions": 480,
+          "production_changed": false
+        }
       }
     },
     {
       "id": "P1-03",
       "task": "FCF intangible and other account gaps",
-      "status": "open",
-      "acceptance": "Trace receipt/scope/notes and existing staging; zero only when affirmatively supported, no fabricated hashes."
+      "status": "partial_comparative_guard_fixed_saved_queue_zero",
+      "acceptance": "Trace receipt/scope/notes and existing staging; zero only when affirmatively supported, no fabricated hashes.",
+      "evidence": {
+        "pr": 1151,
+        "dry_run": 45750240840,
+        "reviewed_partial_capex_years": 0,
+        "source_rules_unchanged": true
+      }
     },
     {
       "id": "P1-04",
@@ -78,7 +91,7 @@
     {
       "id": "P1-05",
       "task": "Expose per-factor observation dates and freshness",
-      "status": "merged_offline_verified_publication_pending",
+      "status": "published_verified",
       "acceptance": "Cadence-aware labels for retained technical versus annual observations without deleting valid history.",
       "evidence": {
         "pr": 1148,
@@ -88,13 +101,15 @@
           "daily": 7,
           "weekly": 14
         },
-        "changes_scores": false
+        "changes_scores": false,
+        "pages_run": 45747382904,
+        "mobile_run": 45747198602
       }
     },
     {
       "id": "P2-01",
       "task": "Reduce duplicate scheduled collectors and serialize shared ledger/score publication",
-      "status": "open",
+      "status": "one_duplicate_trigger_removal_pending_verification",
       "acceptance": "Dependency and write inventory, regression before disabling workflows, daily refresh preserved."
     },
     {
@@ -106,8 +121,20 @@
     {
       "id": "P2-03",
       "task": "Rank eligibility and reliability filters",
-      "status": "open",
-      "acceptance": "Preserve unnormalized score and legacy ranking; distinguish unobserved vs observed zero, assess alternate filters before policy change."
+      "status": "merged_optional_filter_mobile_verified",
+      "acceptance": "Preserve unnormalized score and legacy ranking; distinguish unobserved vs observed zero, assess alternate filters before policy change.",
+      "evidence": {
+        "pr": 1150,
+        "mobile_run": 45750072321,
+        "rank_changed": false,
+        "default": "all",
+        "minimums": [
+          90,
+          95,
+          100
+        ],
+        "global_lookup_preserved": true
+      }
     },
     {
       "id": "FINAL",
