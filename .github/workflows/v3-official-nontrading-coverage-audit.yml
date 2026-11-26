@@ -1,0 +1,44 @@
+name: V3 Official Nontrading Coverage Audit (Read Only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - v3_official_nontrading_coverage_audit.py
+      - .github/workflows/v3-official-nontrading-coverage-audit.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v3-official-nontrading-coverage-audit
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ykvic1/korean-stock-private-data
+          ref: main
+          token: ${{ secrets.V3_PRIVATE_ARCHIVE_TOKEN }}
+          path: .nontrading-private
+          persist-credentials: false
+          fetch-depth: 1
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /derived/official-regular-close-history-v2/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install 'requests>=2.31,<3' 'numpy>=1.26,<3' 'pandas>=2,<3' 'exchange-calendars==4.13.1'
+      - name: Check archived-trade streak regression cases
+        run: python v3_official_nontrading_coverage_audit.py --self-test
+      - name: Compute aggregate sensitivity for 5, 20 and 60 observed sessions
+        run: python v3_official_nontrading_coverage_audit.py --archive .nontrading-private
+      - name: Remove private checkout
+        if: always()
+        run: rm -rf -- .nontrading-private
