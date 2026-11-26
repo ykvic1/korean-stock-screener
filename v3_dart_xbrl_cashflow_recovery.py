@@ -283,6 +283,42 @@ def cashflow_90_focus(report,priority):
     return selected
 
 
+def eligible_original_years(issuer, *, recheck_legacy=False):
+    """Use the identical receipt gate for inventory and actual work selection."""
+    return [(year,row) for year,row in issuer['years'].items()
+            if row.get('free_cashflow_krw') is None
+            and row.get('operating_cashflow_krw') is not None
+            and row.get('major_annual_receipt_matched') is True
+            and (legacy_review_eligible(row) if recheck_legacy else
+                 row.get('original_xbrl_review') is None)]
+
+
+def original_queue_inventory(state, priority, near_90):
+    """Count the whole finite saved queue, not just the current batch."""
+    counts=Counter()
+    for code,issuer in state['records'].items():
+        missing=eligible_original_years(issuer)
+        if missing:
+            counts['unreviewed_issuers']+=1
+            counts['unreviewed_issuer_years']+=len(missing)
+            if code in priority:
+                counts['priority_unreviewed_issuers']+=1
+                counts['priority_unreviewed_issuer_years']+=len(missing)
+            if code in near_90:
+                counts['conditional_90_unreviewed_issuers']+=1
+                counts['conditional_90_unreviewed_issuer_years']+=len(missing)
+        for row in issuer['years'].values():
+            if row.get('free_cashflow_krw') is None and row.get('original_xbrl_review') is not None:
+                verify_recovery(row)
+                counts['reviewed_still_missing_issuer_years']+=1
+    keys=('unreviewed_issuers','unreviewed_issuer_years',
+          'priority_unreviewed_issuers','priority_unreviewed_issuer_years',
+          'conditional_90_unreviewed_issuers','conditional_90_unreviewed_issuer_years',
+          'reviewed_still_missing_issuer_years')
+    return {**{k:counts[k] for k in keys},
+            'provider_calls':0,'recoverability_proven':False}
+
+
 def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=(),
             recheck_legacy=False):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
@@ -291,9 +327,7 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=
     queue=[]
     completion_year_count = {}
     for code,issuer in state['records'].items():
-        missing=[(year,row) for year,row in issuer['years'].items() if row.get('free_cashflow_krw') is None
-                 and row.get('operating_cashflow_krw') is not None and row.get('major_annual_receipt_matched') is True
-                 and (legacy_review_eligible(row) if recheck_legacy else row.get('original_xbrl_review') is None)]
+        missing=eligible_original_years(issuer,recheck_legacy=recheck_legacy)
         if not missing:
             continue
         years = issuer['years']
@@ -344,7 +378,8 @@ def main():
         'selected_conditional_90_issuer_years':sum(code in near_90 for code,_,_ in selected),
         'legacy_context_recheck':a.recheck_equivalent_contexts,
         'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},
-        'scores_certified':False,'context_checks':{}}
+        'scores_certified':False,'context_checks':{},
+        'saved_original_queue':original_queue_inventory(state,priority,near_90)}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
     import requests
     key=os.getenv('DART_API_KEY','')
