@@ -1,0 +1,45 @@
+name: V3 Non-December Annual Receipt Period Evidence
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/v3-noncalendar-period-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v3-noncalendar-period-audit
+  cancel-in-progress: false
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Verify exact fiscal period boundaries
+        run: |
+          python -m py_compile v3_dart_noncalendar_period_audit.py
+          python - <<'PY'
+          from datetime import date
+          from v3_dart_noncalendar_period_audit import annual_period
+          assert annual_period('2024-10-01','2025-09-30',2025,9,date(2025,12,15))
+          assert annual_period('2024-04-01','2025-03-31',2025,3,date(2025,6,1))
+          assert not annual_period('2025-01-01','2025-09-30',2025,9,date(2025,12,15))
+          assert not annual_period('2024-10-01','2025-09-30',2025,9,date(2025,9,30))
+          assert not annual_period('2024-10-01','2025-09-30',2025,12,date(2025,12,15))
+          assert not annual_period('2023-10-01','2024-09-30',2025,9,date(2025,12,15))
+          print('6 annual period boundary checks passed')
+          PY
+          python v3_dart_noncalendar_period_audit.py --mode dry-run
+      - name: Inspect existing annual receipt exact scope and period, no source archive or score writes
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          python -m pip install 'requests>=2.31,<3'
+          python v3_dart_noncalendar_period_audit.py --mode live
