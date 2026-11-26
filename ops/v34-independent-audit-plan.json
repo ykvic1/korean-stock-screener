@@ -24,7 +24,20 @@
       "evidence": {
         "terms": "https://openapi.krx.co.kr/contents/OPP/INFO/OPPINFO002.jsp",
         "provider_approval": "unverified",
-        "public_scope_expansion_allowed": false
+        "public_scope_expansion_allowed": false,
+        "krx_all_issues": {
+          "url": "https://data.krx.co.kr/contents/MDC/MDI/outerLoader/index.cmd?screenId=MDCSTAT015",
+          "historical_ohlc": "regular_session",
+          "volume_and_turnover": "all_trades"
+        },
+        "fsc_daily_stock_quotes": {
+          "url": "https://www.data.go.kr/data/15094808/openapi.do",
+          "available_after_next_business_day_kst": "13:00",
+          "meets_morning_deadline": false,
+          "regular_only_volume_and_turnover_verified": false
+        },
+        "historical_krx_money_backfill_run": 45754970899,
+        "historical_krx_money_scoring_allowed": false
       }
     },
     {
@@ -109,8 +122,18 @@
     {
       "id": "P2-01",
       "task": "Reduce duplicate scheduled collectors and serialize shared ledger/score publication",
-      "status": "one_duplicate_trigger_removal_pending_verification",
-      "acceptance": "Dependency and write inventory, regression before disabling workflows, daily refresh preserved."
+      "status": "verified_handoffs_and_review_only_replay_removed",
+      "acceptance": "Dependency and write inventory, regression before disabling workflows, daily refresh preserved.",
+      "evidence": {
+        "observed_source_pr": 1152,
+        "actual_money_pr": 1154,
+        "eps_basis_no_change_run": 45753725929,
+        "eps_basis_pr": 1155,
+        "capex_review_only_run": 45755257969,
+        "capex_pr": 1156,
+        "full_market_trigger_retained": true,
+        "hourly_recovery_retained": true
+      }
     },
     {
       "id": "P2-02",

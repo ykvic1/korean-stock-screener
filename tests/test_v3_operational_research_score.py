@@ -722,6 +722,17 @@ if(replaced.linked!==priced-1||replaced.missing!==1||replaced.unpriced!==0||
         self.assertIn('- Full-Market 100-Stock Batches',triggers)
         self.assertNotIn('- V3 Actual Money Personal Participation Score',triggers)
         self.assertNotIn('- V3 Latest Annual EPS Share-Basis Audit',triggers)
+        for source in ('v3-dart-revenue-2022.yml', 'v3-dart-revenue-2023-comparative.yml'):
+            collector=(ROOT/'.github/workflows'/source).read_text()
+            self.assertNotIn('- '+collector.splitlines()[0].removeprefix('name: '),triggers)
+            handoff=collector.split('      - name: Refresh operating scores after publishing',1)[1]
+            self.assertIn("if: steps.publish.outputs.changed == 'true'",handoff)
+            self.assertIn('v3-operational-research-score.yml/dispatches',handoff)
+            self.assertIn('-f ref=main',handoff)
+            self.assertLess(collector.index('git push origin HEAD:main'),
+                            collector.index("echo 'changed=true'"))
+            self.assertLess(collector.index("echo 'changed=true'"),
+                            collector.index('Refresh operating scores after publishing'))
         self.assertIn("cron: '23 * * * *'",workflow)
         self.assertIn("github.event.workflow_run.conclusion == 'success'",workflow)
         self.assertIn("github.event.workflow_run.head_branch == 'main'",workflow)
