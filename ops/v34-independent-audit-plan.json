@@ -90,6 +90,13 @@
           "score_recovery_verified": false,
           "raw_prices_exported": false,
           "source_indicators_blob": "f0b9f7f79d27ec7d69fbcd54cc0b966cff7ab4f2"
+        },
+        "same_close_path_retry": {
+          "run": 45765813508,
+          "selected": 18,
+          "provider_errors": 0,
+          "still_unavailable": 18,
+          "new_observed": 0
         }
       }
     },
@@ -110,7 +117,10 @@
           "missing_fcf_issuer_years": 763,
           "eligible_unfetched_standard_issuer_years": 0,
           "original_xbrl_request_run": 45764801397,
-          "original_xbrl_result_pending": true
+          "original_xbrl_result_pending": false,
+          "original_xbrl_reviewed": 32,
+          "original_xbrl_recovered_fields": 0,
+          "original_xbrl_provider_calls": 44
         },
         "owner_profit_queue": {
           "run": 45764507880,
@@ -120,19 +130,44 @@
           "provider_calls": 0,
           "new_observations": 0,
           "avoid_blind_repeat": true
+        },
+        "original_revenue_queue": {
+          "run": 45765067792,
+          "selected": 0,
+          "new_observed": 0,
+          "provider_calls": 0
         }
       }
     },
     {
       "id": "P1-04",
       "task": "Structural gaps and long nontrading",
-      "status": "partially_verified",
+      "status": "aggregate_nontrading_and_recovery_cohort_verified_structural_reasons_open",
       "evidence": {
         "run": 45742173839,
         "zero_today": 107,
         "zero_at_least_5": 100,
         "zero_at_least_20": 93,
-        "zero_at_least_60": 72
+        "zero_at_least_60": 72,
+        "latest": {
+          "run": 45769436820,
+          "asof": "2026-11-25",
+          "listed": 2593,
+          "below90": 358,
+          "long_nontrading_60": 72,
+          "long_nontrading_below90": 72,
+          "below90_outside_long_nontrading": 286,
+          "single_family_conditional": 80,
+          "multiple_families_needed": 206,
+          "aggregate_all_pct": 91.5896,
+          "aggregate_if_60_excluded_pct": 93.5471,
+          "aggregate_if_20_excluded_pct": 94.1228,
+          "aggregate_if_5_excluded_pct": 94.1383,
+          "exclusion_applied": false,
+          "halt_reason_certified": false,
+          "source_recoverability_proven": false,
+          "retained_prior_date_score_rows": 13
+        }
       },
       "acceptance": "Distinguish confirmed structural limits from processing gaps; compare all-listed and eligible denominators, never equate a nontrading streak with certified halt reason."
     },
@@ -167,7 +202,12 @@
         "capex_review_only_run": 45755257969,
         "capex_pr": 1156,
         "full_market_trigger_retained": true,
-        "hourly_recovery_retained": true
+        "hourly_recovery_retained": true,
+        "money_gap_queue": {
+          "run": 45741174558,
+          "remaining_unexamined_weeks": 0,
+          "remaining_unexamined_daily_windows": 0
+        }
       }
     },
     {
@@ -231,11 +271,16 @@
             "volume:persistence": 1
           },
           "basis": "sum of complete issuer weights and unique single/multiple gap-index weights in published operational priority reports",
-          "identical_roster_membership_independently_verified": false,
+          "identical_roster_membership_independently_verified": true,
           "volume_session_scope_certified": false,
           "investment_score_certified": false,
           "performance_validated": false,
-          "successful_pages_run": 45763917053
+          "successful_pages_run": 45769435308,
+          "roster_blob_sha_both": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
+          "roster_code_market_changes": 0,
+          "independent_csv_audit_run": 45769436820,
+          "csv_aggregate_weight_pct": 91.5896,
+          "retained_prior_date_score_rows": 13
         }
       }
     }
