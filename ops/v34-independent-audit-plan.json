@@ -126,7 +126,7 @@
     {
       "id": "P1-03",
       "task": "FCF intangible and other account gaps",
-      "status": "original_receipt_queue_exhausted_non_december_calendar_review_open",
+      "status": "original_receipt_queue_exhausted_noncalendar_verified_metrics_applied_remaining_gaps_open",
       "acceptance": "Trace receipt/scope/notes and existing staging; zero only when affirmatively supported, no fabricated hashes.",
       "evidence": {
         "pr": 1151,
@@ -326,6 +326,46 @@
           "selected": 0,
           "provider_calls": 0,
           "score_unchanged": true
+        },
+        "noncalendar_operational_reconciliation": {
+          "asof": "2026-11-25",
+          "source_run": 45779276676,
+          "history_audit_run": 45778634105,
+          "period_audit_run": 45777365119,
+          "period_candidates": 19,
+          "verified_period_issuers": 14,
+          "unverified_period_issuers": 5,
+          "history_years_reviewed": 56,
+          "verified_history_years": 33,
+          "history_unusable_original": 19,
+          "history_no_statement": 4,
+          "four_year_revenue_ready": 0,
+          "staged_metrics": 33,
+          "applied_issuers": 14,
+          "applied_components": 33,
+          "prior_weight_pct": 91.58959380331692,
+          "current_weight_pct": 91.62507394215224,
+          "net_available_weight": 92,
+          "issuers_increased": 14,
+          "issuers_decreased": 0,
+          "full_100_before": 1426,
+          "full_100_after": 1426,
+          "prior_priority_digest": "4eae6afa49dc4b9e37aaa1cef63ef7447f8d2141687dba06f1410455eacc6c7f",
+          "current_priority_digest": "99a6a4eee93c1d22169f420d9b0c709778a98f5f085fd7e248702d80845fe7f5",
+          "identical_catalog_blob": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
+          "current_priority_blob": "acbeea60626bf90256d2d553c2d96d0e31bed345",
+          "coverage_changes": [
+            {
+              "issuers": 9,
+              "weight": 5.5
+            },
+            {
+              "issuers": 5,
+              "weight": 8.5
+            }
+          ],
+          "production_score_certified": false,
+          "performance_validated": false
         }
       }
     },
@@ -496,6 +536,46 @@
           "retained_total_available_weight": 58.625,
           "listing_date_independently_verified": false,
           "excluded_rows": 0
+        },
+        "latest_same_date_noncalendar_checkpoint": {
+          "asof": "2026-11-25",
+          "source_run": 45779276676,
+          "history_audit_run": 45778634105,
+          "period_audit_run": 45777365119,
+          "period_candidates": 19,
+          "verified_period_issuers": 14,
+          "unverified_period_issuers": 5,
+          "history_years_reviewed": 56,
+          "verified_history_years": 33,
+          "history_unusable_original": 19,
+          "history_no_statement": 4,
+          "four_year_revenue_ready": 0,
+          "staged_metrics": 33,
+          "applied_issuers": 14,
+          "applied_components": 33,
+          "prior_weight_pct": 91.58959380331692,
+          "current_weight_pct": 91.62507394215224,
+          "net_available_weight": 92,
+          "issuers_increased": 14,
+          "issuers_decreased": 0,
+          "full_100_before": 1426,
+          "full_100_after": 1426,
+          "prior_priority_digest": "4eae6afa49dc4b9e37aaa1cef63ef7447f8d2141687dba06f1410455eacc6c7f",
+          "current_priority_digest": "99a6a4eee93c1d22169f420d9b0c709778a98f5f085fd7e248702d80845fe7f5",
+          "identical_catalog_blob": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
+          "current_priority_blob": "acbeea60626bf90256d2d553c2d96d0e31bed345",
+          "coverage_changes": [
+            {
+              "issuers": 9,
+              "weight": 5.5
+            },
+            {
+              "issuers": 5,
+              "weight": 8.5
+            }
+          ],
+          "production_score_certified": false,
+          "performance_validated": false
         }
       }
     }
