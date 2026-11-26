@@ -139,11 +139,14 @@ jobs:
             python v3_dart_cashflow_factor_preview.py --mode verify --defer-source-lag
             python v3_dart_cashflow_gap_audit.py --mode verify --defer-source-lag --issuer-out docs/v3-dart-cashflow-issuer-evidence.json
             python v3_current_observed_scorecard.py --mode verify --refresh-derived
-            if git push origin HEAD:main; then exit 0; fi
+            if git push origin HEAD:main; then
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           done
           exit 1
       - name: Refresh operational scores explicitly after verified saved-source publication
-        if: steps.projection.outputs.ready == 'true' && steps.publication.conclusion == 'success'
+        if: steps.projection.outputs.ready == 'true' && steps.publication.conclusion == 'success' && steps.publication.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
