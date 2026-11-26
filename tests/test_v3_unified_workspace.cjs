@@ -2627,3 +2627,24 @@ async function simulateReadiness(current, history=readinessHistory, score=readin
  assert.deepEqual(unified.liveRankItems(fixture,core,'KOSPI','Beta','area:volume',true,true,true).map(x=>x.r.code),['000002']);
  assert.notStrictEqual(unified.liveRankItems({...fixture},core,'all','','area:volume')[0],first[0]);
 }
+
+
+// V3.4: real observed zero remains distinguishable from unavailable data.
+// Dates are relative to the market snapshot, not the most recent factor.
+{
+ const parts={technical:{daily_rsi:[0,1.2,'2026-11-18'],
+  weekly_rsi:[0,1.8,'2026-11-20']},financial:{revenue_growth:[0,3.5,'2026-10-01']}};
+ const f=operational.freshnessSummary({parts},'2026-11-25');
+ assert.deepEqual(f.daily,{count:1,older:1,maxAge:7});
+ assert.deepEqual(f.weekly,{count:1,older:0,maxAge:5});
+ assert.deepEqual(f.financial,{count:1,older:0,maxAge:55});
+ assert.equal(operational.observationAge([0,1,'2026-11-26'],'2026-11-25'),null);
+ assert.match(operational.freshnessMarkup({parts},'2026-11-25'),/확보배점 100은 최신성 보장이 아닙니다/);
+ const saved=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/v3-operational-research-scores.json'),'utf8'));
+ const issuer=Object.values(saved.rows).find(r=>r.available>0&&r.available<100);
+ const detail=operational.markup({v3_operational:issuer,v3_operational_version:saved.version,
+  v3_operational_market_asof:saved.asof},true);
+ assert.match(detail,/가장 오래된 세부 관측/);
+ assert.match(detail,/— \(미관측\)|추가 근거 필요/);
+ assert.match(detail,/관측일 .*일 경과/);
+}
