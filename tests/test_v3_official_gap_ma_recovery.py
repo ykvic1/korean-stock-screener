@@ -8,7 +8,7 @@ from v3_official_gap_ma_recovery import (
     FIELDS, GAP, KST, NEIGHBORS, OUTER_ANCHORS, add_weekly_ma120, repair, source_frame,
     weekly_position, weekly_rsi, recover_daily_pattern, recover_weekly_pattern,
     recover_recent_weekly_pattern, weekly_pattern_window,
-    recover_checked_weekly_closes,
+    recover_checked_weekly_closes, selected,
 )
 from v3_ma_slope_transition import observe
 from v3_pattern_first_observations import observe as observe_daily, observe_completed_weekly
@@ -27,6 +27,25 @@ def payload():
 
 
 class OfficialGapMARecoveryTests(unittest.TestCase):
+    def test_priority_only_scans_the_aligned_conditional_90_candidates(self):
+        day = '2026-11-25'
+        stocks = [{'code': code, 'market': 'KOSPI', 'price_date': day}
+                  for code in ('000001', '000002', '000003')]
+        market = {'date': day, 'stocks': stocks}
+        report = {'asof': day, 'source_digest': 'same', 'rows': {
+            code: {'available': score} for code, score in
+            (('000001', 88), ('000002', 98), ('000003', 82))
+        }}
+        priority = {'asof': day, 'operational_source_digest': 'same', 'coverage_90_first': {
+            'family_conditional_priority_codes': {'price_chart_windows': ['000001']}
+        }}
+        self.assertEqual(set(selected(market, priority, report, priority_only=True)),
+                         {('KOSPI', '000001')})
+        self.assertEqual(set(selected(market, priority, report)),
+                         {('KOSPI', '000001'), ('KOSPI', '000002')})
+        with self.assertRaisesRegex(ValueError, 'operating_sources_not_aligned'):
+            selected(market, {**priority, 'asof': '2026-11-24'}, report, priority_only=True)
+
     def test_contiguous_closes_restore_only_windows_with_official_anchors(self):
         day = '2026-11-13'
         dates = pd.bdate_range(end=day, periods=810)

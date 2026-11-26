@@ -31,7 +31,11 @@ jobs:
       - name: Match official closing anchors and recover the exact missing session
         env:
           KRX_API_KEY: ${{ secrets.KRX_API_KEY }}
-        run: python v3_official_gap_ma_recovery.py
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          args=()
+          if [[ "$EVENT_NAME" == push ]]; then args+=(--priority-only); fi
+          python v3_official_gap_ma_recovery.py "${args[@]}"
       - name: Validate and publish derived completed-week chart evidence
         id: publish
         run: |
