@@ -179,26 +179,27 @@
           "last_completed_runs": [
             45775366875,
             45775628558,
-            45775872629
+            45775872629,
+            45776099190
           ],
-          "last_published_commit": "a36cbd93fcc0fd29e2fe1da7a3117265bcc746d8",
-          "unreviewed_issuer_years": 39,
-          "reviewed_still_missing_issuer_years": 690,
+          "last_published_commit": "6b23be803c320a5e4517a83c9493a0445c9e74fe",
+          "unreviewed_issuer_years": 7,
+          "reviewed_still_missing_issuer_years": 722,
           "priority_unreviewed_issuer_years": 0,
           "conditional_90_unreviewed_issuer_years": 0,
-          "basis": "verified exact post-publication dry-run inventory in job 139759510864",
-          "latest_burst_completed": 96,
+          "basis": "verified exact post-publication dry-run inventory in job 139760337705",
+          "latest_burst_completed": 128,
           "latest_burst_recovered_fields": 0,
           "latest_burst_reason_counts": {
             "no_missing_supported_fact": 95,
             "unusable_original_facts": 1
           },
           "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40",
-          "in_progress_run": 45776099190,
+          "in_progress_run": 45776450281,
           "terminal_burst_run": 45775366875,
           "terminal_burst_max_batches": 5,
           "terminal_inventory_verified": false,
-          "unreviewed_issuers": 13
+          "unreviewed_issuers": 3
         },
         "annual_conditional_cohort_screen": {
           "asof": "2026-11-25",
@@ -231,7 +232,41 @@
           "fiscal_calendar_or_receipt_reason_verified": false,
           "source_recoverability_proven": false,
           "provider_calls": 0,
-          "points_added": 0
+          "points_added": 0,
+          "audit_run": 45776429091,
+          "valid_book_2025": 6,
+          "saved_2025_annual_observed_but_receipt_on_or_before_2025_12_31": 19,
+          "all_25_four_year_attempted": true,
+          "all_25_four_year_complete": false,
+          "calendar_guard_limitation_confirmed": true,
+          "independent_non_december_fiscal_period_examples": [
+            {
+              "code": "008870",
+              "period_end": "2025-09-30",
+              "url": "https://kind.krx.co.kr/external/2025/12/15/001432/20251215002862/11011.htm",
+              "report_kind": "annual_report"
+            },
+            {
+              "code": "003610",
+              "period_end": "2025-09-30",
+              "url": "https://kind.krx.co.kr/external/2025/12/15/000491/20251215001280/00591.htm",
+              "report_kind": "shareholder_meeting_notice"
+            },
+            {
+              "code": "042520",
+              "period_end": "2025-09-30",
+              "url": "https://kind.krx.co.kr/external/2025/12/18/000742/20251218001950/11011.htm",
+              "report_kind": "annual_report"
+            },
+            {
+              "code": "001720",
+              "period_end": "2025-03-31",
+              "url": "https://kind.krx.co.kr/external/2025/06/05/000350/20250605001022/00591.htm",
+              "report_kind": "shareholder_meeting_notice"
+            }
+          ],
+          "exact_saved_receipt_period_scope_match_verified": false,
+          "policy": "Do not change global receipt guard or assume calendar year from reporting label. Explicit fiscal-period proof and receipt/scope/currency matching required before any separate recovery; no points credited."
         }
       }
     },
