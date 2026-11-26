@@ -175,24 +175,24 @@
           "asof": "2026-11-25",
           "initial_inventory_run": 45770867460,
           "last_completed_runs": [
-            45773094187,
-            45773264102,
-            45773727800
+            45774408740,
+            45774633988
           ],
-          "last_published_commit": "3e7f971915362fa2bc47b0483e219537c8dfda76",
-          "unreviewed_issuer_years": 231,
-          "reviewed_still_missing_issuer_years": 498,
+          "last_published_commit": "c273662443ed0915976901a943f54c2592507e42",
+          "unreviewed_issuer_years": 167,
+          "reviewed_still_missing_issuer_years": 562,
           "priority_unreviewed_issuer_years": 0,
           "conditional_90_unreviewed_issuer_years": 0,
-          "basis": "last pre-batch exact inventory minus 32 completed zero-recovery reviews; no final post-batch dry run yet",
-          "latest_burst_completed": 96,
+          "basis": "last pre-batch inventory 199 less 32 completed no-recovery reviews; subsequent run in progress",
+          "latest_burst_completed": 64,
           "latest_burst_recovered_fields": 0,
           "latest_burst_reason_counts": {
-            "no_missing_supported_fact": 64,
-            "no_verified_scope_anchor": 25,
-            "unusable_original_facts": 7
+            "no_missing_supported_fact": 58,
+            "no_verified_scope_anchor": 1,
+            "unusable_original_facts": 5
           },
-          "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40"
+          "new_request_commit": "8a32b2a6e43990341f321aef0d439123c9e1fd40",
+          "in_progress_run": 45774923805
         }
       }
     },
@@ -338,6 +338,16 @@
           "independent_csv_audit_run": 45769436820,
           "csv_aggregate_weight_pct": 91.5896,
           "retained_prior_date_score_rows": 13
+        },
+        "unchanged_operational_publication_after_review_only_batches": {
+          "asof": "2026-11-25",
+          "baseline_commit": "93151799addb1307c19b9312993a92ca0930d302",
+          "checked_commit": "c273662443ed0915976901a943f54c2592507e42",
+          "csv_blob": "4c640e22b794537940a2e25fd30a672273038e06",
+          "comparison_blob": "9f4e7e9e455aac05ac2fb49ad11c9f6f06ff6467",
+          "catalog_blob": "275efb9f1ae889912f02ecd4eef3053f748f16d2",
+          "all_three_blob_ids_identical": true,
+          "performance_validated": false
         }
       }
     }
