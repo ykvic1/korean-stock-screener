@@ -1,0 +1,592 @@
+{
+  "asof": "2026-11-25",
+  "completed": 33,
+  "metric_counts": {
+    "liabilities_to_assets_pct": 14,
+    "operating_margin_3y_pct": 5,
+    "sales_to_market_cap": 14
+  },
+  "points_added": 0,
+  "provider_calls": 33,
+  "reasons": {
+    "verified_same_receipt": 33
+  },
+  "records": [
+    {
+      "code": "001720",
+      "market": "KOSPI",
+      "metrics": {
+        "liabilities_to_assets_pct": 82.343265,
+        "sales_to_market_cap": 1.2966565
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "f54db67c849845c79f26b9484067baa3a01631a145ef7e9f77fbb5a494729f8a",
+          "code": "001720",
+          "normalized_values_sha256": "45a2a3ba3576992630563f8237f5944b6cfaaa4a349543848aa2d8598b73b850",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240612000337",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "8b45790cb791ac0e19ce235778e30ab4a75ebfffb3e696a1e88f1c0d49dd6e52",
+          "code": "001720",
+          "normalized_values_sha256": "b5e360779817fd7544b1b8bb20f2cf69bb497feb5dfaaf7d5e1b12e97f27480f",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250829000681",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "003610",
+      "market": "KOSPI",
+      "metrics": {
+        "liabilities_to_assets_pct": 21.145274,
+        "operating_margin_3y_pct": -1.721457,
+        "sales_to_market_cap": 0.68752402
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "70bd7f86e0219ac110dac33c05183ea4933e12965ab7aade8e6fc4c855c7143e",
+          "code": "003610",
+          "normalized_values_sha256": "d56bc785b5d74648beb404db677c0c9832a98de0756697b8aff2af18170e73a3",
+          "period_end": "2023-09-30",
+          "period_start": "2022-10-01",
+          "receipt_id": "20231221000198",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2023
+        },
+        {
+          "archive_sha256": "a4c8ee1283b9422fef3e90fbb7f399525ce9cd8a7d0218b4f26c6bc899209477",
+          "code": "003610",
+          "normalized_values_sha256": "0e662f066450eb8e8e624547163c4f6e72293b08b2bb19898d0ceae254de7e7a",
+          "period_end": "2024-09-30",
+          "period_start": "2023-10-01",
+          "receipt_id": "20241219000406",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "492d020a2381f73ac1cc7e5767fcbc4a779993e87f351d794fcecbfc5eb960f2",
+          "code": "003610",
+          "normalized_values_sha256": "20a52a75d25b9054fe735687b8465d8dc772cdce717e5e064801c3ae44c07232",
+          "period_end": "2025-09-30",
+          "period_start": "2024-10-01",
+          "receipt_id": "20251222000124",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "008870",
+      "market": "KOSPI",
+      "metrics": {
+        "liabilities_to_assets_pct": 55.464102,
+        "operating_margin_3y_pct": 2.815491,
+        "sales_to_market_cap": 6.58158548
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "3fd47c4752ce3439d4ec015fb9f2709e7af903d3af7b75cfc4dd5ae1c7d245a1",
+          "code": "008870",
+          "normalized_values_sha256": "515ea18bce815b5e8d4d2c28affcca796a23d84b0a6ff39040559099c5eee549",
+          "period_end": "2023-09-30",
+          "period_start": "2022-10-01",
+          "receipt_id": "20231214000541",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2023
+        },
+        {
+          "archive_sha256": "bd816d349d00da5111e1f716342d134be93abb9de9c0e3f74a22f1718acc370c",
+          "code": "008870",
+          "normalized_values_sha256": "135f4b39343c2eb58966b10327d58bfe183ea80caedd0ff6968087938c47d19d",
+          "period_end": "2024-09-30",
+          "period_start": "2023-10-01",
+          "receipt_id": "20241219000451",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "5c3cbe6fcc0937b4210b8f3cbb4ff726f0c3311bb89f9c6322cce155b6280d09",
+          "code": "008870",
+          "normalized_values_sha256": "91af8e7915ec10f5e70d30edfc2d436a06dbe285ffe67ca9901dc4ecb2abdfc9",
+          "period_end": "2025-09-30",
+          "period_start": "2024-10-01",
+          "receipt_id": "20251215000379",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "017250",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 52.677698,
+        "operating_margin_3y_pct": 11.693251,
+        "sales_to_market_cap": 2.9834444
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "7fcfad93b4ffa8b20c0f21a93cc24ddd4620fc80beb25def18c7d47f2b7fd375",
+          "code": "017250",
+          "normalized_values_sha256": "d690be8d84d2bf28ab4364173080ec6653a5b81be5745e18af1c32acad72bf73",
+          "period_end": "2023-09-30",
+          "period_start": "2022-10-01",
+          "receipt_id": "20231219000378",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2023
+        },
+        {
+          "archive_sha256": "55343eb55e8e38b92e607a10734e10c961b450cf79ab590ce233045361c909e9",
+          "code": "017250",
+          "normalized_values_sha256": "610528da4420765ea3383fe4c9c9043c61a699ebc5e9939efb9f1e0594bc9633",
+          "period_end": "2024-09-30",
+          "period_start": "2023-10-01",
+          "receipt_id": "20241216000266",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "89c97ae43ecf33de669630410fe140550259f69f3ce74500be3a935a7b9fb832",
+          "code": "017250",
+          "normalized_values_sha256": "7ef723bcf8fb1201fb0e60a046d8a47fa4b181de16008fdb94cd441020cf4480",
+          "period_end": "2025-09-30",
+          "period_start": "2024-10-01",
+          "receipt_id": "20251217000580",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "018500",
+      "market": "KOSPI",
+      "metrics": {
+        "liabilities_to_assets_pct": 74.223619,
+        "sales_to_market_cap": 10.4070876
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "221c2a022065bc5e4b98f0ad26e589d1263a832088a1015b66150b62c26290ba",
+          "code": "018500",
+          "normalized_values_sha256": "028f92e2f375f050f2be726514e2d9f4419af07d32c5bb3ef4c5bbcdfc73e21f",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240619000177",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "6248e048713473d90cd3a0ff9f10981040a8e3838de8bd37f62a16f8da309c1d",
+          "code": "018500",
+          "normalized_values_sha256": "58903fc0248033d32e8f36fcfe6faf7b179c1b442cd4b14e0151a818ad3d8e7c",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250618000195",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "033200",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 8.130768,
+        "sales_to_market_cap": 1.62575891
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "da17103e602831ee38993704339e417d38ba54892f3dc42c4816aa3a77811e4e",
+          "code": "033200",
+          "normalized_values_sha256": "ae9309b81f863b37fcc3246fda4415a23eda2f450869a1e5c5325b6658188a0c",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240619000222",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "e00c508bc8b28b8b13e1f1794a472f97b32706c2b2f5ea30c8f77c7c2c309c09",
+          "code": "033200",
+          "normalized_values_sha256": "49f850945ce0ec4b5f54488c821bf5f83cd0daa0f3266fbf12e3a0467a7eb6c9",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250618000340",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "042520",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 73.192562,
+        "operating_margin_3y_pct": -11.130455,
+        "sales_to_market_cap": 0.5064611
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "399ad27967edcb911075d22342f6ae6bba40b6e49adf193f67384a24334182ae",
+          "code": "042520",
+          "normalized_values_sha256": "a76d1054e65a9c2cfaec9fba8d1115732dab609a14dcde0bd1357e997ccc7cf2",
+          "period_end": "2023-09-30",
+          "period_start": "2022-10-01",
+          "receipt_id": "20231219000383",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2023
+        },
+        {
+          "archive_sha256": "8fec16ebaa5b9ef1b826230fc1e3aea4e9d7e700e12dcf3d601344f2a7e3d5cd",
+          "code": "042520",
+          "normalized_values_sha256": "05b2231ac7c53222f155cb69800d24c3c15a995c3a16dcf1aa5c29c55fd57905",
+          "period_end": "2024-09-30",
+          "period_start": "2023-10-01",
+          "receipt_id": "20241219000524",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "968599990581d77a0b2851a8a90a82cc79ade18d7f729acdb3244e017a140db5",
+          "code": "042520",
+          "normalized_values_sha256": "da1a2ed3ecf844d4752a584d7cf833c0ecf33c356babc3d8e4062dd3e75a921b",
+          "period_end": "2025-09-30",
+          "period_start": "2024-10-01",
+          "receipt_id": "20251218000494",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "060310",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 33.780819,
+        "sales_to_market_cap": 0.50882193
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "f4a6e793a95ee30719ab9c5fdc827da379910b5a8f4b61bcaeb3fe8852c9072e",
+          "code": "060310",
+          "normalized_values_sha256": "f75c845dcd5ce666dbf2e24e09982da2a7cbb451dcc48be9657b235456477af0",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240619000239",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "16194d6ad59936c8f897de82a83029f8fedaa36e37a98fed61f3fd286439da77",
+          "code": "060310",
+          "normalized_values_sha256": "30e64e65f3b5cf913e62e0b345a9feba1fddf4ccb788309361ac255116d0cf11",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250618000208",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "092440",
+      "market": "KOSPI",
+      "metrics": {
+        "liabilities_to_assets_pct": 5.451889,
+        "sales_to_market_cap": 2.64845157
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "fe80a9dad01e2b8a8e548377abae805ad37270ee36d2b45eeeae9903b87983af",
+          "code": "092440",
+          "normalized_values_sha256": "e68ed5451faf504b94cd83b9288eac3a46c62d5544d5bbf741fd3fcccf088800",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240613000239",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "96f16983eed42ad625faa863d51a2b70cff334d0efb2ac2ebe70c953d7482cf8",
+          "code": "092440",
+          "normalized_values_sha256": "1b46c52f9373057f6220999d6e9b6f0dd0cb8125b3e7086b9187f4dc1a0b6d69",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250612000335",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "093380",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 23.3032,
+        "operating_margin_3y_pct": 2.474932,
+        "sales_to_market_cap": 3.93861757
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "8cf5b6084fd0e9b3186a256fc29a13f873f68d64017acca603f02b9ef727e370",
+          "code": "093380",
+          "normalized_values_sha256": "c37984a094ea415bfb48b6ec8a2079c5134013be55261cc1b1e59373fdb75ed4",
+          "period_end": "2023-08-31",
+          "period_start": "2022-09-01",
+          "receipt_id": "20231113000480",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2023
+        },
+        {
+          "archive_sha256": "5d9cc15579d36000f59862e55408fdb0c7102cb345c8732b17b6793943179d68",
+          "code": "093380",
+          "normalized_values_sha256": "1ef475b6a30cff25133e23f1681d66d0c00fec95f0484067d7e2db57fa20ad7f",
+          "period_end": "2024-08-31",
+          "period_start": "2023-09-01",
+          "receipt_id": "20241111000376",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "04e263635b64163a97aec735d8209462ab34f701c59b987f450765766672e4a4",
+          "code": "093380",
+          "normalized_values_sha256": "dcf36a73a464bd0b8305917ced921712c3ac34a6039b076dbedf00082a0d0290",
+          "period_end": "2025-08-31",
+          "period_start": "2024-09-01",
+          "receipt_id": "20251117000158",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2023,
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "097870",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 12.675033,
+        "sales_to_market_cap": 0.80461609
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "4e97d93e7b9a41f15a0733d66bc7d960b239720fa1d2e552b1704f87b4c55209",
+          "code": "097870",
+          "normalized_values_sha256": "322d36f09724f7a44a9d8b1e933df6383ce4a2c80140da6583e618d7f6ac9193",
+          "period_end": "2024-06-30",
+          "period_start": "2023-07-01",
+          "receipt_id": "20240919000173",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "d63daa5d4f050301d0482de38c8e67b09489fa5d4996860816a39a8d5e8c550e",
+          "code": "097870",
+          "normalized_values_sha256": "c1a35a9d562d348d1ae06e69e3621f206a27959861dbfc05dc27924360b144e3",
+          "period_end": "2025-06-30",
+          "period_start": "2024-07-01",
+          "receipt_id": "20250919000095",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "099750",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 24.819088,
+        "sales_to_market_cap": 0.84414826
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "e6847594e0d6b1236f68fbb6a85d955421a7a7ef5322e0836e4522e5c13c9622",
+          "code": "099750",
+          "normalized_values_sha256": "101828202810d7747bf23ecbe76943b0fca14a72208575e03ec0191bbafe53a6",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240619000159",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "cf3bf90ba9aa666788d3d669d06def73f8e53062bf49bbdc939ac42de181d97b",
+          "code": "099750",
+          "normalized_values_sha256": "cfc933268a0fd0c8c16cf92fee8f92fbf57bfe780816369010cd704a3038cfb1",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250618000187",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "169330",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 39.730639,
+        "sales_to_market_cap": 1.71003854
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "7677489533857d168618e1ece5fea2d59f3e9166bfd6ea022e40d5618d1c8de5",
+          "code": "169330",
+          "normalized_values_sha256": "b5e515d8a045029ba78e87b7c2fde434e22854b3b859a4f96e452d328b487891",
+          "period_end": "2024-06-30",
+          "period_start": "2023-07-01",
+          "receipt_id": "20240919000168",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "9b7ced7d35351bdc2ce2fb361f9c3e6dfcb9b441b99cc2e35b70f7659e4f0b92",
+          "code": "169330",
+          "normalized_values_sha256": "f6fb5b492f963affc179bfd6aa5daea5ef6e61d0cda30f9c1752b4a2294ac976",
+          "period_end": "2025-06-30",
+          "period_start": "2024-07-01",
+          "receipt_id": "20250922000295",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    },
+    {
+      "code": "289080",
+      "market": "KOSDAQ",
+      "metrics": {
+        "liabilities_to_assets_pct": 23.74958,
+        "sales_to_market_cap": 0.18193765
+      },
+      "receipt_proofs": [
+        {
+          "archive_sha256": "91e49ac6c5c066b0810143533238531f505332419d874a608eae9854e9432335",
+          "code": "289080",
+          "normalized_values_sha256": "f8ce82ca22af8b240cf18c6a4aa19b94c992d37b5a7befa3bb759419810d2a31",
+          "period_end": "2024-03-31",
+          "period_start": "2023-04-01",
+          "receipt_id": "20240620000411",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2024
+        },
+        {
+          "archive_sha256": "ed28395c4b198b7215d9824b40b3a265aea4d3d47f2c4f8d3176d1817ba0b6f9",
+          "code": "289080",
+          "normalized_values_sha256": "83c7bdc03c0545ebe88709c86455f2e71dd780e0c955ddb5c39d55b277e6c3cb",
+          "period_end": "2025-03-31",
+          "period_start": "2024-04-01",
+          "receipt_id": "20250619000224",
+          "scope": "CFS",
+          "status": "verified_same_receipt",
+          "year": 2025
+        }
+      ],
+      "source_years": [
+        2024,
+        2025
+      ]
+    }
+  ],
+  "research_only": true,
+  "selected": 33,
+  "schema": "v3-noncalendar-verified-metric-stage-v1",
+  "source_run": 45779276676,
+  "source_job": 139770506229,
+  "source_commit": "4cc2b716c85c05db544f75605b5e9fc03da508f5",
+  "score_promoted": false
+}
