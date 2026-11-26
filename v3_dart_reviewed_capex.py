@@ -73,6 +73,25 @@ def original_year(item, row, year, cutoff):
     return {**proof, 'source_fiscal_year': int(year)}
 
 
+# A later filing can fill exactly one missing component only when the
+# independently retained component agrees exactly and has no competing proof.
+# Keep the original parts in the provenance so a revised later receipt cannot
+# erase the valid original-year observation.
+PROTECTED_PARTIAL_FIELDS = (
+    'source_account_name_fallback', 'original_xbrl_proof', 'original_xbrl_review',
+    'full_intangible_total', 'reported_total_review', 'reported_capex_total',
+    'later_original_comparative_proof', PROOF,
+)
+
+
+def matching_partial(parts, item):
+    return (type(parts) is dict and set(parts) == set(PARTS)
+            and sum(parts[k] is None for k in PARTS) == 1
+            and all(parts[k] is None or
+                    (type(parts[k]) is int and parts[k] >= 0 and parts[k] == item[k])
+                    for k in PARTS))
+
+
 def verify(code, year, years, cutoff):
     row = years[year]
     if 'source_fiscal_year' in row[PROOF]:
@@ -80,6 +99,11 @@ def verify(code, year, years, cutoff):
         proof = original_year(item, row, year, cutoff)
     else:
         item, proof = reviewed_year(code, year, years, cutoff)
+        if 'existing_parts' in row[PROOF]:
+            existing = row[PROOF]['existing_parts']
+            if not matching_partial(existing, item):
+                raise ValueError('unverified_reviewed_capex_existing_parts')
+            proof['existing_parts'] = existing
     # Earlier no-replacement observations stored only the statement digest.
     # The registry notes still undergo identity and digest validation above.
     compatible_proof = proof
@@ -90,8 +114,12 @@ def verify(code, year, years, cutoff):
 
 
 def restore(row):
+    existing = row[PROOF].get('existing_parts', dict.fromkeys(PARTS))
+    if (type(existing) is not dict or set(existing) != set(PARTS)
+            or ('existing_parts' in row[PROOF] and not matching_partial(existing, row))):
+        raise ValueError('unverified_reviewed_capex_existing_parts')
     return {**{k: v for k, v in row.items() if k != PROOF},
-            **dict.fromkeys((*PARTS, 'total_capex_krw', 'free_cashflow_krw'))}
+            **existing, 'total_capex_krw': None, 'free_cashflow_krw': None}
 
 
 def apply_statement(row, item, proof):
@@ -130,9 +158,16 @@ def apply(cash):
             row = years.get(year)
             if (not row or row['annual_receipt_id'] != expected['annual_receipt']
                     or row['free_cashflow_krw'] is not None
-                    or any(row[k] is not None for k in PARTS)):
+                    or all(row[k] is not None for k in PARTS)):
+                continue
+            existing = {k: row[k] for k in PARTS}
+            partial = any(v is not None for v in existing.values())
+            if partial and (not matching_partial(existing, expected)
+                            or any(row.get(k) is not None for k in PROTECTED_PARTIAL_FIELDS)):
                 continue
             item, proof = reviewed_year(code, year, years, cutoff)
+            if partial:
+                proof['existing_parts'] = existing
             apply_statement(row, item, proof)
             added.append((code, year))
     return proposed, added
