@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: korean-screener-2023-comparative-revenue-source
@@ -76,6 +77,7 @@ jobs:
           fi
           echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
       - name: Publish only exact, validated revenue comparatives
+        id: publish
         if: ${{ steps.gate.outputs.ready == 'true' && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.mode == 'live')) }}
         run: |
           set -euo pipefail
@@ -94,10 +96,17 @@ jobs:
             if ! git diff --cached --quiet; then git commit --amend --no-edit; fi
             if git push origin HEAD:main; then
               echo 'verified_comparative_checkpoint_published'
+              echo 'changed=true' >> "$GITHUB_OUTPUT"
               exit 0
             fi
             if (( attempt == 3 )); then exit 1; fi
           done
+      - name: Refresh operating scores after publishing changed revenue evidence
+        if: steps.publish.outputs.changed == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-operational-research-score.yml/dispatches" -f ref=main --silent
       - name: Preserve visible source failure after checkpoint
         if: ${{ steps.source.outputs.interrupted == '1' }}
         run: |
