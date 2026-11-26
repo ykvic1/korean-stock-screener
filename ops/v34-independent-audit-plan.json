@@ -46,12 +46,22 @@
             "notice_list_url": "https://www.data.go.kr/main/selectDivNoticeDataListView.do",
             "notice_date": "2026-11-25",
             "notice_subject": "주식시세정보 Open API 서비스 외 9종 이용허락범위 유형 변경 및 신규 버전 배포 예정 안내",
-            "notice_full_text_verified": false,
-            "effective_date_verified": false,
+            "notice_full_text_verified": true,
+            "effective_date_verified": true,
             "public_derived_output_permission_verified": false,
             "policy": "No public expansion or new derived scoring based on FSC data until current terms and provider permission confirmed. Do not assume API key approval grants redistribution.",
             "explicit_unauthorized_third_party_provision_and_redistribution_prohibited": true,
-            "commercial_use_requires_paid_krx_purchase": true
+            "commercial_use_requires_paid_krx_purchase": true,
+            "notice_full_text_url": "https://www.data.go.kr/bbs/ntc/selectNotice.do?originId=NOTICE_0000000005172",
+            "announced_effective_date": "2026-12-17",
+            "announced_license": "KOGL Type 1 (attribution)",
+            "notice_applies_to_existing_apis": true,
+            "catalog_license_still_type_4_on_review_date": true,
+            "recheck_at_effective_date": [
+              "Published endpoint terms and actual availability",
+              "KRX third-party rights and any service-specific redistribution terms",
+              "Whether the source is regular-session only and when it becomes available"
+            ]
           }
         },
         "historical_krx_money_backfill_run": 45754970899,
@@ -412,6 +422,16 @@
           "exact_receipt_xbrl_recheck_commit": "6f9f64fef7a0d1123f12e8c8b658fbfe9ede29f6",
           "recheck_run": 45804144418,
           "recheck_pending": true
+        },
+        "separate_private_original_zip_pilot_20261126": {
+          "run": 45823802559,
+          "job": 139922608953,
+          "conclusion": "failure",
+          "failure": "private_original_zip_not_read_back",
+          "verification": "Private ZIP exact-byte readback check failed; underlying storage cause unconfirmed.",
+          "accepted_source_observations": 0,
+          "production_scoring_changed": false,
+          "production_original_xbrl_queue_reopened": false
         }
       }
     },
@@ -622,6 +642,21 @@
           ],
           "production_score_certified": false,
           "performance_validated": false
+        },
+        "same_date_noncalendar_additional_checkpoint": {
+          "asof": "2026-11-25",
+          "history_run": 45821091852,
+          "metric_run": 45821555730,
+          "operational_run": 45822089745,
+          "pages_run": 45822333908,
+          "scored_commit": "31a4b7d30d617cb16cfe8fbcb35220cff17472cd",
+          "listed_total": 2593,
+          "full_100_before": 1426,
+          "full_100_after": 1426,
+          "prior_aggregate_weight_pct": 91.62507394215224,
+          "current_aggregate_weight_pct": 91.62931613266522,
+          "issuers_increased": 2,
+          "added_available_weight": 11
         }
       }
     }
