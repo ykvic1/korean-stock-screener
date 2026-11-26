@@ -1,0 +1,78 @@
+{
+  "schema": "manual-official-fcf-source-staging-v1",
+  "reviewed_on": "2026-11-26",
+  "market_asof": "2026-11-25",
+  "source": "KRX_KIND",
+  "stage": "official_comparative_observed_pending_current_DART_anchors_and_raw_viewer_hashes",
+  "records": [
+    {
+      "code": "306200",
+      "name": "세아제강",
+      "scope": "CFS",
+      "kind_receipt": "20260312003743",
+      "source_url": "https://kind.krx.co.kr/external/2026/03/12/001556/20260312003743/11011.htm",
+      "units": "KRW",
+      "statement_sections": [
+        "2-1. 연결 재무상태표",
+        "2-4. 연결 현금흐름표"
+      ],
+      "prior_availability": [
+        "N",
+        "V",
+        "V"
+      ],
+      "years": [
+        {
+          "year": 2025,
+          "operating_cashflow_krw": -108307635174,
+          "ppe_cash_payments_krw": 45758962332,
+          "intangible_cash_payments_krw": 0,
+          "assets_krw": 1828293597693,
+          "investing_cashflow_krw": -138618346156,
+          "derived_fcf_krw": -154066597506,
+          "other_investing_cashflow_derived_krw": -92859383824
+        },
+        {
+          "year": 2024,
+          "operating_cashflow_krw": 299888530657,
+          "ppe_cash_payments_krw": 90352077248,
+          "intangible_cash_payments_krw": 551507770,
+          "assets_krw": 1823848054024,
+          "investing_cashflow_krw": -217287025221,
+          "derived_fcf_krw": 208984945639,
+          "other_investing_cashflow_derived_krw": -126383440203
+        },
+        {
+          "year": 2023,
+          "operating_cashflow_krw": 111167057097,
+          "ppe_cash_payments_krw": 49877142183,
+          "intangible_cash_payments_krw": 0,
+          "assets_krw": 1535913844662,
+          "investing_cashflow_krw": -96635035722,
+          "derived_fcf_krw": 61289914914,
+          "other_investing_cashflow_derived_krw": -46757893539
+        }
+      ],
+      "notes": "FY2023 and FY2025 intangible purchases explicitly printed as numeric 0; not inferred from blank. Other investing subtotal derived, not separately verified."
+    }
+  ],
+  "reviewed_no_complete_candidate": [
+    {
+      "code": "045060",
+      "name": "오공",
+      "source_url": "https://kind.krx.co.kr/external/2026/03/16/002002/20260316005779/11011.htm",
+      "reason": "intangible purchases not separately printed in comparative cash flow; do not infer zero"
+    },
+    {
+      "code": "100030",
+      "name": "인지소프트",
+      "source_url": "https://kind.krx.co.kr/external/2026/03/23/001375/20260323006075/11011.htm",
+      "reason": "intangible purchases not separately printed in comparative cash flow; do not infer zero"
+    }
+  ],
+  "production_score_changed": false,
+  "remaining_requirements": [
+    "Verify current DART receipt/scope and FY2024-25 CFO/CAPEX/assets anchors; fetch official DART viewer sections and hash raw bytes before promotion using existing validator.",
+    "Do not infer missing as zero or replace current data; no source dates relabelled."
+  ]
+}
