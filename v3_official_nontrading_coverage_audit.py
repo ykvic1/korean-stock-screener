@@ -240,6 +240,98 @@ def face_shadow(catalog, scores, panels, operational=None):
             'score_recovery_not_proven': True}
 
 
+def reviewed_rename_notices(root=Path('.')):
+    """Use only existing reviewed public notices, through the current validator."""
+    from io import StringIO
+    from v3_forward_share_actions import reviewed_actions, CONTINUITY_FIELDS
+    forward = reviewed_actions((root / 'ops/forward-reviewed-share-continuity.csv').read_bytes())
+    result = {k: v for k, v in forward.items() if v['action'] == 'rename'}
+    historical = json.loads((root / 'ops/v3-performance-continuity-actions-20251113.json').read_bytes())
+    out = StringIO()
+    writer = csv.DictWriter(out, fieldnames=CONTINUITY_FIELDS)
+    writer.writeheader()
+    for item in historical:
+        if item['action'] != 'rename':
+            continue
+        writer.writerow({'market':item['market'], 'code':item['code'],
+                         'name':item['name_after'], 'prior_name':item['name_before'],
+                         'listing_on':item['listed_on'], 'action':'rename',
+                         'shares_before':item['shares_before'], 'shares_after':item['shares_after'],
+                         'new_units':1,'old_units':1,'notice_url':item['notice_url']})
+    old = reviewed_actions(out.getvalue().encode())
+    if result.keys() & old.keys():
+        raise ValueError('duplicate_reviewed_rename_notice')
+    result.update(old)
+    return result
+
+
+def relabel_reviewed_renames(records, member, days, notices):
+    """Normalize identity only across an exact dated, holder-neutral rename.
+
+    Never bridge missing rows, market changes, price discontinuity or unknown
+    names. All prices and share counts remain unchanged in memory.
+    """
+    from v3_forward_share_actions import share_transition
+    output = list(records)
+    expected = normalized_name(member['name'])
+    hits = 0
+    for i in range(len(records)-1, -1, -1):
+        row = records[i]
+        if row is None or row[0] != member['market']:
+            break
+        if normalized_name(row[1]) != expected:
+            if i+1 >= len(records):
+                break
+            nxt = records[i+1]
+            notice = notices.get((days[i+1], member['code']))
+            if (not nxt or normalized_name(nxt[1]) != expected
+                    or not notice or notice.get('action') != 'rename'
+                    or nxt[4] != row[2] or abs(nxt[2]/row[2]-1) > .5
+                    or share_transition([row[0],row[1],row[3]],
+                                        [nxt[0],nxt[1],nxt[3]],notice) != 'notice_matched'):
+                break
+            expected = normalized_name(row[1])
+            hits += 1
+        output[i] = [row[0], member['name'], *row[2:]]
+    return output, hits
+
+
+def rename_shadow(catalog, scores, panels):
+    """Aggregate effect of the verified name transitions; no per-issuer export."""
+    from v3_regular_close_indicators import continuous_tail
+    from v3_krx_close_momentum_recovery import load_face_notices
+    from v3_regular_close_contract import SESSIONS
+    if len(panels) != SESSIONS:
+        raise ValueError('invalid_rename_shadow_window')
+    days = [p['date'] for p in panels]
+    positions = {day:i for i,day in enumerate(days)}
+    notices = reviewed_rename_notices()
+    faces,_ = load_face_notices()
+    candidates = {code for day,code in notices if day in positions}
+    counts = Counter({'reviewed_rename_notices_in_window':sum(d in positions for d,c in notices),
+                      'reviewed_rename_candidate_issuers':0, 'validated_rename_events':0,
+                      'tail_extensions':0,'added_observed_sessions':0,'full_260_extensions':0})
+    for member in catalog['rows']:
+        code = member['code']
+        if code not in candidates:
+            continue
+        counts['reviewed_rename_candidate_issuers'] += 1
+        records = [p['rows'].get(code) for p in panels]
+        match = {positions[d]: n for d,n in faces.get(code,{}).items() if d in positions}
+        old = continuous_tail(records,member,match)
+        relabeled, hits = relabel_reviewed_renames(records,member,days,notices)
+        new = continuous_tail(relabeled,member,match)
+        if len(new) < len(old):
+            raise ValueError('reviewed_rename_lost_history')
+        counts['validated_rename_events'] += hits
+        if len(new)>len(old):
+            counts['tail_extensions'] += 1
+            counts['added_observed_sessions'] += len(new)-len(old)
+            counts['full_260_extensions'] += len(new)==SESSIONS
+    return {'counts':dict(counts), 'provider_calls':0,'production_changed':False,
+            'unreviewed_names_not_bridged':True,'score_recovery_not_proven':True}
+
+
 def self_test():
     m = {'code': '123456', 'market': 'KOSPI', 'name': 'Example'}
     def p(v, name='Example'):
@@ -252,6 +344,16 @@ def self_test():
     assert missing_boundary_class([None, 1], 0) == 'no_prior_observation_in_window'
     assert missing_boundary_class([1, None, 1], 1) == 'internal_missing_row'
     assert missing_boundary_class([1, None], 1) == 'current_issuer_observation_absent'
+    prior = ['KOSPI','Old',100,10,100,True]
+    current = ['KOSPI','Example',105,10,100,True]
+    rd = ['2026-11-24','2026-11-25']
+    notice = {'action':'rename','market':'KOSPI','name':'Example','prior_name':'Old',
+              'shares_before':10,'shares_after':10}
+    renamed,hits = relabel_reviewed_renames([prior,current],m,rd,{(rd[1],m['code']):notice})
+    assert hits == 1 and renamed[0][1] == 'Example' and renamed[0][2:] == prior[2:]
+    assert relabel_reviewed_renames([prior,current],m,rd,{})[1] == 0
+    assert relabel_reviewed_renames([prior,[*current[:3],11,*current[4:]]],m,rd,{(rd[1],m['code']):notice})[1] == 0
+    assert relabel_reviewed_renames([prior,[*current[:4],99,current[5]]],m,rd,{(rd[1],m['code']):notice})[1] == 0
     from v3_regular_close_contract import SESSIONS
     from datetime import date, timedelta
     days = [(date(2025, 1, 1) + timedelta(days=i)).isoformat() for i in range(SESSIONS)]
@@ -306,6 +408,7 @@ def main():
                    for c, r in operational['rows'].items())):
         raise ValueError('misaligned_operational_overlap_source')
     result['verified_face_daily_shadow'] = face_shadow(catalog, scores, panels, operational)
+    result['reviewed_rename_shadow'] = rename_shadow(catalog, scores, panels)
     # A prior valid row is retained by design; audit sensitivity uses the actual
     # published weights, not an invented all-current data snapshot.
     result['score_row_asof_counts'] = dict(Counter(r['기준일'] for r in rows))
