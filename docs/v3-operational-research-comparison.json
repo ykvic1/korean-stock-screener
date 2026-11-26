@@ -36,7 +36,7 @@
   },
   "operational_coverage": {
     "status": "provisional_operational",
-    "source_digest": "4eae6afa49dc4b9e37aaa1cef63ef7447f8d2141687dba06f1410455eacc6c7f",
+    "source_digest": "99a6a4eee93c1d22169f420d9b0c709778a98f5f085fd7e248702d80845fe7f5",
     "listed_total": 2593,
     "ranked_count": 2574,
     "available_100_count": 1426,
@@ -59,6 +59,6 @@
   "prior_top_overlap": {
     "50": 20,
     "100": 45,
-    "200": 105
+    "200": 104
   }
 }
