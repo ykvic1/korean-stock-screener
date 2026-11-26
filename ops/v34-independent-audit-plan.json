@@ -102,7 +102,25 @@
         "pr": 1151,
         "dry_run": 45750240840,
         "reviewed_partial_capex_years": 0,
-        "source_rules_unchanged": true
+        "source_rules_unchanged": true,
+        "latest_cashflow_checkpoint": {
+          "asof": "2026-11-25",
+          "attempted_issuer_years": 7198,
+          "observed_fcf_issuer_years": 6435,
+          "missing_fcf_issuer_years": 763,
+          "eligible_unfetched_standard_issuer_years": 0,
+          "original_xbrl_request_run": 45764801397,
+          "original_xbrl_result_pending": true
+        },
+        "owner_profit_queue": {
+          "run": 45764507880,
+          "eligible_missing_issuers": 47,
+          "already_queried_same_receipt": 47,
+          "pending_issuers": 0,
+          "provider_calls": 0,
+          "new_observations": 0,
+          "avoid_blind_repeat": true
+        }
       }
     },
     {
@@ -192,7 +210,34 @@
       "id": "FINAL",
       "task": "Independent before/after replay and acceptance",
       "status": "open",
-      "acceptance": "Compare identical roster and source date, actual recovered weights, stale factors, regressions, no performance certification claim."
+      "acceptance": "Compare identical roster and source date, actual recovered weights, stale factors, regressions, no performance certification claim.",
+      "evidence": {
+        "same_date_coverage_checkpoint": {
+          "asof": "2026-11-25",
+          "prior_commit": "57812e81c8c4936fe8f69666dcc00ad829b234e9",
+          "current_commit": "93151799addb1307c19b9312993a92ca0930d302",
+          "current_digest": "4eae6afa49dc4b9e37aaa1cef63ef7447f8d2141687dba06f1410455eacc6c7f",
+          "listed_count_both": 2593,
+          "prior_full_100": 1419,
+          "current_full_100": 1426,
+          "prior_aggregate_weight_pct": 91.5639960401,
+          "current_aggregate_weight_pct": 91.5895938033,
+          "added_available_weight": 66.375,
+          "issuers_with_increased_weight": 27,
+          "issuers_with_decreased_weight": 0,
+          "fully_resolved_component_gaps": {
+            "volume:correction_contraction": 18,
+            "volume:up_down_asymmetry": 20,
+            "volume:persistence": 1
+          },
+          "basis": "sum of complete issuer weights and unique single/multiple gap-index weights in published operational priority reports",
+          "identical_roster_membership_independently_verified": false,
+          "volume_session_scope_certified": false,
+          "investment_score_certified": false,
+          "performance_validated": false,
+          "successful_pages_run": 45763917053
+        }
+      }
     }
   ]
 }
