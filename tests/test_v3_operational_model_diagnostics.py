@@ -84,3 +84,30 @@ class ModelDiagnosticTests(unittest.TestCase):
         self.assertEqual(sum(g['issuer_count'] for g in result['ranked_capitalization_groups'].values()),result['ranked_count'])
         self.assertTrue(risk['ranking_only_not_performance'])
         self.assertEqual(before,sources)
+
+
+    def test_market_session_exposure_separates_mixed_periods_and_missing(self):
+        row = {'parts': {'volume': {'obv_price_divergence':[0,4,'2026-11-25']},
+                         'technical': {'daily_rsi':[0,1.2,'2026-11-25']},
+                         'momentum': {'daily_ma_slope_turn':[0,2,'2026-11-25']}},
+               'regular_close_recomputed_parts':['daily_rsi','daily_ma_slope_turn'],
+               'regular_close_ma_periods':['20']}
+        result=d.market_session_exposure({'rows':{'000001':row}})
+        self.assertEqual(result['maximum_weight'],75)
+        self.assertAlmostEqual(result['official_close_recomputed_weight'],1.7)
+        self.assertAlmostEqual(result['scope_unverified_weight'],5.5)
+        self.assertAlmostEqual(result['missing_weight'],67.8)
+        self.assertEqual(result['factors']['momentum:daily_ma_slope_turn']['mixed_source_issuers'],1)
+        self.assertFalse(result['volume_turnover_obv_certified'])
+        row['regular_close_ma_periods']=['20','60','120']
+        row['parts']['momentum']['daily_ma_slope_turn'][1]=.5
+        with self.assertRaises(ValueError):
+            d.market_session_exposure({'rows':{'000001':row}})
+
+    def test_market_session_exposure_partitions_full_current_roster(self):
+        result=d.build(*self.inputs)['market_session_exposure']
+        self.assertEqual(result['maximum_weight'],len(self.inputs[0]['rows'])*75)
+        self.assertAlmostEqual(result['observed_weight']+result['missing_weight'],
+                               result['maximum_weight'],places=3)
+        self.assertEqual(result['factors']['volume:obv_price_divergence']['official_close_recomputed_weight'],0)
+        self.assertFalse(result['scores_changed'])
