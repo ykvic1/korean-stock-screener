@@ -66,6 +66,15 @@ def audit(catalog, scores, status, panels):
             'scores_changed': False}
 
 
+def missing_boundary_class(records, index):
+    # Absence before first retained record is not proof of listing date.
+    if index == len(records) - 1:
+        return 'current_issuer_observation_absent'
+    if any(r is not None for r in records[:index]):
+        return 'internal_missing_row'
+    return 'no_prior_observation_in_window'
+
+
 def continuity_audit(catalog, scores, panels):
     """Explain the first daily tail break exactly as the current scorer sees it.
 
@@ -77,6 +86,7 @@ def continuity_audit(catalog, scores, panels):
     if len(panels) != SESSIONS or any(p is None for p in panels):
         raise ValueError('incomplete_continuity_archive')
     groups = {}
+    missing_subtypes = Counter()
     for member in catalog['rows']:
         code = member['code']
         records = [p['rows'].get(code) for p in panels]
@@ -88,6 +98,7 @@ def continuity_audit(catalog, scores, panels):
             nxt = records[index + 1] if n else None
             if row is None:
                 reason = 'missing_issuer_observation'
+                missing_subtypes[missing_boundary_class(records, index)] += 1
             elif row[0] != member['market']:
                 reason = 'market_identity_mismatch'
             elif normalized_name(row[1]) != normalized_name(member['name']):
@@ -107,7 +118,8 @@ def continuity_audit(catalog, scores, panels):
     for group in groups.values():
         group['missing_weight'] = round(group['missing_weight'], 6)
     return {'sessions_examined': SESSIONS, 'first_boundary_groups': groups,
-            'issuer_count': len(scores), 'cause_is_not_verified_corporate_action': True,
+            'issuer_count': len(scores), 'missing_boundary_subtypes': dict(missing_subtypes),
+            'listing_start_not_certified': True, 'cause_is_not_verified_corporate_action': True,
             'missing_weight_is_associated_not_attributable_to_boundary': True,
             'weekly_continuity_separately_unverified': True,
             'provider_calls': 0, 'scores_changed': False}
@@ -144,7 +156,7 @@ def daily_factor_observations(tail, days, asof):
     return result
 
 
-def face_shadow(catalog, scores, panels):
+def face_shadow(catalog, scores, panels, operational=None):
     """Replay the already verified weekly face-action gate on daily tails.
 
     Measure improvement only. No issuer-level restricted values leave this audit,
@@ -162,6 +174,9 @@ def face_shadow(catalog, scores, panels):
     counts = Counter()
     new_factors, changed_factors = Counter(), Counter()
     candidate_weight = 0.
+    net_candidate_weight = 0.
+    net_issuers = 0
+    net_full_candidates = 0
     days = [p['date'] for p in panels]
     for member in catalog['rows']:
         code = member['code']
@@ -189,12 +204,38 @@ def face_shadow(catalog, scores, panels):
                 candidate_weight += new[key][0]
             for key in old.keys() & new.keys():
                 changed_factors[key] += old[key][1] != new[key][1]
+            if operational is not None:
+                parts = operational['rows'][code]['parts']
+                # Compare whole component weights, including the combined daily
+                # MA turn. Do not double-count individual 20/60/120 contributions.
+                groups = [
+                    ('technical', 'daily_rsi', ('daily_rsi',)),
+                    ('technical', 'ma20_ma60_cross_near_ma240', ('ma240_cross',)),
+                    ('momentum', 'daily_ma_slope_turn',
+                     ('daily_ma_turn_20', 'daily_ma_turn_60', 'daily_ma_turn_120')),
+                ]
+                delta = 0.
+                for area, key, keys in groups:
+                    before_weight = sum(old[k][0] for k in keys if k in old)
+                    after_weight = sum(new[k][0] for k in keys if k in new)
+                    existing = parts[area].get(key)
+                    observed = float(existing[1]) if existing else 0.
+                    # Count only the extension newly possible from this change,
+                    # not gaps from unrelated source admission rules.
+                    delta += max(0., after_weight - max(observed, before_weight))
+                net_candidate_weight += delta
+                if delta > 1e-6:
+                    net_issuers += 1
+                    net_full_candidates += scores[code] < 100 and scores[code] + delta >= 100 - 1e-5
             for threshold in (90, 120, DAILY_SESSIONS, SESSIONS):
                 if n < threshold <= m:
                     counts['crossed_' + str(threshold) + '_session_threshold'] += 1
     return {'counts': dict(counts), 'new_official_daily_factor_counts': dict(new_factors),
             'changed_existing_daily_factor_counts': dict(changed_factors),
             'new_official_factor_weight_before_operational_overlap': round(candidate_weight, 6),
+            'incremental_weight_candidate_after_current_operational_overlap': round(net_candidate_weight, 6) if operational is not None else None,
+            'incremental_weight_candidate_issuers': net_issuers if operational is not None else None,
+            'potential_full_100_candidates': net_full_candidates if operational is not None else None,
             'provider_calls': 0, 'production_changed': False,
             'score_recovery_not_proven': True}
 
@@ -208,6 +249,9 @@ def self_test():
     assert trailing_zero(m, [p(False, 'Other'), p(False)]) == 1
     assert trailing_zero(m, [p(False), p(None)]) == 0
     assert trailing_zero(m, [p(False)] * WINDOW) == WINDOW
+    assert missing_boundary_class([None, 1], 0) == 'no_prior_observation_in_window'
+    assert missing_boundary_class([1, None, 1], 1) == 'internal_missing_row'
+    assert missing_boundary_class([1, None], 1) == 'current_issuer_observation_absent'
     from v3_regular_close_contract import SESSIONS
     from datetime import date, timedelta
     days = [(date(2025, 1, 1) + timedelta(days=i)).isoformat() for i in range(SESSIONS)]
@@ -255,7 +299,13 @@ def main():
     panels = [read_day((args.archive / archive_path(d)).read_bytes(), d) for d in days]
     result = audit(catalog, scores, status, panels[-WINDOW:])
     result['daily_continuity'] = continuity_audit(catalog, scores, panels)
-    result['verified_face_daily_shadow'] = face_shadow(catalog, scores, panels)
+    operational = json.loads((root / 'v3-operational-research-scores.json').read_bytes())
+    if (operational['asof'] != day or operational['format'] != 'compact-parts-v1'
+            or set(operational['rows']) != set(scores)
+            or any(abs(float(r['available']) - scores[c]) > 1e-5
+                   for c, r in operational['rows'].items())):
+        raise ValueError('misaligned_operational_overlap_source')
+    result['verified_face_daily_shadow'] = face_shadow(catalog, scores, panels, operational)
     # A prior valid row is retained by design; audit sensitivity uses the actual
     # published weights, not an invented all-current data snapshot.
     result['score_row_asof_counts'] = dict(Counter(r['기준일'] for r in rows))
