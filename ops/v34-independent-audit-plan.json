@@ -36,11 +36,32 @@
           "meets_morning_deadline": false,
           "regular_only_volume_and_turnover_verified": false,
           "afternoon_check_kst": "14:00",
-          "private_access_or_publication_permission_verified": false
+          "private_access_or_publication_permission_verified": false,
+          "license_review_20261126": {
+            "catalog_url": "https://www.data.go.kr/catalog/15094808/openapi.json",
+            "catalog_modified": "2026-10-28",
+            "catalog_license": "KOGL Type 4; third-party rights; attribution, noncommercial, no modification",
+            "catalog_license_url": "https://www.kogl.or.kr/info/licenseType4.do",
+            "older_detail_snapshot_license": "unrestricted (detail page modified 2026-01-02; not accepted as current permission)",
+            "notice_list_url": "https://www.data.go.kr/main/selectDivNoticeDataListView.do",
+            "notice_date": "2026-11-25",
+            "notice_subject": "주식시세정보 Open API 서비스 외 9종 이용허락범위 유형 변경 및 신규 버전 배포 예정 안내",
+            "notice_full_text_verified": false,
+            "effective_date_verified": false,
+            "public_derived_output_permission_verified": false,
+            "policy": "No public expansion or new derived scoring based on FSC data until current terms and provider permission confirmed. Do not assume API key approval grants redistribution."
+          }
         },
         "historical_krx_money_backfill_run": 45754970899,
         "historical_krx_money_scoring_allowed": false,
-        "morning_publish_local_deadline": "08:00"
+        "morning_publish_local_deadline": "08:00",
+        "krx_terms_review_20261126": {
+          "effective": "2025-12-26",
+          "article_6": "noncommercial; no distortion",
+          "article_10": "source attribution for screens",
+          "article_11": "no third-party provision of received information",
+          "derived_publication_permission_verified": false
+        }
       }
     },
     {
@@ -136,6 +157,19 @@
           "selected": 0,
           "new_observed": 0,
           "provider_calls": 0
+        },
+        "original_queue_inventory": {
+          "run": 45770867460,
+          "asof": "2026-11-25",
+          "unreviewed_issuers": 221,
+          "unreviewed_issuer_years": 455,
+          "priority_unreviewed_issuers": 61,
+          "priority_unreviewed_issuer_years": 178,
+          "conditional_90_unreviewed_issuer_years": 0,
+          "reviewed_still_missing_issuer_years": 274,
+          "provider_calls": 0,
+          "recoverability_proven": false,
+          "next_batch_run": 45771370744
         }
       }
     },
