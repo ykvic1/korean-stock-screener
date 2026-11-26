@@ -93,12 +93,28 @@ def main():
     status = json.loads((root / 'v3-trading-status.json').read_bytes())
     with (root / 'v3-operational-research-scores.csv').open(encoding='utf-8-sig') as f:
         rows = list(csv.DictReader(f))
-    if len(rows) != catalog['listed_total'] or any(r['기준일'] != catalog['date'] for r in rows):
+    from datetime import date
+    comparison = json.loads((root / 'v3-operational-research-comparison.json').read_bytes())
+    day = catalog['date']
+    if (comparison['asof'] != day
+            or comparison['operational_coverage']['listed_total'] != catalog['listed_total']
+            or len(rows) != catalog['listed_total']
+            or any(date.fromisoformat(r['기준일']) > date.fromisoformat(day) for r in rows)):
         raise ValueError('misaligned_csv')
     scores = {r['종목코드']: float(r['확보배점']) for r in rows}
-    days = history_dates(catalog['date'])[-WINDOW:]
-    panels = [read_day((args.archive / archive_path(day)).read_bytes(), day) for day in days]
-    print(json.dumps(audit(catalog, scores, status, panels), sort_keys=True))
+    if (len(scores) != len(rows) or sum(v == 100 for v in scores.values())
+            != comparison['operational_coverage']['available_100_count']):
+        raise ValueError('csv_comparison_mismatch')
+    days = history_dates(day)[-WINDOW:]
+    panels = [read_day((args.archive / archive_path(d)).read_bytes(), d) for d in days]
+    result = audit(catalog, scores, status, panels)
+    # A prior valid row is retained by design; audit sensitivity uses the actual
+    # published weights, not an invented all-current data snapshot.
+    result['score_row_asof_counts'] = dict(Counter(r['기준일'] for r in rows))
+    result['retained_prior_date_score_rows'] = sum(r['기준일'] != day for r in rows)
+    result['unadjusted_full_100_count'] = sum(v == 100 for v in scores.values())
+    result['unadjusted_aggregate_weight_pct'] = round(sum(scores.values()) / len(scores), 4)
+    print(json.dumps(result, sort_keys=True))
 
 
 if __name__ == '__main__':
