@@ -1,8 +1,8 @@
 {
   "schema": "v3-forward-validation-coverage-1",
-  "latest_score_asof": "2026-11-24",
-  "candidate_entry_session_count": 6,
-  "matched_entry_session_count": 5,
+  "latest_score_asof": "2026-11-25",
+  "candidate_entry_session_count": 7,
+  "matched_entry_session_count": 6,
   "horizons": {
     "1": {
       "first_target_date": "2026-12-16",
