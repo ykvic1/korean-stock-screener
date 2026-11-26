@@ -48,10 +48,14 @@ def normalize(rows,corp,year,scope,cutoff):
     return {'year':year,'fs_div':scope,'receipt_id':next(iter(receipts)),'values':values,'currency':'KRW'}
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--mode',choices=('dry-run','live'),default='dry-run');a=p.parse_args()
+    p=argparse.ArgumentParser()
+    p.add_argument('--mode',choices=('dry-run','live'),default='dry-run')
+    p.add_argument('--period-evidence',type=Path,
+                   default=Path('ops/v3-noncalendar-period-evidence-20261125.json'))
+    a=p.parse_args()
     root=Path('docs');read=lambda n:json.loads((root/n).read_text())
     cat=read('v22-market-catalog.json');book=read('v3-dart-book-reference.json')
-    proof=json.loads(Path('ops/v3-noncalendar-period-evidence-20261125.json').read_text())
+    proof=json.loads(a.period_evidence.read_text(encoding='utf-8'))
     day=cat['date'];cutoff=date.fromisoformat(day)
     if proof['asof']!=day or book['asof']!=day:raise ValueError('noncalendar_source_day_mismatch')
     members={v['code']:v for v in cat['rows']}
