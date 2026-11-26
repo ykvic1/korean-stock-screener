@@ -308,7 +308,7 @@
           "amounts_published": false,
           "points_added": 0,
           "repeat_guard_commit": "08dba4904411eb70584d08a2c99f4a306e0f2662",
-          "repeat_guard_validation_pending": true,
+          "repeat_guard_validation_pending": false,
           "policy": "Only aggregate candidate evidence; do not treat FY2025 comparative columns or listed receipt metadata as original FY2023/24 facts. Full identical-input completed aggregate sweeps may be reused; incomplete partitions, changed inputs and explicit manual live requests remain eligible.",
           "repeat_guard_first_run": {
             "run": 45800150233,
@@ -317,7 +317,14 @@
             "live_provider_calls": 0
           },
           "repeat_guard_fix_commit": "c5c63ec3de29c9d1353352ceda8912ea0558fca6",
-          "repeat_guard_fix_run": 45800603078
+          "repeat_guard_fix_run": 45800603078,
+          "repeat_guard_fix_result": {
+            "run": 45800603078,
+            "completed_partitions": 3,
+            "passed_tests_per_partition": 18,
+            "aggregate_cache_saved_all": true,
+            "reused_cache_hit_verified": false
+          }
         },
         "prior_year_original_research_latest": {
           "run": 45797414670,
@@ -366,6 +373,45 @@
           ],
           "production_score_certified": false,
           "performance_validated": false
+        },
+        "noncalendar_residual_period_review": {
+          "asof": "2026-11-25",
+          "historical_month_candidates": [
+            {
+              "code": "021880",
+              "receipt": "20250617000184",
+              "month": 3,
+              "change_evidence": "https://kind.krx.co.kr/common/disclsviewer.do?acptno=20260626000495&docno=&method=search&viewerhost=",
+              "historical_evidence": "https://www.mason-capital.co.kr/ir/disclosure/212/index.html"
+            },
+            {
+              "code": "032800",
+              "receipt": "20250917000341",
+              "month": 6,
+              "historical_evidence": "https://samara.kr/disclosure/20250917000341",
+              "change_evidence": "https://samara.kr/disclosure/20260929900624"
+            }
+          ],
+          "half_year_structural_candidates": [
+            {
+              "code": "334890",
+              "source": "https://kind.krx.co.kr/external/2025/11/20/000752/20251120002146/11011.htm"
+            },
+            {
+              "code": "377190",
+              "source": "https://kind.krx.co.kr/external/2025/06/02/000752/20250602001628/11011.htm"
+            },
+            {
+              "code": "396690",
+              "source": "https://kind.krx.co.kr/external/2024/06/18/000445/20240618001084/11011.htm"
+            }
+          ],
+          "half_year_not_annualized": true,
+          "exclusions_applied": 0,
+          "new_operational_weight": 0,
+          "exact_receipt_xbrl_recheck_commit": "6f9f64fef7a0d1123f12e8c8b658fbfe9ede29f6",
+          "recheck_run": 45804144418,
+          "recheck_pending": true
         }
       }
     },
