@@ -1,0 +1,48 @@
+name: V3 Non-December Four-Year Source Evidence
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/v3-noncalendar-history-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: v3-noncalendar-history-audit
+  cancel-in-progress: false
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/v3-dart-company-codes.json
+          key: v3-dart-corp-map-v1-${{ hashFiles('docs/v22-market-catalog.json') }}
+      - name: Verify strict standard account and identity guards
+        run: |
+          python -m py_compile v3_dart_noncalendar_history_audit.py
+          python - <<'PY'
+          from datetime import date
+          from v3_dart_noncalendar_history_audit import normalize
+          row={'corp_code':'00123456','bsns_year':'2025','reprt_code':'11011','fs_div':'CFS','rcept_no':'20251215000001','account_id':'ifrs-full_Revenue','sj_div':'IS','currency':'KRW','thstrm_amount':'1234'}
+          cutoff=date(2026,11,25)
+          assert normalize([row],'00123456',2025,'CFS',cutoff)['values']=={'revenue':1234}
+          assert normalize([dict(row,currency='USD')],'00123456',2025,'CFS',cutoff) is None
+          assert normalize([row,dict(row,thstrm_amount='5678')],'00123456',2025,'CFS',cutoff) is None
+          for bad in (dict(row,corp_code='99999999'),dict(row,bsns_year='2024'),dict(row,rcept_no='20261201000001')):
+              try: normalize([bad],'00123456',2025,'CFS',cutoff)
+              except ValueError: pass
+              else: raise AssertionError('untrusted row accepted')
+          print('6 strict source guards passed')
+          PY
+          python v3_dart_noncalendar_history_audit.py --mode dry-run
+      - name: Check exact same-scope original receipts across four fiscal years
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          python -m pip install 'requests>=2.31,<3'
+          python v3_dart_noncalendar_history_audit.py --mode live
