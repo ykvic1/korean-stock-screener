@@ -11,7 +11,7 @@
 <script src="v3-stop-evidence.js?v=v30b-20261103-stop-evidence" defer></script>
 <script src="operational-score.js?v=r1e-stop-unscored-v34-freshness-alnum-session-scope-20261117-closeout&amp;source=regular-close-weekly-history-live-layout1" defer></script>
 <script src="v3-trading-status.js?v=20261110-halt-display-alnum-20261112" defer></script>
-<script src="workspace.js?v=v30b-20261120-close-digest-live-layout2" defer></script>
+<script src="workspace.js?v=v30b-20261120-close-digest-v34-coverage-live-layout2" defer></script>
 <script src="v3-krx-progress.js?v=live-skip1" defer></script>
 <script src="v3-dart-receipt-progress.js?v=live-skip1" defer></script>
 <script src="v3-data-readiness.js?v=live-skip1" defer></script>
@@ -45,7 +45,7 @@
    <button type="button" data-score-sort="area:valuation" aria-pressed="false">가치</button>
    <button type="button" data-score-sort="area:momentum" aria-pressed="false">모멘텀</button>
   </div>
-  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><span id="filterNotice"></span></div>
+  <div class="u-rank-controls"><button id="top100Only" type="button" aria-pressed="false">TOP100 · 현재 정렬</button><button id="obvLagOnly" type="button" aria-pressed="false" title="60일 OBV 상승·주가 미반영: 실측 연구 관찰용, 매집·매수 인증 아님">OBV↑ · 주가 미반영</button><button id="personalRank" type="button" aria-pressed="false" title="개인 연구용: 관측 잠정점수/확보 배점×100, 5개 영역·75점 이상만 표시">개인용 100점순</button><label class="u-coverage-control" for="operationalCoverageMin">운영 확보배점 <select id="operationalCoverageMin" aria-label="운영 확보배점 최소 기준"><option value="all">전체</option><option value="90">90점 이상</option><option value="95">95점 이상</option><option value="100">100점</option></select></label><span id="filterNotice"></span></div>
   <div id="tabs" class="u-tabs" role="group" aria-label="종목 분석 유형">
    <button data-tab="discover" type="button" aria-pressed="false">우선 관찰</button>
    <button data-tab="patterns" type="button" aria-pressed="false">차트 패턴</button>
