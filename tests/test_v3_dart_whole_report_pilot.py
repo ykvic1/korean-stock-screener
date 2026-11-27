@@ -1,4 +1,5 @@
 import unittest
+from collections import Counter
 from io import BytesIO
 from zipfile import ZipFile
 from v3_dart_whole_report_pilot import (
@@ -19,6 +20,20 @@ def archive(raw,name=RECEIPT+'.xml'):
     return b.getvalue()
 
 class WholeReportPilotTest(unittest.TestCase):
+    def test_legacy_korean_xml_encoding_and_failure_diagnostics(self):
+        raw = doc('<TITLE>연결 현금흐름표</TITLE><P>(단위 : 원)</P>' +
+                  table([['영업활동현금흐름', '100'], ['유형자산의 취득', '(20)']]))
+        for label, codec in (('euc-kr', 'euc_kr'), ('windows-949', 'cp949')):
+            encoded = raw.decode().replace('UTF-8', label).encode(codec)
+            diagnostics = Counter()
+            self.assertEqual(parse_xml(encoded, 'CFS', {'cfo': 100},
+                                       diagnostics=diagnostics), {'ppe': 20})
+            self.assertEqual(diagnostics['CF_matched_table'], 1)
+            diagnostics.clear()
+            self.assertEqual(parse_xml(encoded[:-1], 'CFS', {'cfo': 100},
+                                       diagnostics=diagnostics), {})
+            self.assertEqual(diagnostics, {'xml_rejected': 1})
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
