@@ -193,11 +193,15 @@ def requires_score_replay(before, after, previous_preview, current_preview, *,
             or comparable_preview(previous_preview) != comparable_preview(current_preview))
 
 
-def targets(state,priority,limit,completion_priority=(),threshold_priority=(),*,only_sub90=False):
+def targets(state,priority,limit,completion_priority=(),threshold_priority=(),*,only_sub90=False,
+            eligible_codes=None,near_complete_codes=()):
     if type(limit) is not int or not 1<=limit<=40:raise ReportedTotalError('invalid_reported_total_budget')
     completion_priority=set(completion_priority)
+    if eligible_codes is not None and not set(near_complete_codes)<=set(eligible_codes):
+        raise ReportedTotalError('unverified_near_complete_issuer')
     issuers=[]
     for code,issuer in state['records'].items():
+        if eligible_codes is not None and code not in eligible_codes:continue
         if only_sub90 and code not in threshold_priority:continue
         missing=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None]
         rows=[(y,r) for y,r in issuer['years'].items() if r.get('free_cashflow_krw') is None
@@ -210,7 +214,7 @@ def targets(state,priority,limit,completion_priority=(),threshold_priority=(),*,
         # then on whole three-year FCF completion, rather than on the number
         # of separate CAPEX components absent in one year.
         whole=(len(missing)==len(rows))
-        issuers.append((code not in threshold_priority,code not in completion_priority,not whole,len(rows),
+        issuers.append((code not in near_complete_codes,code not in threshold_priority,code not in completion_priority,not whole,len(rows),
                         code not in priority,not started,not both,code,rows))
     return [(code,y,row) for *_,code,rows in sorted(issuers) for y,row in sorted(rows)][:limit]
 
@@ -222,9 +226,15 @@ def main():
     market,catalog,bulk,state=[read(n) for n in ('data.json','v22-market-catalog.json','v3-dart-bulk-history.json',target.name)]
     state=cf.retained_current_market_cashflow(market,catalog,bulk,state);cf.verify_state(state,market,catalog,bulk,strict_fingerprint=True)
     operational=read('v3-operational-research-scores.json')
-    priority=xp.operational_gap_priority(operational,read('v3-operational-research-comparison.json'),catalog,bulk)
-    from v3_v30b_release_gate import R1D_PART_LIMITS
-    threshold_priority={code for code in priority if operational['rows'][code]['available'] < 90}
+    comparison=read('v3-operational-research-comparison.json')
+    priority=xp.operational_gap_priority(operational,comparison,catalog,bulk)
+    from v3_v30b_release_gate import R1D_PART_LIMITS, r1d_public_reconciles
+    current=(operational.get('asof') == catalog['date'] == bulk.get('asof')
+             and r1d_public_reconciles(operational,comparison,catalog) is not None)
+    eligible={code for code,row in operational['rows'].items()
+              if 60 <= row['available'] < 100} if current else set()
+    near_complete={code for code in eligible if operational['rows'][code]['available'] >= 90}
+    threshold_priority={code for code in priority & eligible if operational['rows'][code]['available'] < 90}
     completion_only=set()
     if operational.get('asof')==catalog['date']:
         for code,row in operational['rows'].items():
@@ -248,9 +258,12 @@ def main():
     }
     actionable_90 = {code:n for code,n in actionable_90.items() if n}
     selected=targets(state,priority,a.limit,completion_only,threshold_priority,
-                     only_sub90=(a.focus=='sub90'))
+                     only_sub90=(a.focus=='sub90'), eligible_codes=eligible,
+                     near_complete_codes=near_complete)
     output={'selected_issuer_years':len(selected),'selected_sub90_issuers':len({code for code,_,_ in selected if code in threshold_priority}),'priority_issuers':len(priority),
-            'focus':a.focus,'unreviewed_sub90_issuer_count':len(actionable_90),
+            'focus':a.focus,'current_coverage_priority_verified':current,
+            'selected_near_complete_issuers':len({code for code,_,_ in selected if code in near_complete}),
+            'unreviewed_sub90_issuer_count':len(actionable_90),
             'unreviewed_sub90_company_year_count':sum(actionable_90.values()),
             'completed':0,'recovered_years':0,'provider_calls':0,'reasons':{},'candidate_account_id_counts':{},'investment_score_certified':False}
     if a.mode=='dry-run' or not selected:print(json.dumps(output));return
