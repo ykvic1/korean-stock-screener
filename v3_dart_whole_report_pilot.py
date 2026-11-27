@@ -53,6 +53,8 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
+NOTE_READER = 'attributable_profit_eps_note_v1'
+NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
     pass
@@ -108,7 +110,35 @@ def matching_columns(rows, anchors):
     return [i for i in range(min(len(rows[k]) for k in anchors))
             if all(rows[k][i]==v for k,v in anchors.items())]
 
+def owner_profit_from_note(rows, expected_eps):
+    fields = {
+        'profit': {'지배주주당기순이익', '지배기업의소유주에게귀속되는당기순이익'},
+        'shares': {'가중평균유통보통주식수', '가중평균유통보통주식수(주)'},
+        'eps': LABELS['eps'],
+    }
+    if type(expected_eps) is not int or expected_eps == 0:
+        return {}
+    values = {}
+    for field, labels in fields.items():
+        matches = {tuple(number(cell) for cell in row[1:])
+                   for row in rows if norm(row[0]) in labels}
+        if len(matches) != 1:
+            return {}
+        values[field] = matches.pop()
+    columns = matching_columns(values, {'eps': expected_eps})
+    if len(columns) != 1:
+        return {}
+    index = columns[0]
+    profit, shares = (values[field][index] for field in ('profit', 'shares'))
+    if profit is None or shares is None or shares <= 0:
+        return {}
+    if 2 * abs(profit - expected_eps * shares) > shares:
+        return {}
+    return {'owners_profit': profit}
+
 def facts_for_table(rows, anchors, section):
+    if section == 'EPS_NOTE':
+        return owner_profit_from_note(rows, anchors.get('reported_eps'))
     vals=extract_rows(rows)
     result={}
     if section == 'CF':
@@ -137,6 +167,8 @@ def facts_for_table(rows, anchors, section):
 def section_title(s, default_scope=None):
     s=norm(s)
     scope='CFS' if '연결' in s else 'OFS' if '별도' in s else default_scope
+    if re.fullmatch(r'(?:[0-9]+\.)?주당이익\((?:연결|별도)\)', s):
+        return scope, 'EPS_NOTE'
     for end,section in (('현금흐름표','CF'),('포괄손익계산서','IS'),
                         ('손익계산서','IS'),('재무상태표','BS')):
         if s.endswith(end) and len(s)<50:
@@ -163,7 +195,8 @@ def parse_xml(raw, scope, anchors):
                 title=section_title(t,scope_context)
                 if title:
                     active=title;unit=False
-                elif kind=='TITLE':
+                elif kind=='TITLE' or (
+                        active and active[1] == 'EPS_NOTE' and re.match(r'^[0-9]+\.', t)):
                     active=None;unit=False
             if active:
                 units = declared_units((t,))
@@ -296,6 +329,7 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument('--mode',choices=('dry-run','live'),default='dry-run')
     p.add_argument('--limit',type=int,default=LIMIT)
+    p.add_argument('--review-owner-note',action='store_true')
     a=p.parse_args()
     if not 1<=a.limit<=LIMIT:raise PilotError('invalid_batch_limit')
     root=Path('docs');read=lambda n:json.loads((root/n).read_text())
@@ -324,7 +358,26 @@ def main():
             or not re.fullmatch('[a-f0-9]{64}',str(r.get('archive_sha256')))
             or r.get('status') not in ('main_document_not_identified','anchored_candidates','no_anchored_candidate')):
             raise PilotError('invalid_pilot_receipt')
-    q=queue(priority,book,cash,records,bulk,eps,profit)[:a.limit]
+    if a.review_owner_note:
+        previous = records.get(NOTE_RECEIPT, {})
+        q = []
+        if previous.get('status') == 'no_anchored_candidate' and previous.get('reader') != NOTE_READER:
+            for item in queue(priority,book,cash,{},bulk,eps,profit):
+                if item['code'] != '210540' or item['receipt'] != NOTE_RECEIPT:
+                    continue
+                eps_record = eps['records'].get(item['code'], {})
+                series = eps_record.get('reported_basic_eps_2023_2025')
+                if (item['scope'] == 'CFS' and item['wanted'].get('2025') == ['owners_profit']
+                        and eps_record.get('annual_receipt_id') == NOTE_RECEIPT
+                        and eps_record.get('fs_div') == 'CFS'
+                        and isinstance(series, list) and len(series) == 3
+                        and all(type(value) is int for value in series)
+                        and series.count(series[-1]) == 1 and series[-1] != 0):
+                    item['anchors']['2025']['reported_eps'] = series[-1]
+                    q.append(item)
+                break
+    else:
+        q=queue(priority,book,cash,records,bulk,eps,profit)[:a.limit]
     if any(x['code'] not in report['rows'] or not 60<=report['rows'][x['code']]['available']<100 for x in q):
         raise PilotError('unverified_pilot_selection')
     summary={'asof':catalog['date'],'selected':len(q),'provider_calls':0,'completed':0,
@@ -341,6 +394,8 @@ def main():
         if status=='anchored_candidates' and not found:status='no_anchored_candidate'
         records[x['receipt']]={**x,'archive_sha256':sha256(raw).hexdigest(),
                                'status':status,'candidates':found}
+        if a.review_owner_note:
+            records[x['receipt']]['reader'] = NOTE_READER
         summary['completed']+=1;summary['candidate_facts']+=sum(len(row) for row in found.values())
         summary['candidate_issuers']+=bool(found);reasons[status]+=1
         summary['reasons']=dict(reasons)

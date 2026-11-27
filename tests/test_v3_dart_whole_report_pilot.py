@@ -64,6 +64,19 @@ class WholeReportPilotTest(unittest.TestCase):
                          {'owners_profit':75,'eps':15})
         self.assertEqual(parse_xml(raw,'CFS',{'revenue':1000,'operating_income':90}),{})
 
+    def test_owner_note_requires_explicit_scope_saved_eps_and_profit_reconciliation(self):
+        title = '<P>34. 주당이익 (연결)</P><P>당기 (단위 : 원)</P>'
+        rows = [['지배주주 당기순이익', '25,143,819,961'],
+                ['가중평균유통보통주식수', '11,035,851'],
+                ['기본주당이익', '2,278'], ['희석주당이익', '2,278']]
+        anchors = {'reported_eps': 2278}
+        self.assertEqual(parse_xml(doc(title + table(rows)), 'CFS', anchors),
+                         {'owners_profit': 25143819961})
+        self.assertEqual(parse_xml(doc(title + table(rows)), 'OFS', anchors), {})
+        self.assertEqual(parse_xml(doc(title + table(rows)), 'CFS', {'reported_eps': 1987}), {})
+        rows[0][1] = '25,100,000,000'
+        self.assertEqual(parse_xml(doc(title + table(rows)), 'CFS', anchors), {})
+
     def test_ambiguous_column_or_label_and_attachment_rejected(self):
         raw=doc('<TITLE>연결 현금흐름표</TITLE><P>(단위 : 원)</P>'+
                 table([['영업활동현금흐름','100','100'],['유형자산의 취득','(20)','(10)']]))
