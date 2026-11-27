@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Locate the unrepairable XML token without retaining disclosure text
+      - name: Verify strictly parsed completed EPS notes before an unrelated XML error
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}

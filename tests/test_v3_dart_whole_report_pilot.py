@@ -78,6 +78,29 @@ class WholeReportPilotTest(unittest.TestCase):
         self.assertEqual(diagnostics['xml_retry_token_at_cc'], 1)
         self.assertEqual(diagnostics['xml_rejected'], 1)
 
+    def test_prefix_recovery_requires_closed_eps_note_and_independent_anchor(self):
+        title = '<P>34. 주당이익 (연결)</P><P>당기 (단위 : 원)</P>'
+        rows = [['지배주주 당기순이익', '25,143,819,961'],
+                ['가중평균유통보통주식수', '11,035,851'],
+                ['기본주당이익', '2,278']]
+        body = '<P>R&D</P>' + title + table(rows)
+        boundary = '<P>35. 현금흐름표 (연결)</P>'
+        invalid = '<P>broken\x00text</P>'
+        anchors = {'2025': {'reported_eps': 2278}}
+        diagnostics = Counter()
+        found, status = inspect(archive(doc(body + boundary + invalid)), RECEIPT,
+                                'CFS', anchors, diagnostics=diagnostics)
+        self.assertEqual(status, 'anchored_candidates')
+        self.assertEqual(found, {'2025': {'owners_profit': 25143819961}})
+        self.assertEqual(diagnostics['xml_prefix_candidate_used'], 1)
+        for raw, scope, claimed in (
+                (doc(body + invalid), 'CFS', anchors),
+                (doc(body + boundary + invalid), 'OFS', anchors),
+                (doc(body + boundary + invalid), 'CFS', {'2025': {'reported_eps': 1987}}),
+                (doc(invalid + body + boundary), 'CFS', anchors)):
+            self.assertEqual(inspect(archive(raw), RECEIPT, scope, claimed),
+                             ({}, 'no_anchored_candidate'))
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
