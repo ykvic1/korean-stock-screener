@@ -1,0 +1,70 @@
+name: V3 Whole Annual Document Financial Recovery Pilot
+on:
+  pull_request:
+    paths:
+      - v3_dart_whole_report_pilot.py
+      - tests/test_v3_dart_whole_report_pilot.py
+      - .github/workflows/v3-dart-whole-report-pilot.yml
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/v3-dart-whole-report-pilot.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: |
+          python -m unittest discover -s tests -p 'test_v3_dart_whole_report_pilot.py' -v
+          python v3_dart_whole_report_pilot.py --mode dry-run --limit 30
+  pilot:
+    needs: offline
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write
+    concurrency:
+      group: korea-stock-screener-dart-cashflow
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Extract candidates from distinct official full-report archives
+        id: collect
+        env:
+          DART_API_KEY: ${{ secrets.DART_API_KEY }}
+        run: |
+          set -euo pipefail
+          interrupted=0
+          if ! python v3_dart_whole_report_pilot.py --mode live --limit 30; then interrupted=1; fi
+          echo "interrupted=$interrupted" >> "$GITHUB_OUTPUT"
+      - name: Preserve only compact candidate records and receipt review markers
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          file=docs/v3-dart-whole-report-candidates.json
+          if [ ! -f "$file" ]; then exit 0; fi
+          python v3_dart_whole_report_pilot.py --mode dry-run --limit 1
+          git add "$file"
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record whole-report financial candidate pilot evidence (no score change)'
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          exit 1
+      - name: Report source interruption after retaining completed reviews
+        if: steps.collect.outputs.interrupted == '1'
+        run: exit 1
