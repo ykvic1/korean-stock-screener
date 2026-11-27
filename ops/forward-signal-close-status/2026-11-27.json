@@ -1,0 +1,7 @@
+{
+  "schema": "v3-forward-signal-close-comparison-1",
+  "score_asof": "2026-11-27",
+  "score_observation_sha256": "d789ad6429a7695f5c8920f482efc39e1ae8ee9854ed5a12b135d44033d40e4e",
+  "last_attempt_at_utc": "2026-11-27T20:18:08.703966+00:00",
+  "status": "waiting_for_signal_daily_archive"
+}

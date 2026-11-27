@@ -19,5 +19,6 @@
   "issuer_continuity_certified": false,
   "adjusted_entry_prices_certified": false,
   "performance_validated": false,
-  "status": "waiting_for_session_close"
+  "status": "waiting_for_official_publish_window",
+  "official_publish_candidate_utc": "2026-11-29T23:00:00+00:00"
 }

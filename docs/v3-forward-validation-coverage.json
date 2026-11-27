@@ -1,7 +1,7 @@
 {
   "schema": "v3-forward-validation-coverage-1",
-  "latest_score_asof": "2026-11-26",
-  "candidate_entry_session_count": 8,
+  "latest_score_asof": "2026-11-27",
+  "candidate_entry_session_count": 9,
   "matched_entry_session_count": 7,
   "horizons": {
     "1": {
