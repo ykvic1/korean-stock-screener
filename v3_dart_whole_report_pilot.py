@@ -55,7 +55,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v5'
+NOTE_READER = 'attributable_profit_eps_note_v6'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -373,6 +373,83 @@ def facts_from_root(root, scope, anchors, diagnostics):
             for k,v in f.items():candidates.setdefault(k,set()).add(v)
     return {k:next(iter(v)) for k,v in candidates.items() if len(v)==1}
 
+class CompletedNoteReader:
+    """Project only fully traversed EPS notes from a strictly parsed prefix."""
+    def __init__(self, scope):
+        self.scope = scope
+        self.builder = ET.TreeBuilder()
+        self.table_depth = 0
+        self.root = None
+        self.pending = None
+        self.completed = ET.Element('COMPLETED_NOTES')
+
+    def start(self, name, attrs):
+        node = self.builder.start(name, attrs)
+        kind = tag(node)
+        if self.root is None:
+            self.root = kind
+        if kind == 'TABLE':
+            self.table_depth += 1
+
+    def data(self, text):
+        self.builder.data(text)
+
+    def end(self, name):
+        node = self.builder.end(name)
+        kind = tag(node)
+        if kind == 'TABLE':
+            self.table_depth -= 1
+            if not self.table_depth and self.pending is not None:
+                self.pending.append(node)
+            return
+        if self.table_depth or kind not in ('TITLE','P','SUBTITLE'):
+            return
+        label = norm(value(node))
+        heading = section_title(label)
+        if heading or kind == 'TITLE' or re.match(r'^[0-9]+\.', label):
+            if self.pending is not None:
+                self.completed.append(self.pending)
+                self.pending = None
+            if heading == (self.scope, 'EPS_NOTE'):
+                self.pending = ET.Element('NOTE')
+        if self.pending is not None:
+            self.pending.append(node)
+
+
+def candidates_from_xml_prefix(body, scope, anchors, diagnostics):
+    if (not diagnostics.get('xml_error_invalid_token')
+            or b'<!ENTITY' in body
+            or not any(type(anchor.get('reported_eps')) is int for anchor in anchors.values())):
+        return {}
+    declared = XML_DECLARATION.match(body)
+    if declared and declared[2].lower() not in (b'utf-8', b'utf8'):
+        return {}
+    try:
+        body.decode('utf-8-sig')
+    except UnicodeDecodeError:
+        return {}
+    reader = CompletedNoteReader(scope)
+    parser = ET.XMLParser(target=reader)
+    try:
+        parser.feed(normalize_invalid_text(body, Counter()))
+    except ET.ParseError:
+        pass
+    if reader.root != 'DOCUMENT' or not len(reader.completed):
+        return {}
+    diagnostics['xml_prefix_complete_eps_notes'] = len(reader.completed)
+    found = {}
+    for year, anchor in anchors.items():
+        eps = anchor.get('reported_eps')
+        if type(eps) is not int:
+            continue
+        facts = facts_from_root(reader.completed, scope, {'reported_eps': eps}, diagnostics)
+        if 'owners_profit' in facts:
+            found[year] = {'owners_profit': facts['owners_profit']}
+    if found:
+        diagnostics['xml_prefix_candidate_used'] += 1
+    return found
+
+
 def inspect(raw, receipt, scope, anchors, *, diagnostics=None):
     try:
         with ZipFile(BytesIO(raw)) as z:
@@ -391,8 +468,10 @@ def inspect(raw, receipt, scope, anchors, *, diagnostics=None):
         diagnostics = Counter()
     root = checked_xml_root(body, diagnostics)
     if root is None:
-        return {}, 'no_anchored_candidate'
-    found={year:facts_from_root(root,scope,anchor,diagnostics) for year,anchor in anchors.items()}
+        found = candidates_from_xml_prefix(body, scope, anchors, diagnostics)
+    else:
+        found = {year:facts_from_root(root,scope,anchor,diagnostics)
+                 for year,anchor in anchors.items()}
     found={year:row for year,row in found.items() if row}
     return found, 'anchored_candidates' if found else 'no_anchored_candidate'
 
