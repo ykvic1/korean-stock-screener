@@ -20,6 +20,7 @@ import re
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zipfile import ZipFile, BadZipFile
+from xml.parsers.expat import errors as xml_errors
 import xml.etree.ElementTree as ET
 
 SCHEMA = 'v3-dart-whole-report-candidate-pilot-v1'
@@ -53,7 +54,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v2'
+NOTE_READER = 'attributable_profit_eps_note_v3'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -180,7 +181,15 @@ LEGACY_XML_ENCODING = re.compile(
     re.IGNORECASE,
 )
 
-def xml_root(raw):
+XML_ERROR_NAMES = {
+    code: name.lower()
+    for name, message in vars(xml_errors).items()
+    if name.startswith('XML_ERROR_') and (code := xml_errors.codes.get(message)) is not None
+}
+UNDEFINED_ENTITY = xml_errors.codes[xml_errors.XML_ERROR_UNDEFINED_ENTITY]
+XML_SPACE_TOKENS = re.compile(rb'<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|&nbsp;', re.DOTALL)
+
+def xml_root(raw, diagnostics):
     # Expat does not handle legacy multibyte Korean declarations directly.
     # Normalize only the recognized encoding and preserve the exact text.
     match = LEGACY_XML_ENCODING.match(raw)
@@ -189,18 +198,46 @@ def xml_root(raw):
         encoding = 'euc_kr' if declared in (b'euc-kr', b'euc_kr', b'euckr') else 'cp949'
         start, end = match.span(2)
         raw = (raw[:start] + b'UTF-8' + raw[end:]).decode(encoding).encode('utf-8')
-    return ET.fromstring(raw)
+    try:
+        return ET.fromstring(raw)
+    except ET.ParseError as error:
+        # Convert a non-XML spelling of a single whitespace character only.
+        # Never interpret custom declarations or alter comments/CDATA.
+        if (error.code != UNDEFINED_ENTITY or b'&nbsp;' not in raw
+                or b'<!ENTITY' in raw):
+            raise
+        diagnostics['xml_nbsp_retry'] += 1
+        normalized = XML_SPACE_TOKENS.sub(
+            lambda m: b'&#160;' if m[0] == b'&nbsp;' else m[0], raw)
+        return ET.fromstring(normalized)
+
+def checked_xml_root(raw, diagnostics):
+    # No external entities, remote DTDs or permissive tree recovery.
+    try:
+        root = xml_root(raw, diagnostics)
+    except ET.ParseError as error:
+        diagnostics['xml_rejected'] += 1
+        diagnostics[XML_ERROR_NAMES.get(error.code, 'xml_error_other')] += 1
+        return None
+    except (LookupError, ValueError) as error:
+        diagnostics['xml_rejected'] += 1
+        if isinstance(error, UnicodeError):
+            diagnostics['xml_encoding_invalid_bytes'] += 1
+        elif isinstance(error, LookupError):
+            diagnostics['xml_encoding_unknown'] += 1
+        else:
+            diagnostics['xml_encoding_unsupported'] += 1
+        return None
+    diagnostics['xml_parsed'] += 1
+    return root
 
 def parse_xml(raw, scope, anchors, *, diagnostics=None):
-    # No external entities, remote DTDs or permissive recovery.
     if diagnostics is None:
         diagnostics = Counter()
-    try:
-        root = xml_root(raw)
-    except (ET.ParseError, LookupError, ValueError):
-        diagnostics['xml_rejected'] += 1
-        return {}
-    diagnostics['xml_parsed'] += 1
+    root = checked_xml_root(raw, diagnostics)
+    return {} if root is None else facts_from_root(root, scope, anchors, diagnostics)
+
+def facts_from_root(root, scope, anchors, diagnostics):
     scope_context=None; active=None; unit=False; candidates={}
     for node in root.iter():
         kind=tag(node)
@@ -256,8 +293,12 @@ def inspect(raw, receipt, scope, anchors, *, diagnostics=None):
             body=z.read(selected[0])
     except BadZipFile:
         raise PilotError('provider_non_zip_response') from None
-    found={year:parse_xml(body,scope,anchor,diagnostics=diagnostics)
-           for year,anchor in anchors.items()}
+    if diagnostics is None:
+        diagnostics = Counter()
+    root = checked_xml_root(body, diagnostics)
+    if root is None:
+        return {}, 'no_anchored_candidate'
+    found={year:facts_from_root(root,scope,anchor,diagnostics) for year,anchor in anchors.items()}
     found={year:row for year,row in found.items() if row}
     return found, 'anchored_candidates' if found else 'no_anchored_candidate'
 
