@@ -54,7 +54,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v3'
+NOTE_READER = 'attributable_profit_eps_note_v4'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -187,6 +187,41 @@ XML_ERROR_NAMES = {
     if name.startswith('XML_ERROR_') and (code := xml_errors.codes.get(message)) is not None
 }
 UNDEFINED_ENTITY = xml_errors.codes[xml_errors.XML_ERROR_UNDEFINED_ENTITY]
+INVALID_TOKEN = xml_errors.codes[xml_errors.XML_ERROR_INVALID_TOKEN]
+BARE_AMPERSAND = rb'&(?![A-Za-z_:][\w:.-]*;|#[0-9]+;|#x[0-9A-Fa-f]+;)'
+INVALID_TEXT_TOKENS = re.compile(
+    rb'<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|<!DOCTYPE[^>]*>|'
+    + rb'(?<![0-9.,+\-])[\x0b\x0c]+(?![0-9.,+\-])|' + BARE_AMPERSAND,
+    re.DOTALL,
+)
+
+def normalize_invalid_text(raw):
+    def literal(match):
+        token = match[0]
+        if token == b'&':
+            return b'&amp;'
+        if token[0] in (11, 12):
+            return b' '
+        return token
+    return INVALID_TEXT_TOKENS.sub(literal, raw)
+
+def invalid_token_category(raw, position):
+    try:
+        source = raw.decode('utf-8')
+    except UnicodeDecodeError:
+        return 'xml_invalid_token_non_utf8_bytes'
+    line, column = position
+    # XML normalizes CRLF and CR before reporting line and column.
+    lines = source.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+    if 1 <= line <= len(lines):
+        text = lines[line - 1]
+        if column < len(text) and ord(text[column]) < 32:
+            return 'xml_invalid_token_control_character'
+        if '&' in text[max(0, column - 1):column + 1]:
+            return 'xml_invalid_token_ampersand'
+        if '<' in text[max(0, column - 1):column + 1]:
+            return 'xml_invalid_token_less_than'
+    return 'xml_invalid_token_other_character'
 XML_SPACE_TOKENS = re.compile(rb'<!--.*?-->|<!\[CDATA\[.*?\]\]>|<\?.*?\?>|&nbsp;', re.DOTALL)
 
 def xml_root(raw, diagnostics):
@@ -201,15 +236,24 @@ def xml_root(raw, diagnostics):
     try:
         return ET.fromstring(raw)
     except ET.ParseError as error:
-        # Convert a non-XML spelling of a single whitespace character only.
-        # Never interpret custom declarations or alter comments/CDATA.
-        if (error.code != UNDEFINED_ENTITY or b'&nbsp;' not in raw
-                or b'<!ENTITY' in raw):
+        # Preserve declarations, comments and CDATA. Any repaired input still
+        # has to pass the same strict tree parse and financial anchors.
+        if b'<!ENTITY' in raw:
             raise
-        diagnostics['xml_nbsp_retry'] += 1
-        normalized = XML_SPACE_TOKENS.sub(
-            lambda m: b'&#160;' if m[0] == b'&nbsp;' else m[0], raw)
-        return ET.fromstring(normalized)
+        if error.code == UNDEFINED_ENTITY and b'&nbsp;' in raw:
+            diagnostics['xml_nbsp_retry'] += 1
+            normalized = XML_SPACE_TOKENS.sub(
+                lambda m: b'&#160;' if m[0] == b'&nbsp;' else m[0], raw)
+            return ET.fromstring(normalized)
+        if error.code == INVALID_TOKEN:
+            diagnostics[invalid_token_category(raw, error.position)] += 1
+            normalized = normalize_invalid_text(raw)
+            if normalized != raw:
+                diagnostics['xml_invalid_text_retry'] += 1
+                root = ET.fromstring(normalized)
+                diagnostics['xml_invalid_text_repaired'] += 1
+                return root
+        raise
 
 def checked_xml_root(raw, diagnostics):
     # No external entities, remote DTDs or permissive tree recovery.
