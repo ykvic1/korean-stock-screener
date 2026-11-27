@@ -84,6 +84,27 @@ PROTECTED_PARTIAL_FIELDS = (
 )
 
 
+def has_competing_partial_proof(row):
+    """A verified no-result review is not a competing numeric observation."""
+    for key in PROTECTED_PARTIAL_FIELDS:
+        if row.get(key) is None:
+            continue
+        if key == 'original_xbrl_review':
+            from v3_dart_xbrl_cashflow_recovery import verify_recovery
+            marker = row[key]
+            if (type(marker) is dict and marker.get('reason') == 'no_missing_supported_fact'
+                    and verify_recovery(row) is False):
+                continue
+        if key == 'reported_total_review':
+            from v3_dart_reported_capex_total import verify
+            marker = row[key]
+            if (type(marker) is dict and marker.get('reason') == 'no_reported_total'
+                    and verify(row) is None):
+                continue
+        return True
+    return False
+
+
 def matching_partial(parts, item):
     return (type(parts) is dict and set(parts) == set(PARTS)
             and sum(parts[k] is None for k in PARTS) == 1
@@ -163,7 +184,7 @@ def apply(cash):
             existing = {k: row[k] for k in PARTS}
             partial = any(v is not None for v in existing.values())
             if partial and (not matching_partial(existing, expected)
-                            or any(row.get(k) is not None for k in PROTECTED_PARTIAL_FIELDS)):
+                            or has_competing_partial_proof(row)):
                 continue
             item, proof = reviewed_year(code, year, years, cutoff)
             if partial:
