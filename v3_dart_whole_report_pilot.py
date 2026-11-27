@@ -113,7 +113,7 @@ def matching_columns(rows, anchors):
             if all(rows[k][i]==v for k,v in anchors.items())]
 
 def note_units_are_krw(units):
-    return bool(units) and all(unit in {'원', '원,주', '원/주,주', '원,주,원/주'}
+    return bool(units) and all(unit in {'원', '원,주', '원,주,원/주'}
                                for unit in units)
 
 def note_row_label(text):
