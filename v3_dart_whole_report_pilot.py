@@ -55,7 +55,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v6'
+NOTE_READER = 'attributable_profit_eps_note_v7'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -112,35 +112,60 @@ def matching_columns(rows, anchors):
     return [i for i in range(min(len(rows[k]) for k in anchors))
             if all(rows[k][i]==v for k,v in anchors.items())]
 
-def owner_profit_from_note(rows, expected_eps):
+def note_units_are_krw(units):
+    return bool(units) and all(unit in {'원', '원,주', '원,주,원/주'}
+                               for unit in units)
+
+def note_row_label(text):
+    label = re.sub(r'^(?:[0-9]+\.\s*|\([0-9]+\)\s*)', '', text.strip())
+    return re.sub(r'\((?:주|주석)[0-9]+\)$', '', norm(label))
+
+def reported_eps_number(text):
+    value = norm(text)
+    if re.fullmatch(r'-?[0-9,]+\.0+', value):
+        value = value.split('.', 1)[0]
+    return number(value)
+
+def owner_profit_from_note(rows, expected_eps, diagnostics):
     fields = {
-        'profit': {'지배주주당기순이익', '지배기업의소유주에게귀속되는당기순이익'},
-        'shares': {'가중평균유통보통주식수', '가중평균유통보통주식수(주)'},
-        'eps': LABELS['eps'],
+        'profit': {'지배주주당기순이익', '지배기업의소유주에게귀속되는당기순이익',
+                   '지배기업소유주귀속당기순이익', '지배주주당기순손익',
+                   '지배기업소유주지분순이익'},
+        'shares': {'가중평균유통보통주식수', '가중평균유통보통주식수(주)',
+                   '가중평균유통보통주식수량'},
+        'eps': LABELS['eps'] | {'기본주당이익(원)', '보통주기본주당이익'},
     }
     if type(expected_eps) is not int or expected_eps == 0:
         return {}
     values = {}
     for field, labels in fields.items():
-        matches = {tuple(number(cell) for cell in row[1:])
-                   for row in rows if norm(row[0]) in labels}
+        parse = reported_eps_number if field == 'eps' else number
+        matches = {tuple(parse(cell) for cell in row[1:])
+                   for row in rows if note_row_label(row[0]) in labels}
         if len(matches) != 1:
-            return {}
-        values[field] = matches.pop()
+            reason = 'absent' if not matches else 'ambiguous'
+            diagnostics[f'EPS_NOTE_{field}_row_{reason}'] += 1
+        else:
+            values[field] = matches.pop()
+    if len(values) != len(fields):
+        return {}
     columns = matching_columns(values, {'eps': expected_eps})
     if len(columns) != 1:
+        diagnostics['EPS_NOTE_saved_eps_not_unique'] += 1
         return {}
     index = columns[0]
     profit, shares = (values[field][index] for field in ('profit', 'shares'))
     if profit is None or shares is None or shares <= 0:
+        diagnostics['EPS_NOTE_same_column_numbers_missing'] += 1
         return {}
     if 2 * abs(profit - expected_eps * shares) > shares:
+        diagnostics['EPS_NOTE_profit_reconciliation_failed'] += 1
         return {}
     return {'owners_profit': profit}
 
-def facts_for_table(rows, anchors, section):
+def facts_for_table(rows, anchors, section, diagnostics):
     if section == 'EPS_NOTE':
-        return owner_profit_from_note(rows, anchors.get('reported_eps'))
+        return owner_profit_from_note(rows, anchors.get('reported_eps'), diagnostics)
     vals=extract_rows(rows)
     result={}
     if section == 'CF':
@@ -356,18 +381,20 @@ def facts_from_root(root, scope, anchors, diagnostics):
             if active:
                 units = declared_units((t,))
                 if units:
-                    unit = units == {'원'}
+                    unit = note_units_are_krw(units) if active[1] == 'EPS_NOTE' else units == {'원'}
         elif kind=='TABLE' and active and active[0]==scope:
             rows=table_rows(node)
             # A table's own unit takes precedence over the section header.
             units = declared_units(cell for row in rows[:5] for cell in row)
-            is_krw = units == {'원'} if units else unit
             diagnostic_key = active[1]
+            is_krw = unit
+            if units:
+                is_krw = note_units_are_krw(units) if diagnostic_key == 'EPS_NOTE' else units == {'원'}
             if not is_krw:
                 diagnostics[f'{diagnostic_key}_unit_unconfirmed'] += 1
                 continue
             diagnostics[f'{diagnostic_key}_krw_table'] += 1
-            f=facts_for_table(rows,anchors,diagnostic_key)
+            f=facts_for_table(rows,anchors,diagnostic_key,diagnostics)
             if f:
                 diagnostics[f'{diagnostic_key}_matched_table'] += 1
             for k,v in f.items():candidates.setdefault(k,set()).add(v)
