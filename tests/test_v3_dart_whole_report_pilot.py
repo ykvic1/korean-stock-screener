@@ -101,6 +101,22 @@ class WholeReportPilotTest(unittest.TestCase):
             self.assertEqual(inspect(archive(raw), RECEIPT, scope, claimed),
                              ({}, 'no_anchored_candidate'))
 
+    def test_eps_note_accepts_explicit_won_and_share_units_and_whole_decimal_eps(self):
+        heading = '<P>34. 주당이익 (연결)</P><P>(단위 : 원, 주)</P>'
+        rows = [['(1) 지배주주 당기순이익 (주1)', '25,143,819,961'],
+                ['가중평균유통보통주식수 (주)', '11,035,851'],
+                ['기본주당이익 (원)', '2,278.00']]
+        diagnostics = Counter()
+        self.assertEqual(parse_xml(doc(heading + table(rows)), 'CFS',
+                                   {'reported_eps': 2278}, diagnostics=diagnostics),
+                         {'owners_profit': 25143819961})
+        self.assertEqual(parse_xml(doc(heading.replace('원, 주', '천원, 주') + table(rows)),
+                                   'CFS', {'reported_eps': 2278}), {})
+        rows[-1][-1] = '2,278.10'
+        self.assertEqual(parse_xml(doc(heading + table(rows)), 'CFS',
+                                   {'reported_eps': 2278}, diagnostics=diagnostics), {})
+        self.assertEqual(diagnostics['EPS_NOTE_saved_eps_not_unique'], 1)
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
