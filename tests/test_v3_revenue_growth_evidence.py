@@ -168,6 +168,37 @@ class RevenueEvidenceTests(unittest.TestCase):
                 else:source['years']['2022']['CFS']['values']['revenue']={'zero':0,'negative':-1,'bool':True}[kind]
                 self.assertIsNone(revenue.window(source,years,DAY))
 
+    def test_licom_uses_only_the_receipt_matched_operating_predecessor(self):
+        source = record('OFS')
+        receipts = ('20230331001886', '20240319000576', '20250318000992', '20260323000697')
+        values = (0, 19463077256, 13136686476, 17688068719)
+        for year, receipt, sales in zip(YEARS, receipts, values):
+            row = source['years'][str(year)]['OFS']
+            row['receipt_id'] = receipt
+            row['values']['revenue'] = sales
+        comparative = {
+            'status': 'observed', 'scope': 'OFS',
+            'source_2024_receipt_id': receipts[2], 'source_2024_revenue_krw': values[2],
+            'source_2025_receipt_id': receipts[3], 'source_2025_revenue_krw': values[3],
+            'recovered_revenue_krw': {'2022': 34334226177},
+        }
+        unchanged = copy.deepcopy(source)
+        observed = revenue.window(source, YEARS, DAY, comparative_2024_source=comparative,
+                                  code='388790')
+        self.assertTrue(observed['official_2024_comparative'])
+        self.assertAlmostEqual(observed['growth'], 100 * ((values[-1] / 34334226177)**(1/3) - 1),
+                               places=5)
+        self.assertEqual(source, unchanged)
+        self.assertIsNone(revenue.window(source, YEARS, DAY, comparative_2024_source=comparative,
+                                         code='000001'))
+        wrong_receipt = copy.deepcopy(source)
+        wrong_receipt['years']['2022']['OFS']['receipt_id'] = '20230331001887'
+        self.assertIsNone(revenue.window(wrong_receipt, YEARS, DAY,
+                                         comparative_2024_source=comparative, code='388790'))
+        wrong_value = dict(comparative, recovered_revenue_krw={'2022': 1})
+        self.assertIsNone(revenue.window(source, YEARS, DAY, comparative_2024_source=wrong_value,
+                                         code='388790'))
+
     def test_accounting_scopes_never_mix_and_existing_scope_is_preserved(self):
         source=record()
         source['years']['2022']['OFS']=source['years']['2022'].pop('CFS')

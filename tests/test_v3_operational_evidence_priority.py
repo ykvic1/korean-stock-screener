@@ -86,6 +86,23 @@ class EvidencePriorityTests(unittest.TestCase):
         self.assertEqual(out['available_100_count']+out['incomplete_count'],
                          out['listed_total'])
 
+    def test_completion_review_prioritizes_near_complete_and_excludes_below_60(self):
+        out = p.build(self.report, self.comparison, self.catalog, self.legacy)
+        order = out['completion_recovery_order']
+        rows = self.report['rows']
+        primary = order['near_complete_priority_codes']
+        later = order['later_priority_codes']
+        self.assertEqual(set(primary), {c for c, r in rows.items() if 90 <= r['available'] < 100})
+        self.assertEqual(set(later), {c for c, r in rows.items() if 60 <= r['available'] < 90})
+        self.assertEqual(len(primary), len(set(primary)))
+        self.assertEqual(len(later), len(set(later)))
+        self.assertEqual(order['near_complete_count'], len(primary))
+        single = {r['code'] for r in out['single_component_queue']}
+        count = order['near_complete_single_gap_count']
+        self.assertEqual(set(primary[:count]), set(primary) & single)
+        self.assertEqual(order['excluded_below_60_count'],
+                         sum(r['available'] < 60 for r in rows.values()))
+
     def test_90_first_bands_and_conditional_queue_reconcile_real_inputs(self):
         out=p.build(self.report,self.comparison,self.catalog,self.legacy)
         first=out['coverage_90_first']
