@@ -187,7 +187,8 @@ def inspect(raw, receipt, scope, anchors):
             body=z.read(selected[0])
     except BadZipFile:
         raise PilotError('provider_non_zip_response') from None
-    found=parse_xml(body,scope,anchors)
+    found={year:parse_xml(body,scope,anchor) for year,anchor in anchors.items()}
+    found={year:row for year,row in found.items() if row}
     return found, 'anchored_candidates' if found else 'no_anchored_candidate'
 
 def fetch(key, receipt):
@@ -204,7 +205,7 @@ def fetch(key, receipt):
         raise PilotError('document_exceeds_bound')
     return raw
 
-def queue(priority,book,cash,prior):
+def queue(priority,book,cash,prior,bulk,eps,profit):
     records={r['code']:r for r in book['records']}
     out=[];seen=set()
     singles={r['code']:r for r in priority['single_component_queue']}
@@ -226,6 +227,11 @@ def queue(priority,book,cash,prior):
         # direct source (Jinro). Then other exact annual receipt gaps.
         sources=[]
         vals=a.get('values',{})
+        historical=bulk['records'].get(code,{}).get('years',{})
+        epsrow=eps['records'].get(code,{})
+        epsvalues=epsrow.get('reported_basic_eps_2023_2025') or [None]*3
+        if epsrow.get('annual_receipt_id')!=a.get('receipt_id') or epsrow.get('fs_div')!=a['fs_div']:
+            epsvalues=[None]*3
         sources.append((2025,a.get('receipt_id'),a['fs_div'],
                         {k:vals.get(v) for k,v in
                          [('cfo','operating_cashflow'),('revenue','revenue'),
@@ -242,8 +248,40 @@ def queue(priority,book,cash,prior):
                 or scope not in ('CFS','OFS') or receipt in prior or receipt in seen
                 or not any(type(v) is int for v in anchors.values())):continue
             seen.add(receipt)
+            comparisons={};wanted={}
+            for y in range(2023,year+1):
+                ys=str(y);old=yrows.get(ys,{})
+                h=historical.get(ys,{}).get(scope,{})
+                hv=h.get('values',{})
+                if not RECEIPT.fullmatch(str(h.get('receipt_id',''))):continue
+                if y==year and h.get('receipt_id')!=receipt:continue
+                if (old.get('scope')!=scope or old.get('annual_receipt_id')!=h.get('receipt_id')
+                    or old.get('major_annual_receipt_matched') is not True):old={}
+                anchor={k:hv.get(k) for k in ('revenue','operating_income','equity','liabilities')}
+                anchor['cfo']=old.get('operating_cashflow_krw')
+                if y==year:
+                    anchor.update({k:v for k,v in anchors.items() if v is not None})
+                comparisons[ys]=anchor
+                needed=[]
+                if old and old.get('free_cashflow_krw') is None:
+                    if old.get('ppe_capex_krw') is None:needed.extend(('ppe','cip'))
+                    if old.get('intangible_capex_krw') is None:needed.append('intangible')
+                if 'valuation:per_eps_quality_growth' in gaps and epsvalues[y-2023] is None:
+                    needed.append('eps')
+                if y==2025:
+                    supplement=profit['records'].get(code,{})
+                    if ('valuation:per_eps_quality_growth' in gaps and vals.get('owners_profit') is None
+                        and not (supplement.get('annual_receipt_id')==receipt and
+                                 type(supplement.get('owners_profit_krw')) is int)):
+                        needed.append('owners_profit')
+                    if 'valuation:pbr_equity_quality' in gaps and vals.get('owners_equity') is None:
+                        needed.append('owners_equity')
+                if needed:wanted[ys]=needed
+            if not wanted:
+                seen.remove(receipt)
+                continue
             out.append({'code':code,'year':year,'receipt':receipt,'scope':scope,
-                        'anchors':anchors,'gaps':gaps})
+                        'anchors':comparisons,'wanted':wanted,'gaps':gaps})
             # Diverse issuer pilot; next invocation selects other receipts.
             break
     return out
@@ -259,11 +297,14 @@ def main():
     catalog=read('v22-market-catalog.json')
     book=read('v3-dart-book-reference.json')
     cash=read('v3-dart-cashflow-reference.json')
+    bulk=read('v3-dart-bulk-history.json')
+    eps=read('v3-dart-reported-eps.json')
+    profit=read('v3-dart-owner-profit-supplement.json')
     report=read('v3-operational-research-scores.json')
     comparison=read('v3-operational-research-comparison.json')
     from v3_v30b_release_gate import r1d_public_reconciles
     if (priority['asof']!=catalog['date'] or book['asof']!=catalog['date']
-        or cash['asof']!=catalog['date'] or priority['listed_total']!=catalog['listed_total']
+        or cash['asof']!=catalog['date'] or bulk['asof']!=catalog['date'] or priority['listed_total']!=catalog['listed_total']
         or report['asof']!=catalog['date'] or r1d_public_reconciles(report,comparison,catalog) is None):
         raise PilotError('unaligned_pilot_sources')
     target=root/OUT
@@ -277,7 +318,7 @@ def main():
             or not re.fullmatch('[a-f0-9]{64}',str(r.get('archive_sha256')))
             or r.get('status') not in ('main_document_not_identified','anchored_candidates','no_anchored_candidate')):
             raise PilotError('invalid_pilot_receipt')
-    q=queue(priority,book,cash,records)[:a.limit]
+    q=queue(priority,book,cash,records,bulk,eps,profit)[:a.limit]
     if any(x['code'] not in report['rows'] or not 60<=report['rows'][x['code']]['available']<100 for x in q):
         raise PilotError('unverified_pilot_selection')
     summary={'asof':catalog['date'],'selected':len(q),'provider_calls':0,'completed':0,
@@ -288,9 +329,13 @@ def main():
     for x in q:
         raw=fetch(key,x['receipt']);summary['provider_calls']+=1
         found,status=inspect(raw,x['receipt'],x['scope'],x['anchors'])
+        found={year:{k:v for k,v in row.items() if k in x['wanted'].get(year,[])}
+               for year,row in found.items()}
+        found={year:row for year,row in found.items() if row}
+        if status=='anchored_candidates' and not found:status='no_anchored_candidate'
         records[x['receipt']]={**x,'archive_sha256':sha256(raw).hexdigest(),
                                'status':status,'candidates':found}
-        summary['completed']+=1;summary['candidate_facts']+=len(found)
+        summary['completed']+=1;summary['candidate_facts']+=sum(len(row) for row in found.values())
         summary['candidate_issuers']+=bool(found);reasons[status]+=1
         summary['reasons']=dict(reasons)
         from v3_dart_bulk_history import write_json
