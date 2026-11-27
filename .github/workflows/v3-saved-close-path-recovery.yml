@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - v3_unscored_path_observations.py
+      - v3_saved_close_path_recovery.py
+      - .github/workflows/v3-saved-close-path-recovery.yml
   workflow_dispatch:
     inputs:
       reconcile_only:
@@ -42,6 +44,9 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Recover observed dated price path from already published close
         if: ${{ !inputs.reconcile_only }}
+        env:
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
         run: python v3_saved_close_path_recovery.py
       - name: Reconcile only previously published recovery evidence
         if: ${{ inputs.reconcile_only }}
