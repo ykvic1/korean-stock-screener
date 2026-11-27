@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Reconcile EPS disclosure tables with adjacent unit captions
+      - name: Verify exact EPS selection from explicit current-period columns
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}

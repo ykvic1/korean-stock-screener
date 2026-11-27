@@ -135,6 +135,28 @@ class WholeReportPilotTest(unittest.TestCase):
                      caption + '<P>관련 없는 설명</P>' + data):
             self.assertEqual(parse_xml(doc(heading + body), 'CFS', anchors), {})
 
+    def test_explicit_eps_period_headers_resolve_equal_eps_without_using_prior_profit(self):
+        heading = '<P>34. 주당이익 (연결)</P><P>(단위 : 원, 주)</P>'
+        rows = [['구분', '제42(전)기', '제43(당)기'],
+                ['지배주주 당기순이익', '22,780', '45,560'],
+                ['가중평균유통보통주식수', '10', '20'],
+                ['기본주당이익', '2,278원', '2,278원/주']]
+        diag = Counter()
+        self.assertEqual(parse_xml(doc(heading + table(rows)), 'CFS',
+                                   {'reported_eps': 2278}, diagnostics=diag),
+                         {'owners_profit': 45560})
+        self.assertEqual(diag['EPS_NOTE_saved_eps_multiple_exact_matches'], 1)
+        rows[-1][-1] = '2,279원'
+        diag.clear()
+        self.assertEqual(parse_xml(doc(heading + table(rows)), 'CFS',
+                                   {'reported_eps': 2278}, diagnostics=diag), {})
+        self.assertEqual(diag['EPS_NOTE_current_period_eps_unconfirmed'], 1)
+        rows[-1][1] = '2,280원'
+        diag.clear()
+        self.assertEqual(parse_xml(doc(heading + table(rows)), 'CFS',
+                                   {'reported_eps': 2278}, diagnostics=diag), {})
+        self.assertEqual(diag['EPS_NOTE_saved_eps_no_exact_match'], 1)
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
