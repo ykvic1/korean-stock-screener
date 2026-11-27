@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Check the bounded full-report recovery and record parser diagnostics
+      - name: Classify XML errors and verify bounded report recovery
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}

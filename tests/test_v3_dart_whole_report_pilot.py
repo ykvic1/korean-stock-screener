@@ -32,7 +32,25 @@ class WholeReportPilotTest(unittest.TestCase):
             diagnostics.clear()
             self.assertEqual(parse_xml(encoded[:-1], 'CFS', {'cfo': 100},
                                        diagnostics=diagnostics), {})
-            self.assertEqual(diagnostics, {'xml_rejected': 1})
+            self.assertEqual(diagnostics, {'xml_rejected': 1, 'xml_error_unclosed_token': 1})
+
+    def test_named_space_and_malformed_xml_are_distinguished(self):
+        body = '<TITLE>연결 현금흐름표</TITLE><P>(단위 : 원)</P>'
+        body += table([['영업활동현금흐름', '100'], ['유형자산의&nbsp;취득', '(20)']])
+        raw = doc(body)
+        diagnostics = Counter()
+        result, status = inspect(archive(raw), RECEIPT, 'CFS',
+                                 {'2025': {'cfo': 100}, '2024': {'cfo': 90}},
+                                 diagnostics=diagnostics)
+        self.assertEqual((result, status), ({'2025': {'ppe': 20}}, 'anchored_candidates'))
+        self.assertEqual(diagnostics['xml_nbsp_retry'], 1)
+        self.assertEqual(diagnostics['xml_parsed'], 1)
+        for invalid, reason in ((raw.replace(b'&nbsp;', b'&unknown;'), 'undefined_entity'),
+                                (doc('<P></TITLE>'), 'tag_mismatch')):
+            diagnostics.clear()
+            self.assertEqual(parse_xml(invalid, 'CFS', {'cfo': 100},
+                                       diagnostics=diagnostics), {})
+            self.assertEqual(diagnostics, {'xml_rejected': 1, 'xml_error_' + reason: 1})
 
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
