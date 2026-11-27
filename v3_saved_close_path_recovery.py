@@ -1,4 +1,4 @@
-"""Manual 90-first recovery of exact-date historical 121-session observations.
+"""Manual near-100-first recovery of exact-date historical 121-session observations.
 
 Keep all fetched OHLCV bars in memory. Reuse a dated market snapshot only
 when its previously published final close matches the newly retrieved source.
@@ -40,7 +40,10 @@ def select_targets(market, report):
         if (type(price) not in (int, float) or
                 not math.isfinite(price) or price <= 0):
             continue
-        (first if report['rows'][code]['available'] < 90 else second).append(code)
+        available = report['rows'][code]['available']
+        if not 60 <= available < 100:
+            continue
+        (first if available < 90 else second).append(code)
     if len(first) + len(second) > 400:
         raise RecoveryError('unexpectedly_large_path_recovery_cohort')
     return sorted(first), sorted(second)
@@ -182,11 +185,11 @@ def main(argv=None):
     report = read('v3-operational-research-scores.json')
     first, second = select_targets(initial, report)
     print(json.dumps({'stage': 'selected', 'asof': initial['date'],
-                      'below90': len(first), 'other': len(second)},
+                      'below90': len(first), 'near_complete': len(second)},
                      sort_keys=True), flush=True)
-    # 90-first; never fetch unfinished same-day prices.
-    primary = collect(first, initial['date'])
-    other = collect(second, initial['date'])
+    # Near-100 first; never fetch unfinished same-day prices.
+    primary = collect(second, initial['date'])
+    other = collect(first, initial['date'])
     collected = {key: primary[key] + other[key]
                  for key in ('rows', 'errors', 'excluded')}
     counts = {'examined': primary['examined'] + other['examined'],
