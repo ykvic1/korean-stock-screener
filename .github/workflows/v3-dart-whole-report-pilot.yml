@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Extract candidates from distinct official full-report archives
+      - name: Check the bounded full-report recovery and record parser diagnostics
         id: collect
         env:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}

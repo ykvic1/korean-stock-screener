@@ -53,7 +53,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v1'
+NOTE_READER = 'attributable_profit_eps_note_v2'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -175,10 +175,32 @@ def section_title(s, default_scope=None):
             return scope,section
     return None
 
-def parse_xml(raw, scope, anchors):
+LEGACY_XML_ENCODING = re.compile(
+    rb'''^<\?xml\b[^>]*?\bencoding\s*=\s*(["'])(euc[-_]?kr|cp949|windows-949|ks_c_5601-1987)\1''',
+    re.IGNORECASE,
+)
+
+def xml_root(raw):
+    # Expat does not handle legacy multibyte Korean declarations directly.
+    # Normalize only the recognized encoding and preserve the exact text.
+    match = LEGACY_XML_ENCODING.match(raw)
+    if match:
+        declared = match[2].lower()
+        encoding = 'euc_kr' if declared in (b'euc-kr', b'euc_kr', b'euckr') else 'cp949'
+        start, end = match.span(2)
+        raw = (raw[:start] + b'UTF-8' + raw[end:]).decode(encoding).encode('utf-8')
+    return ET.fromstring(raw)
+
+def parse_xml(raw, scope, anchors, *, diagnostics=None):
     # No external entities, remote DTDs or permissive recovery.
-    try:root=ET.fromstring(raw)
-    except (ET.ParseError,LookupError,ValueError):return {}
+    if diagnostics is None:
+        diagnostics = Counter()
+    try:
+        root = xml_root(raw)
+    except (ET.ParseError, LookupError, ValueError):
+        diagnostics['xml_rejected'] += 1
+        return {}
+    diagnostics['xml_parsed'] += 1
     scope_context=None; active=None; unit=False; candidates={}
     for node in root.iter():
         kind=tag(node)
@@ -195,6 +217,8 @@ def parse_xml(raw, scope, anchors):
                 title=section_title(t,scope_context)
                 if title:
                     active=title;unit=False
+                    if active[0] == scope:
+                        diagnostics[f'{active[1]}_heading'] += 1
                 elif kind=='TITLE' or (
                         active and active[1] == 'EPS_NOTE' and re.match(r'^[0-9]+\.', t)):
                     active=None;unit=False
@@ -207,12 +231,18 @@ def parse_xml(raw, scope, anchors):
             # A table's own unit takes precedence over the section header.
             units = declared_units(cell for row in rows[:5] for cell in row)
             is_krw = units == {'원'} if units else unit
-            if not is_krw:continue
-            f=facts_for_table(rows,anchors,active[1])
+            diagnostic_key = active[1]
+            if not is_krw:
+                diagnostics[f'{diagnostic_key}_unit_unconfirmed'] += 1
+                continue
+            diagnostics[f'{diagnostic_key}_krw_table'] += 1
+            f=facts_for_table(rows,anchors,diagnostic_key)
+            if f:
+                diagnostics[f'{diagnostic_key}_matched_table'] += 1
             for k,v in f.items():candidates.setdefault(k,set()).add(v)
     return {k:next(iter(v)) for k,v in candidates.items() if len(v)==1}
 
-def inspect(raw, receipt, scope, anchors):
+def inspect(raw, receipt, scope, anchors, *, diagnostics=None):
     try:
         with ZipFile(BytesIO(raw)) as z:
             infos=z.infolist()
@@ -226,7 +256,8 @@ def inspect(raw, receipt, scope, anchors):
             body=z.read(selected[0])
     except BadZipFile:
         raise PilotError('provider_non_zip_response') from None
-    found={year:parse_xml(body,scope,anchor) for year,anchor in anchors.items()}
+    found={year:parse_xml(body,scope,anchor,diagnostics=diagnostics)
+           for year,anchor in anchors.items()}
     found={year:row for year,row in found.items() if row}
     return found, 'anchored_candidates' if found else 'no_anchored_candidate'
 
@@ -388,15 +419,18 @@ def main():
     key=os.getenv('DART_API_KEY','');reasons=Counter()
     for x in q:
         raw=fetch(key,x['receipt']);summary['provider_calls']+=1
-        found,status=inspect(raw,x['receipt'],x['scope'],x['anchors'])
+        diagnostics = Counter()
+        found,status=inspect(raw,x['receipt'],x['scope'],x['anchors'],diagnostics=diagnostics)
         found={year:{k:v for k,v in row.items() if k in x['wanted'].get(year,[])}
                for year,row in found.items()}
         found={year:row for year,row in found.items() if row}
         if status=='anchored_candidates' and not found:status='no_anchored_candidate'
         records[x['receipt']]={**x,'archive_sha256':sha256(raw).hexdigest(),
                                'status':status,'candidates':found}
+        records[x['receipt']]['diagnostics'] = dict(diagnostics)
         if a.review_owner_note:
             records[x['receipt']]['reader'] = NOTE_READER
+            summary['target_diagnostics'] = dict(diagnostics)
         summary['completed']+=1;summary['candidate_facts']+=sum(len(row) for row in found.values())
         summary['candidate_issuers']+=bool(found);reasons[status]+=1
         summary['reasons']=dict(reasons)
