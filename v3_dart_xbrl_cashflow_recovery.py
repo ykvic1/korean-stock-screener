@@ -320,13 +320,17 @@ def original_queue_inventory(state, priority, near_90):
 
 
 def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=(),
-            recheck_legacy=False):
+            recheck_legacy=False, eligible_codes=None, near_complete_codes=()):
     if type(limit) is not int or not 1<=limit<=32:raise RecoveryError('invalid_original_xbrl_budget')
     if not set(near_90)<=set(priority):raise RecoveryError('unverified_90_priority_issuer')
     if type(recheck_legacy) is not bool:raise RecoveryError('invalid_legacy_recheck_selector')
+    if eligible_codes is not None and not set(near_complete_codes)<=set(eligible_codes):
+        raise RecoveryError('unverified_near_complete_issuer')
     queue=[]
     completion_year_count = {}
     for code,issuer in state['records'].items():
+        if eligible_codes is not None and code not in eligible_codes:
+            continue
         missing=eligible_original_years(issuer,recheck_legacy=recheck_legacy)
         if not missing:
             continue
@@ -345,7 +349,8 @@ def targets(state,priority,limit,seed_years=(),*,near_90=(),completion_priority=
     # original missing-year/issuer order inside each unseeded priority tier.
     seeds=set(seed_years)
     return sorted(candidates,key=lambda item:(
-        item[0] not in near_90,completion_year_count.get(item[0],len(cf.YEARS)+1),
+        item[0] not in near_complete_codes, item[0] not in near_90,
+        completion_year_count.get(item[0],len(cf.YEARS)+1),
         item[0] not in priority,(item[0],int(item[1])) not in seeds))[:limit]
 
 
@@ -368,14 +373,26 @@ def main():
         seeds=[(code,year) for code,year,*_ in xp.select_candidates(
             state,bulk,asof=catalog['date'],limit=xp.MAX_PROBES,
             cohort_index=a.structural_cohort_index,priority_codes=priority)]
-    # A reconciled priority issuer already above 90 has only FCF gaps.
-    completion_priority = {code for code in priority if report['rows'][code]['available'] >= 90}
+    # Only current reconciled coverage establishes the recovery tiers.
+    from v3_v30b_release_gate import r1d_public_reconciles
+    comparison=read('v3-operational-research-comparison.json')
+    current = (report.get('asof') == catalog['date'] == bulk.get('asof')
+               and r1d_public_reconciles(report,comparison,catalog) is not None)
+    eligible = {code for code,row in report['rows'].items()
+                if 60 <= row['available'] < 100} if current else set()
+    near_complete = {code for code in eligible if report['rows'][code]['available'] >= 90}
+    completion_priority = priority & near_complete
+    research_sample = a.structural_cohort_index is not None or a.recheck_equivalent_contexts
     selected=targets(state,priority,a.limit,seeds,near_90=near_90,
                      completion_priority=completion_priority,
+                     eligible_codes=None if research_sample else eligible,
+                     near_complete_codes=() if research_sample else near_complete,
                      recheck_legacy=a.recheck_equivalent_contexts)
     output={'selected_issuer_years':len(selected),'priority_issuers':len(priority),
         'conditional_90_priority_issuers':len(near_90),
         'selected_conditional_90_issuer_years':sum(code in near_90 for code,_,_ in selected),
+        'selected_near_complete_issuer_years':sum(code in near_complete for code,_,_ in selected),
+        'current_coverage_priority_verified':current,
         'legacy_context_recheck':a.recheck_equivalent_contexts,
         'provider_calls':0,'completed':0,'recovered_fields':0,'reasons':{},
         'scores_certified':False,'context_checks':{},

@@ -203,6 +203,19 @@ class OriginalRecoveryTests(unittest.TestCase):
         s['records']['000002']['years']['2023'] = {**prior(), 'original_xbrl_review': {'contract': 'x'}}
         self.assertEqual(targets(s,p,1,seed,completion_priority=full)[0][0],'000003')
 
+    def test_current_completion_tiers_precede_sub90_and_exclude_ineligible(self):
+        s = {'records': {code: {'years': {'2024': prior()}}
+                         for code in ('000001','000002','000003','000004')}}
+        eligible = {'000001','000003'}
+        selected = targets(s, {'000001','000003'}, 4, [('000002',2024)],
+                           near_90={'000001'}, eligible_codes=eligible,
+                           near_complete_codes={'000003'})
+        self.assertEqual([row[0] for row in selected], ['000003','000001'])
+        self.assertEqual(targets(s, set(), 4, eligible_codes=set()), [])
+        with self.assertRaises(RecoveryError):
+            targets(s, set(), 4, eligible_codes=eligible,
+                    near_complete_codes={'000004'})
+
     def test_negative_original_review_does_not_require_score_replay(self):
         import v3_dart_cashflow_enrichment as c
         from v3_dart_reported_capex_total import requires_score_replay
