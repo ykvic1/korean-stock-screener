@@ -1,5 +1,5 @@
 {
-  "asof": "2026-11-26",
+  "asof": "2026-11-27",
   "comparison_window_coverage": {
     "complete_window_is_not_full_six_point_eligibility": true,
     "daily_comparison_eligible_issuers": {
@@ -10,39 +10,40 @@
     },
     "issuer_window_flags_or_amounts_published": false,
     "weekly_comparison_eligible_issuers": {
-      "10": 2448,
-      "120": 2018,
+      "10": 2449,
+      "120": 2020,
       "20": 2422,
-      "5": 2458,
-      "60": 2269
+      "5": 2459,
+      "60": 2271
     }
   },
   "component_observation_coverage": {
     "complete_structure_not_full_100_observation": true,
     "full_weight_issuers": {
-      "concentration_quality": 2456,
+      "concentration_quality": 2457,
       "correction_contraction": 2343,
-      "persistence": 2002,
+      "persistence": 2003,
       "up_down_asymmetry": 2358,
-      "weekly_structure_increment": 2016
+      "weekly_structure_increment": 2018
     },
     "observed_issuers": {
       "concentration_quality": 2468,
       "correction_contraction": 2343,
       "persistence": 2468,
       "up_down_asymmetry": 2358,
-      "weekly_structure_increment": 2016
+      "weekly_structure_increment": 2018
     },
     "partial_weight_not_renormalized": true,
-    "structure_only_issuers": 466
+    "structure_only_issuers": 465
   },
   "coverage_gap_diagnostic": {
-    "fresh_unscored_issuers": 591,
-    "full_fresh_evidence_issuers": 2002,
+    "fresh_unscored_issuers": 590,
+    "full_fresh_evidence_issuers": 2003,
     "incomplete_periods_do_not_prove_recent_listing": true,
     "issuer_amounts_or_coverage_timeseries_published": false,
     "reason_pair_counts": {
-      "complete__incomplete_periods": 300,
+      "complete__incomplete_periods": 298,
+      "complete__zero_baseline": 1,
       "incomplete_periods__complete": 11,
       "incomplete_periods__incomplete_periods": 275,
       "incomplete_periods__zero_baseline": 1,
@@ -57,21 +58,21 @@
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
   },
-  "eligible_issuers": 2003,
+  "eligible_issuers": 2005,
   "history_shape_diagnostic": {
     "does_not_identify_listing_or_gap_cause": true,
     "issuer_dates_or_source_series_published": false,
     "pair_counts": {
-      "complete__complete": 2006,
+      "complete__complete": 2008,
       "complete__internal_missing": 6,
-      "complete__tail_only_missing": 294,
+      "complete__tail_only_missing": 292,
       "internal_missing__complete": 2,
       "internal_missing__internal_missing": 91,
-      "no_observed_history__no_observed_history": 2,
+      "no_observed_history__no_observed_history": 1,
+      "no_observed_history__tail_only_missing": 1,
       "tail_only_missing__complete": 10,
       "tail_only_missing__internal_missing": 15,
-      "tail_only_missing__no_observed_history": 2,
-      "tail_only_missing__tail_only_missing": 165
+      "tail_only_missing__tail_only_missing": 167
     }
   },
   "investment_score_certified": false,
@@ -81,7 +82,7 @@
   "schema": "v3-personal-actual-money-coverage-summary-0.1",
   "source_schema": "v3-personal-actual-money-participation-six-0.1",
   "weekly_repair_observation": {
-    "added_issuer_weeks": 4147,
+    "added_issuer_weeks": 4139,
     "examined_weeks": 240,
     "original_archives_preserved": true,
     "prices_or_directions_repaired": false
