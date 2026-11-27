@@ -55,7 +55,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v7'
+NOTE_READER = 'attributable_profit_eps_note_v8'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -116,6 +116,16 @@ def note_units_are_krw(units):
     return bool(units) and all(unit in {'원', '원,주', '원,주,원/주'}
                                for unit in units)
 
+NOTE_PERIOD = re.compile(r'(?:당기|전기|전전기|제[0-9]+(?:\((?:당|전|전전)\))?기)\Z')
+NOTE_ROW_ORDINAL = re.compile(r'(?:[0-9]+\.|\([0-9]+\))\Z')
+
+def note_unit_caption(rows, units):
+    if not units or len(rows) > 2:
+        return False
+    cells = [norm(cell) for row in rows for cell in row if norm(cell)]
+    return bool(cells) and all(declared_units((cell,)) or NOTE_PERIOD.fullmatch(cell)
+                               for cell in cells)
+
 def note_row_label(text):
     label = re.sub(r'^(?:[0-9]+\.\s*|\([0-9]+\)\s*)', '', text.strip())
     return re.sub(r'\((?:주|주석)[0-9]+\)$', '', norm(label))
@@ -140,8 +150,14 @@ def owner_profit_from_note(rows, expected_eps, diagnostics):
     values = {}
     for field, labels in fields.items():
         parse = reported_eps_number if field == 'eps' else number
-        matches = {tuple(parse(cell) for cell in row[1:])
-                   for row in rows if note_row_label(row[0]) in labels}
+        matches = set()
+        for row in rows:
+            if note_row_label(row[0]) in labels:
+                matches.add(tuple(parse(cell) for cell in row[1:]))
+            elif (len(row) > 2 and (not norm(row[0]) or NOTE_ROW_ORDINAL.fullmatch(norm(row[0])))
+                  and note_row_label(row[1]) in labels):
+                # Retain the leading column so values still align across rows.
+                matches.add((None, *(parse(cell) for cell in row[2:])))
         if len(matches) != 1:
             reason = 'absent' if not matches else 'ambiguous'
             diagnostics[f'EPS_NOTE_{field}_row_{reason}'] += 1
@@ -358,10 +374,16 @@ def parse_xml(raw, scope, anchors, *, diagnostics=None):
 
 def facts_from_root(root, scope, anchors, diagnostics):
     scope_context=None; active=None; unit=False; candidates={}
+    pending_note_unit = None
+    caption_children = set()
     for node in root.iter():
+        if node in caption_children:
+            continue
         kind=tag(node)
         if kind in ('TITLE','P','SUBTITLE'):
             t=norm(value(node))
+            if pending_note_unit is not None and t and not NOTE_PERIOD.fullmatch(t):
+                pending_note_unit = None
             if len(t)>150:continue
             if re.fullmatch(r'(?:[0-9.]+)?연결재무제표',t):
                 scope_context='CFS';active=None;unit=False
@@ -388,6 +410,17 @@ def facts_from_root(root, scope, anchors, diagnostics):
             units = declared_units(cell for row in rows[:5] for cell in row)
             diagnostic_key = active[1]
             is_krw = unit
+            if diagnostic_key == 'EPS_NOTE':
+                if note_unit_caption(rows, units):
+                    pending_note_unit = note_units_are_krw(units)
+                    caption_children = set(node.iter())
+                    diagnostics['EPS_NOTE_separate_unit_caption'] += 1
+                    continue
+                if pending_note_unit is not None:
+                    is_krw = pending_note_unit
+                    if not units:
+                        diagnostics['EPS_NOTE_unit_caption_applied'] += 1
+                    pending_note_unit = None
             if units:
                 is_krw = note_units_are_krw(units) if diagnostic_key == 'EPS_NOTE' else units == {'원'}
             if not is_krw:
