@@ -55,7 +55,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v8'
+NOTE_READER = 'attributable_profit_eps_note_v9'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -131,10 +131,29 @@ def note_row_label(text):
     return re.sub(r'\((?:주|주석)[0-9]+\)$', '', norm(label))
 
 def reported_eps_number(text):
-    value = norm(text)
+    value = re.sub(r'원(?:/주)?$', '', norm(text))
     if re.fullmatch(r'-?[0-9,]+\.0+', value):
         value = value.split('.', 1)[0]
     return number(value)
+
+def note_period(cell):
+    label = norm(cell)
+    if label in {'당기', '(당기)'} or re.fullmatch(r'제[0-9]+\(당\)기', label):
+        return 'current'
+    if label in {'전기', '전전기', '(전기)', '(전전기)'} or re.fullmatch(r'제[0-9]+\(전(?:전)?\)기', label):
+        return 'prior'
+    return None
+
+def note_period_columns(rows, width):
+    by_column = {}
+    for row in rows[:5]:
+        if len(row) != width + 1:
+            continue
+        for index, cell in enumerate(row[1:]):
+            period = note_period(cell)
+            if period:
+                by_column.setdefault(index, set()).add(period)
+    return by_column
 
 def owner_profit_from_note(rows, expected_eps, diagnostics):
     fields = {
@@ -166,6 +185,20 @@ def owner_profit_from_note(rows, expected_eps, diagnostics):
     if len(values) != len(fields):
         return {}
     columns = matching_columns(values, {'eps': expected_eps})
+    diagnostics['EPS_NOTE_numeric_eps_cells'] += sum(value is not None for value in values['eps'])
+    if not columns:
+        diagnostics['EPS_NOTE_saved_eps_no_exact_match'] += 1
+    elif len(columns) > 1:
+        diagnostics['EPS_NOTE_saved_eps_multiple_exact_matches'] += 1
+    periods = note_period_columns(rows, len(values['eps']))
+    if periods:
+        if any(len(period) != 1 for period in periods.values()):
+            diagnostics['EPS_NOTE_period_header_conflict'] += 1
+            return {}
+        current = {index for index, period in periods.items() if period == {'current'}}
+        columns = [index for index in columns if index in current]
+        if not columns:
+            diagnostics['EPS_NOTE_current_period_eps_unconfirmed'] += 1
     if len(columns) != 1:
         diagnostics['EPS_NOTE_saved_eps_not_unique'] += 1
         return {}
