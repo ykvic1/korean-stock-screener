@@ -19,6 +19,7 @@ from pathlib import Path
 import re
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+from unicodedata import category
 from zipfile import ZipFile, BadZipFile
 from xml.parsers.expat import errors as xml_errors
 import xml.etree.ElementTree as ET
@@ -54,7 +55,7 @@ FIN = {'cashflow_fcf_persistence','fcf_yield','per_eps_quality_growth',
        'pbr_equity_quality','revenue_growth','operating_growth_margin',
        'sales_to_cap','balance_sheet_strength'}
 SEEDS = ('018120','210540','205500')
-NOTE_READER = 'attributable_profit_eps_note_v4'
+NOTE_READER = 'attributable_profit_eps_note_v5'
 NOTE_RECEIPT = '20260316001465'
 
 class PilotError(ValueError):
@@ -207,6 +208,47 @@ def normalize_invalid_text(raw, diagnostics):
         return token
     return INVALID_TEXT_TOKENS.sub(literal, raw)
 
+XML_FORBIDDEN_CHARACTERS = re.compile(r'[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]')
+XML_SYNTAX_CHARACTERS = {
+    '&': 'ampersand', '<': 'less_than', '>': 'greater_than', '=': 'equals',
+    '"': 'quote', "'": 'quote', '#': 'hash', ';': 'semicolon', '/': 'slash',
+}
+XML_DECLARATION = re.compile(
+    rb'''^(?:\xef\xbb\xbf)?<\?xml\b[^>]*?\bencoding\s*=\s*(["'])([A-Za-z0-9_.-]+)\1''',
+    re.IGNORECASE,
+)
+
+def record_invalid_token(raw, error, stage, diagnostics):
+    """Keep offsets and character classes only, never text from the archive."""
+    prefix = f'xml_{stage}_token'
+    line, column = error.position
+    diagnostics[f'{prefix}_line'] = line
+    diagnostics[f'{prefix}_column'] = column
+    declared = XML_DECLARATION.match(raw)
+    if declared:
+        encoding = declared[2].lower()
+        kind = ('utf8' if encoding in (b'utf-8', b'utf8') else
+                'utf16' if encoding.startswith(b'utf-16') else 'other')
+        diagnostics[f'{prefix}_declared_{kind}'] += 1
+    try:
+        source = raw.decode('utf-8-sig')
+    except UnicodeDecodeError as decode_error:
+        diagnostics[f'{prefix}_invalid_utf8_offset'] = decode_error.start
+        return
+    forbidden = {ord(match[0]) for match in XML_FORBIDDEN_CHARACTERS.finditer(source)}
+    for codepoint in sorted(forbidden):
+        diagnostics[f'{prefix}_forbidden_u{codepoint:04x}'] += 1
+    # XML normalizes CRLF and CR before reporting line and column.
+    lines = source.replace('\r\n', '\n').replace('\r', '\n').split('\n')
+    if not 1 <= line <= len(lines):
+        return
+    row = lines[line - 1]
+    for label, offset in (('at', column), ('before', column - 1)):
+        if 0 <= offset < len(row):
+            char = row[offset]
+            kind = XML_SYNTAX_CHARACTERS.get(char, category(char).lower())
+            diagnostics[f'{prefix}_{label}_{kind}'] += 1
+
 def invalid_token_category(raw, position):
     try:
         source = raw.decode('utf-8')
@@ -249,10 +291,16 @@ def xml_root(raw, diagnostics):
             return ET.fromstring(normalized)
         if error.code == INVALID_TOKEN:
             diagnostics[invalid_token_category(raw, error.position)] += 1
+            record_invalid_token(raw, error, 'initial', diagnostics)
             normalized = normalize_invalid_text(raw, diagnostics)
             if normalized != raw:
                 diagnostics['xml_invalid_text_retry'] += 1
-                root = ET.fromstring(normalized)
+                try:
+                    root = ET.fromstring(normalized)
+                except ET.ParseError as retry_error:
+                    if retry_error.code == INVALID_TOKEN:
+                        record_invalid_token(normalized, retry_error, 'retry', diagnostics)
+                    raise
                 diagnostics['xml_invalid_text_repaired'] += 1
                 return root
         raise

@@ -68,6 +68,16 @@ class WholeReportPilotTest(unittest.TestCase):
             self.assertEqual(diagnostics['xml_rejected'], 1)
             self.assertNotIn('xml_invalid_text_repaired', diagnostics)
 
+    def test_remaining_xml_defect_reports_offsets_and_forbidden_codepoint_only(self):
+        raw = doc('<P>R&D</P>\n<P>1\x002</P>')
+        diagnostics = Counter()
+        self.assertEqual(parse_xml(raw, 'CFS', {'cfo': 100}, diagnostics=diagnostics), {})
+        self.assertEqual(diagnostics['xml_initial_token_line'], 1)
+        self.assertEqual(diagnostics['xml_retry_token_line'], 2)
+        self.assertEqual(diagnostics['xml_retry_token_forbidden_u0000'], 1)
+        self.assertEqual(diagnostics['xml_retry_token_at_cc'], 1)
+        self.assertEqual(diagnostics['xml_rejected'], 1)
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
