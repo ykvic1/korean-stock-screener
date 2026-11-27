@@ -117,6 +117,24 @@ class WholeReportPilotTest(unittest.TestCase):
                                    {'reported_eps': 2278}, diagnostics=diagnostics), {})
         self.assertEqual(diagnostics['EPS_NOTE_saved_eps_not_unique'], 1)
 
+    def test_eps_separate_unit_caption_applies_only_to_adjacent_table(self):
+        heading = '<P>34. 주당이익 (연결)</P>'
+        caption = table([['당기', '(단위 : 원, 주)']])
+        data = table([['(1)', '지배주주 당기순이익', '25,143,819,961'],
+                      ['', '가중평균유통보통주식수', '11,035,851'],
+                      ['', '기본주당이익', '2,278']])
+        anchors = {'reported_eps': 2278}
+        diagnostics = Counter()
+        self.assertEqual(parse_xml(doc(heading + caption + '<P>당기</P>' + data),
+                                   'CFS', anchors, diagnostics=diagnostics),
+                         {'owners_profit': 25143819961})
+        self.assertEqual(diagnostics['EPS_NOTE_unit_caption_applied'], 1)
+        for body in (caption.replace('원, 주', '천원, 주') + data,
+                     caption + '<P>35. 배당금</P>' + data,
+                     caption + table([['다른 데이터', '123']]) + data,
+                     caption + '<P>관련 없는 설명</P>' + data):
+            self.assertEqual(parse_xml(doc(heading + body), 'CFS', anchors), {})
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
