@@ -195,12 +195,14 @@ INVALID_TEXT_TOKENS = re.compile(
     re.DOTALL,
 )
 
-def normalize_invalid_text(raw):
+def normalize_invalid_text(raw, diagnostics):
     def literal(match):
         token = match[0]
         if token == b'&':
+            diagnostics['xml_literal_ampersands_normalized'] += 1
             return b'&amp;'
         if token[0] in (11, 12):
+            diagnostics['xml_formatting_controls_normalized'] += 1
             return b' '
         return token
     return INVALID_TEXT_TOKENS.sub(literal, raw)
@@ -247,7 +249,7 @@ def xml_root(raw, diagnostics):
             return ET.fromstring(normalized)
         if error.code == INVALID_TOKEN:
             diagnostics[invalid_token_category(raw, error.position)] += 1
-            normalized = normalize_invalid_text(raw)
+            normalized = normalize_invalid_text(raw, diagnostics)
             if normalized != raw:
                 diagnostics['xml_invalid_text_retry'] += 1
                 root = ET.fromstring(normalized)
