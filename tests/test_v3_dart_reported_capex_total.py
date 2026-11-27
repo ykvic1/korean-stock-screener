@@ -203,6 +203,19 @@ class ReportedTotalTests(unittest.TestCase):
         # General scheduled collection still preserves its wider recovery.
         self.assertEqual(t.targets(reviewed,{'000001','000002'},1)[0][0],'000002')
 
+    def test_current_completion_tiers_precede_sub90_and_exclude_other_codes(self):
+        state={'records':{code:{'years':{'2023':prior(2023)}}
+                          for code in ('000001','000002','000003','000004')}}
+        eligible={'000001','000003'}
+        selected=t.targets(state,{'000001','000003'},40,
+                           threshold_priority={'000001'},eligible_codes=eligible,
+                           near_complete_codes={'000003'})
+        self.assertEqual([row[0] for row in selected],['000003','000001'])
+        self.assertEqual(t.targets(state,set(),40,eligible_codes=set()),[])
+        with self.assertRaises(t.ReportedTotalError):
+            t.targets(state,set(),40,eligible_codes=eligible,
+                      near_complete_codes={'000004'})
+
     def test_three_year_actual_total_receipts_replay_into_both_fcf_factors(self):
         market,catalog,bulk=live_inputs();records={}
         for y in (2023,2024,2025):records[str(y)]=recover(prior(y))
