@@ -59,6 +59,24 @@ class ReviewedPartialCapexTest(unittest.TestCase):
         row['original_xbrl_review']={}
         self.assertEqual(capex.apply(self.cash)[1],[])
 
+    def test_negative_reviews_do_not_block_receipt_matched_comparative(self):
+        from v3_dart_xbrl_cashflow_recovery import CONTRACT as XBRL
+        from v3_dart_reported_capex_total import CONTRACT as TOTAL
+        row = self.cash['records'][self.code]['years']['2024']
+        row['original_xbrl_review'] = {'contract': XBRL, 'receipt_id': self.prior,
+                                      'reason': 'no_missing_supported_fact'}
+        row['reported_total_review'] = {'contract': TOTAL, 'receipt_id': self.prior,
+                                        'reason': 'no_reported_total'}
+        saved = deepcopy(row)
+        output, added = capex.apply(self.cash)
+        self.assertEqual(added, [(self.code, '2024')])
+        years = output['records'][self.code]['years']
+        capex.verify(self.code, '2024', years, self.cutoff)
+        self.assertEqual(capex.restore(years['2024']), saved)
+        row['reported_total_review']['receipt_id'] = self.later
+        with self.assertRaises(ValueError):
+            capex.apply(self.cash)
+
     def test_old_both_missing_contract_retained(self):
         row = self.cash['records'][self.code]['years']['2024']
         row['ppe_capex_krw']=None
