@@ -685,6 +685,43 @@
             }
           ],
           "public_url_file_reconciliation_verified": false
+        },
+        "recovery_priority_20261127": {
+          "score_asof": "2026-11-26",
+          "near_complete_95_to_under_100": 382,
+          "near_complete_90_to_under_95": 427,
+          "one_missing_component": 196,
+          "remaining_order": "Review 90–<100 before 60–<90. Prioritize one missing component within the 90–<100 group. Keep <60 in the published roster and exclude them from targeted recovery.",
+          "below_60": {
+            "issuers": 165,
+            "listed_zero_volume_reference": 95,
+            "without_zero_volume_flag": 70,
+            "official_60_session_nontrading_confirmed": false
+          },
+          "first_review": {
+            "205500": {
+              "name": "넥써쓰",
+              "factor": "valuation:pbr_equity_quality",
+              "annual_source": "https://kind.krx.co.kr/external/2026/03/18/002458/20260318011473/11011.htm",
+              "comparative_receipt": "20260814002656",
+              "finding": "FY2025 original consolidated statement displays total equity only. The later reviewed comparative labels owners' equity explicitly. Evaluate a separate receipt-bound comparative path. Existing annual proof has not passed."
+            },
+            "323990": {
+              "name": "박셀바이오",
+              "factor": "financial:revenue_growth",
+              "source": "https://kind.krx.co.kr/external/2023/03/08/000973/20230308002546/00591.htm",
+              "finding": "FY2022 audited revenue is shown as a dash. No usable positive growth base."
+            },
+            "388790": {
+              "name": "라이콤",
+              "factor": "financial:revenue_growth",
+              "before_available": 96.5,
+              "source": "https://kind.krx.co.kr/external/2024/03/19/000725/20240319003241/11011.htm",
+              "comparison_source": "https://kind.krx.co.kr/external/2024/03/06/000381/20240306001091/00591.htm",
+              "finding": "Verified FY2022 operating predecessor revenue; saved 2022 receipt is the legal SPAC. Restrict the change to the named issuer, exact receipts, amount, and same accounting scope.",
+              "promotion_verified_at_this_checkpoint": false
+            }
+          }
         }
       }
     }

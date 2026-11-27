@@ -13,8 +13,16 @@ from v3_dart_revenue_2024_comparative import (
 )
 
 
+# LICOM's 2023 business report identifies the operating company as the
+# accounting acquirer and gives its full-year 2022 comparison. The 2022
+# zero attached to the listed code is the legal SPAC's separate statement.
+# https://kind.krx.co.kr/external/2024/03/19/000725/20240319003241/11011.htm
+LICOM_PREDECESSOR_RECEIPTS = ('20230331001886', '20240319000576', '20250318000992')
+LICOM_PREDECESSOR_REVENUE = 34_334_226_177
+
+
 def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_source=None,
-           comparative_2024_source=None):
+           comparative_2024_source=None, *, code=None):
     """Same scope and four dated annual receipts; never shorten the horizon."""
     cutoff=_day(asof)
     if fiscal!=list(range(cutoff.year-4,cutoff.year)) or not isinstance(record,dict):return None
@@ -67,6 +75,11 @@ def window(record, fiscal, asof, revenue_2022_source=None, comparative_2023_sour
             and _valid_receipt(receipts[3],fiscal[3],cutoff)):
             additional=comparative_2024_source.get('recovered_revenue_krw',{})
             if type(additional) is dict:
+                if (code == '388790' and scope == 'OFS' and fiscal[0] == 2022
+                    and tuple(receipts[:3]) == LICOM_PREDECESSOR_RECEIPTS
+                    and type(revenues[0]) is int and revenues[0] == 0
+                    and additional.get('2022') == LICOM_PREDECESSOR_REVENUE):
+                    revenues[0] = None  # The verified comparative is the applicable entity.
                 # An older independently observed FY2022 amount remains the
                 # authority. Conflicting restated comparative values cannot
                 # be combined into a fabricated four-year series.
@@ -127,7 +140,7 @@ def derive(history,catalog,official_2022_revenue=None,official_2023_comparative=
         if code not in members or code in short_period_codes:continue
         observation=window(record,history.get('fiscal_years'),day,
                            source_rows.get(code),comparative_rows.get(code),
-                           comparative_2024_rows.get(code))
+                           comparative_2024_rows.get(code),code=code)
         if observation is not None:values[code]=observation
     peers={m:sorted(v['growth'] for c,v in values.items() if members[c]==m)
            for m in ('KOSPI','KOSDAQ')}

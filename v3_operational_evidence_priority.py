@@ -89,6 +89,20 @@ def coverage_90_first(queue, *, listed_total, full_100_count):
         'missing_data_never_zero_filled':True}
 
 
+def completion_recovery_order(queue):
+    """Review near-complete issuers before other eligible coverage bands."""
+    near_complete = [row for row in queue if row['available'] >= 90]
+    return {
+        'near_complete_count': len(near_complete),
+        'near_complete_single_gap_count': sum(
+            row['missing_components'] == 1 for row in near_complete),
+        'near_complete_priority_codes': [row['code'] for row in near_complete],
+        'later_priority_codes': [row['code'] for row in queue
+                                 if 60 <= row['available'] < 90],
+        'excluded_below_60_count': sum(row['available'] < 60 for row in queue),
+    }
+
+
 def source_family_completion_upper_bounds(queue):
     """Exact missing-factor set containment; never simulate missing points."""
     counts={name:0 for name in SOURCE_FAMILIES}
@@ -171,6 +185,7 @@ def build(report,comparison,catalog,legacy_priority=None):
         'short_price_history_deferred_components':reasons[SHORT_PRICE_HISTORY],
         'gap_shapes':dict(sorted(shapes.items(),key=lambda x:(-x[1],x[0]))),
         'single_component_queue':[r for r in queue if r['missing_components']==1],
+        'completion_recovery_order':completion_recovery_order(queue),
         'coverage_90_first':coverage_90_first(queue,listed_total=audited['listed_total'],
                                                full_100_count=audited['available_100_count']),
         'source_family_completion_upper_bounds':source_family_completion_upper_bounds(queue),
