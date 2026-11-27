@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - v3_dart_whole_report_pilot.py
+      - v3_kind_owner_profit_audit.py
       - tests/test_v3_dart_whole_report_pilot.py
       - .github/workflows/v3-dart-whole-report-pilot.yml
   push:
@@ -23,6 +24,19 @@ jobs:
       - run: |
           python -m unittest discover -s tests -p 'test_v3_dart_whole_report_pilot.py' -v
           python v3_dart_whole_report_pilot.py --mode dry-run --review-owner-note
+  kind-audit:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install 'beautifulsoup4>=4.12,<5'
+      - run: python v3_kind_owner_profit_audit.py
   pilot:
     needs: offline
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
