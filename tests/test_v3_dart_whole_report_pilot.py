@@ -42,6 +42,19 @@ class WholeReportPilotTest(unittest.TestCase):
         self.assertEqual(parse_xml(raw.replace('단위 : 원'.encode(),'단위 : 천원'.encode()),
                                    'CFS',{'cfo':100}),{})
 
+    def test_single_cell_table_unit_overrides_section_unit(self):
+        rows = [['영업활동현금흐름', '100'], ['유형자산의 취득', '(20)']]
+        title = '<TITLE>연결 현금흐름표</TITLE>'
+        krw_table = table([['(단위 : 원)'], *rows])
+        self.assertEqual(parse_xml(doc(title + krw_table), 'CFS', {'cfo': 100}),
+                         {'ppe': 20})
+
+        thousand_table = table([['(단위 : 천원)'], *rows])
+        conflict_table = table([['(단위 : 원)'], ['(단위 : 천원)'], *rows])
+        for invalid_table in (thousand_table, conflict_table):
+            raw = doc(title + '<P>(단위 : 원)</P>' + invalid_table)
+            self.assertEqual(parse_xml(raw, 'CFS', {'cfo': 100}), {})
+
     def test_owner_profit_and_eps_require_two_anchors(self):
         raw=doc('<TITLE>연결 포괄손익계산서</TITLE><P>(단위 : 원)</P>'+
                 table([['매출액','1000','900'],['영업이익','100','90'],

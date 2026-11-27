@@ -82,9 +82,13 @@ def table_rows(table):
         if tag(row) != 'TR':
             continue
         cells=[value(c) for c in row if tag(c) in ('TD','TH','TE')]
-        if len(cells)>=2:
+        if cells:
             rows.append(cells)
     return rows
+
+def declared_units(cells):
+    return {unit for cell in cells
+            for unit in re.findall(r'단위[:：]([^()]+)(?:\)|$)', norm(cell))}
 
 def extract_rows(rows):
     result={}
@@ -161,14 +165,16 @@ def parse_xml(raw, scope, anchors):
                     active=title;unit=False
                 elif kind=='TITLE':
                     active=None;unit=False
-            if active and re.search(r'단위[:：]원(?:\)|$)',t):
-                unit=True
+            if active:
+                units = declared_units((t,))
+                if units:
+                    unit = units == {'원'}
         elif kind=='TABLE' and active and active[0]==scope:
             rows=table_rows(node)
-            # Some unit declarations are inside the table itself.
-            in_table=any(re.search(r'단위[:：]원(?:\)|$)',norm(c))
-                         for row in rows[:5] for c in row)
-            if not(unit or in_table):continue
+            # A table's own unit takes precedence over the section header.
+            units = declared_units(cell for row in rows[:5] for cell in row)
+            is_krw = units == {'원'} if units else unit
+            if not is_krw:continue
             f=facts_for_table(rows,anchors,active[1])
             for k,v in f.items():candidates.setdefault(k,set()).add(v)
     return {k:next(iter(v)) for k,v in candidates.items() if len(v)==1}
