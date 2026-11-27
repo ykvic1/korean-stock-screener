@@ -289,6 +289,33 @@ class RepairTests(unittest.TestCase):
         priority['asof'] = '2026-11-05'
         self.assertEqual(repair.completion_focus(priority, catalog), set())
 
+    def test_near_complete_issuer_window_precedes_more_lower_coverage_gaps(self):
+        catalog = {'date': '2026-11-06', 'listed_total': 3, 'rows': [
+            {'code': code, 'market': 'KOSPI'} for code in ('000001', '000002', '000003')]}
+        keys = [f'KOSPI:{row["code"]}' for row in catalog['rows']]
+        history = []
+        for day, present in (
+            ('2026-11-06', keys),
+            ('2026-10-30', keys[:1]),
+            ('2026-10-23', keys[1:]),
+            ('2026-10-16', keys),
+        ):
+            row = {'week_end': day, 'issuer_week_factors': dict.fromkeys(present)}
+            history.append((b'', row, row))
+        focus = {'000001', '000002', '000003'}
+        priority = {'asof': catalog['date'], 'completion_recovery_order': {
+            'near_complete_priority_codes': ['000001', '999999']}}
+        near = repair.near_complete_focus(priority, catalog, focus)
+        self.assertEqual(near, {'000001'})
+        self.assertEqual(repair.select(history, catalog, {}, focus)[0],
+                         ['2026-10-30', '2026-10-23'])
+        self.assertEqual(repair.select(history, catalog, {}, focus,
+                                       near_complete_codes=near)[0],
+                         ['2026-10-23', '2026-10-30'])
+        self.assertEqual(repair.select(history, catalog, {'2026-10-23'}, focus,
+                                       near_complete_codes=near)[0],
+                         ['2026-10-30'])
+
     def test_workflow_runs_no_secret_on_pr_and_no_raw_artifact_upload(self):
         text = (Path(__file__).resolve().parents[1] / '.github/workflows/v3-krx-money-week-repair.yml').read_text()
         offline, live = text.split('  repair:', 1)

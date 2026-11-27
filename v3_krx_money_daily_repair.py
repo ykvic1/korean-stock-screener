@@ -23,7 +23,7 @@ from v3_krx_money_forward import CHECKPOINT as FORWARD
 from v3_krx_private_github_backfill import PrivateGitStorage
 from v3_krx_calendar_week_money import canonical
 from v3_krx_money_week_repair import (
-    PRIVATE_REPO, MoneyRepairError, completion_focus, select,
+    PRIVATE_REPO, MoneyRepairError, completion_focus, near_complete_focus, select,
     save_immutable_receipt, save_index, failure_diagnostic,
 )
 
@@ -183,7 +183,8 @@ def source_additions(client, original_blob, original, sessions, targets, budget)
 
 
 def repair(snapshot, writer, client, catalog, *, max_windows=MAX_WINDOWS,
-           days=None, digest=None, forward_days=None, focus_codes=None):
+           days=None, digest=None, forward_days=None, focus_codes=None,
+           near_complete_codes=None):
     from v3_actual_money_participation import read_daily_history
     if (snapshot.repository != PRIVATE_REPO or writer.repository != PRIVATE_REPO
         or type(max_windows) is not int or not 1 <= max_windows <= MAX_WINDOWS):
@@ -204,7 +205,8 @@ def repair(snapshot, writer, client, catalog, *, max_windows=MAX_WINDOWS,
         or snapshot.get_content(CHECKPOINT)[0] != raw):
         raise MoneyRepairError('daily_money_repair_snapshot_moved')
     order, targets, _, internal = select(history, catalog, state['windows'], focus_codes,
-        period_field='period', factors_field='derived_issuer_money_factors')
+        near_complete_codes=near_complete_codes, period_field='period',
+        factors_field='derived_issuer_money_factors')
     writer.verify_private()
     observed, oldsha = writer.get_content(CHECKPOINT)
     if observed != raw:
@@ -254,9 +256,11 @@ def main():
     if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
         raise MoneyRepairError('invalid_daily_money_repair_repository')
     token = os.environ['V3_PRIVATE_ARCHIVE_TOKEN']
+    focus = completion_focus(priority, catalog)
     result = repair(LocalPrivateSnapshot(args.private_snapshot, token),
         PrivateGitStorage(PRIVATE_REPO, token), KRXClient(os.environ['KRX_API_KEY']), catalog,
-        max_windows=args.max_windows, focus_codes=completion_focus(priority, catalog))
+        max_windows=args.max_windows, focus_codes=focus,
+        near_complete_codes=near_complete_focus(priority, catalog, focus))
     print(json.dumps(result, sort_keys=True))
     if os.getenv('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
