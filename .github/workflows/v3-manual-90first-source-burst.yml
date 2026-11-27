@@ -92,11 +92,10 @@ jobs:
           cash_pending = cashflow_queue_counts(root, catalog, score)
           flags = {
               "price": price_candidates > 0,
-              "cashflow": should_dispatch(counts.get("dart_cashflow_capex", 0), cash_pending["reported_capex"]),
+              "cashflow": (cash_pending["reported_capex"] is not None and cash_pending["reported_capex"] > 0),
               # This original-file route was absent from the dispatcher.
-              # Start it only with a proven unreviewed near-90 receipt queue.
-              "original_xbrl": (counts.get("dart_cashflow_capex", 0) > 0 and
-                                cash_pending["original_xbrl"] is not None and
+              # Start only for a proven unreviewed eligible receipt queue.
+              "original_xbrl": (cash_pending["original_xbrl"] is not None and
                                 cash_pending["original_xbrl"] > 0),
               "money": counts.get("exchange_actual_money_windows", 0) > 0,
               # These are conditional 90-first source families, not certified
@@ -132,8 +131,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main -f 'inputs[focus]=sub90' --silent
-      - name: Manually start unreviewed original XBRL recovery near 90
+          gh api --method POST "repos/$GITHUB_REPOSITORY/actions/workflows/v3-reported-capex-total.yml/dispatches" -f ref=main -f 'inputs[focus]=all' --silent
+      - name: Manually start unreviewed original XBRL recovery near 100 first
         if: steps.gaps.outputs.original_xbrl == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
