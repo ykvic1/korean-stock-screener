@@ -65,7 +65,7 @@ def should_dispatch(conditional_upper_bound, source_pending):
 
 
 def cashflow_queue_counts(root, catalog, operational):
-    """Bounded real sub-90 queues, separately for API totals and original XBRL.
+    """Bounded real 60–<100 queues, separately for API totals and original XBRL.
 
     Counts are capped at each worker's receipt budget (40/32), sufficient to
     distinguish empty from actionable work. Never substitute score gaps for
@@ -88,18 +88,25 @@ def cashflow_queue_counts(root, catalog, operational):
         state = cf.retained_current_market_cashflow(market, catalog, bulk, saved)
         cf.verify_state(state, market, catalog, bulk, strict_fingerprint=True)
         priority = xp.operational_gap_priority(operational, comparison, catalog, bulk)
-        below = {code for code in priority if operational["rows"][code]["available"] < 90}
-        near = cashflow_90_focus(operational, priority)
+        if bulk.get("asof") != catalog.get("date"):
+            return result
+        eligible = {code for code, row in operational["rows"].items()
+                    if 60 <= row["available"] < 100}
+        near_complete = {code for code in eligible if operational["rows"][code]["available"] >= 90}
+        below = {code for code in priority & eligible if operational["rows"][code]["available"] < 90}
+        near = cashflow_90_focus(operational, priority) & eligible
     except (OSError, ValueError, TypeError, KeyError):
         return result
     try:
         result["reported_capex"] = len(reported_targets(
-            state, priority, 40, threshold_priority=below, only_sub90=True))
+            state, priority, 40, threshold_priority=below,
+            eligible_codes=eligible, near_complete_codes=near_complete))
     except (ValueError, TypeError, KeyError):
         pass
     try:
-        result["original_xbrl"] = sum(code in near for code, _, _ in
-            original_targets(state, priority, 32, near_90=near))
+        result["original_xbrl"] = len(original_targets(
+            state, priority, 32, near_90=near,
+            eligible_codes=eligible, near_complete_codes=near_complete))
     except (ValueError, TypeError, KeyError):
         pass
     return result
