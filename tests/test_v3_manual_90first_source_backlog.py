@@ -100,7 +100,7 @@ class CashflowBacklogTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             for name in ('data.json','v3-dart-bulk-history.json',
                          'v3-dart-cashflow-reference.json','v3-operational-research-comparison.json'):
-                (Path(d)/name).write_text('{}')
+                (Path(d)/name).write_text(json.dumps({'asof':catalog['date']}))
             with patch('v3_dart_cashflow_enrichment.retained_current_market_cashflow',return_value=state), \
                  patch('v3_dart_cashflow_enrichment.verify_state'), \
                  patch('v3_dart_xbrl_capex_pilot.operational_gap_priority',return_value={'000001'}):
@@ -113,9 +113,12 @@ class CashflowBacklogTests(unittest.TestCase):
     def test_reviewed_originals_are_not_refetched(self):
         self.assertEqual(self.check_queue(original_review=True),{'reported_capex':0,'original_xbrl':0})
 
-    def test_outside_90_priority_is_not_a_new_broad_original_retry(self):
-        self.assertEqual(self.check_queue(available=94),{'reported_capex':0,'original_xbrl':0})
-        self.assertEqual(self.check_queue(available=80),{'reported_capex':0,'original_xbrl':0})
+    def test_near_complete_and_lower_eligible_queues_are_counted(self):
+        self.assertEqual(self.check_queue(available=94),{'reported_capex':0,'original_xbrl':1})
+        self.assertEqual(self.check_queue(available=94,api_review=False),{'reported_capex':1,'original_xbrl':1})
+        self.assertEqual(self.check_queue(available=80,api_review=False),{'reported_capex':1,'original_xbrl':1})
+        self.assertEqual(self.check_queue(available=59,api_review=False),{'reported_capex':0,'original_xbrl':0})
+        self.assertEqual(self.check_queue(available=100,api_review=False),{'reported_capex':0,'original_xbrl':0})
 
     def test_stale_missing_or_invalid_sources_are_unknown_not_zero(self):
         self.assertEqual(self.check_queue(stale=True),{'reported_capex':None,'original_xbrl':None})
