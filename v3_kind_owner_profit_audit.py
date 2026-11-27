@@ -1,4 +1,5 @@
 """Cross-check a reviewed KIND filing against same-period saved DART accounts."""
+from collections import Counter
 from hashlib import sha256
 from json import dumps, loads
 from pathlib import Path
@@ -8,7 +9,6 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup, UnicodeDammit
 
 from v3_dart_whole_report_pilot import norm, number, owner_profit_from_note
-from collections import Counter
 
 CODE = '210540'
 RECEIPT = '20260316001465'
