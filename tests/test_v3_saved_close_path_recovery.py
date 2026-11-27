@@ -52,6 +52,23 @@ class SavedClosePathRecoveryTests(unittest.TestCase):
         with self.assertRaises(RecoveryError):
             select_targets(current,score)
 
+    def test_excludes_completed_and_below_60_sources(self):
+        current = market()
+        score = {'asof':DAY,'rows':{'000001':{'available':59.5},
+                                     '000002':{'available':100.}}}
+        self.assertEqual(select_targets(current,score),([],[]))
+        score['rows']['000001']['available'] = 60
+        score['rows']['000002']['available'] = 90
+        self.assertEqual(select_targets(current,score),(['000001'],['000002']))
+
+    def test_workflow_supplies_existing_krx_credentials(self):
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / '.github/workflows/v3-saved-close-path-recovery.yml').read_text()
+        self.assertIn('KRX_ID: ${{ secrets.KRX_ID }}', workflow)
+        self.assertIn('KRX_PW: ${{ secrets.KRX_PW }}', workflow)
+        self.assertIn('primary = collect(second,', (root / 'v3_saved_close_path_recovery.py').read_text())
+
     def test_only_exact_source_close_can_restore_real_path(self):
         current=market()
         existing=receipt()
