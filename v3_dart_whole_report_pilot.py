@@ -371,9 +371,10 @@ def main():
                         and eps_record.get('annual_receipt_id') == NOTE_RECEIPT
                         and eps_record.get('fs_div') == 'CFS'
                         and isinstance(series, list) and len(series) == 3
-                        and all(type(value) is int for value in series)
+                        and all(type(value) in (int, float) and abs(value) <= 10**9
+                                and value % 1 == 0 for value in series)
                         and series.count(series[-1]) == 1 and series[-1] != 0):
-                    item['anchors']['2025']['reported_eps'] = series[-1]
+                    item['anchors']['2025']['reported_eps'] = int(series[-1])
                     q.append(item)
                 break
     else:
