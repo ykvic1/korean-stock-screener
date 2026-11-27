@@ -52,6 +52,22 @@ class WholeReportPilotTest(unittest.TestCase):
                                        diagnostics=diagnostics), {})
             self.assertEqual(diagnostics, {'xml_rejected': 1, 'xml_error_' + reason: 1})
 
+    def test_invalid_token_repairs_only_literal_text_and_formatting(self):
+        title = '<TITLE>연결 현금흐름표</TITLE><P>(단위 : 원)</P>'
+        rows = table([['영업활동현금흐름', '100'], ['유형자산의 취득', '(20)']])
+        diagnostics = Counter()
+        for body in ('<P>R&D</P>', '<P>요약\v자료</P>'):
+            diagnostics.clear()
+            self.assertEqual(parse_xml(doc(title + body + rows), 'CFS', {'cfo': 100},
+                                       diagnostics=diagnostics), {'ppe': 20})
+            self.assertEqual(diagnostics['xml_invalid_text_repaired'], 1)
+        for body in ('<P>1\v2</P>', '<P>1\x002</P>', '<P broken&>text</P>'):
+            diagnostics.clear()
+            self.assertEqual(parse_xml(doc(title + body + rows), 'CFS', {'cfo': 100},
+                                       diagnostics=diagnostics), {})
+            self.assertEqual(diagnostics['xml_rejected'], 1)
+            self.assertNotIn('xml_invalid_text_repaired', diagnostics)
+
     def test_numeric_zero_not_dash_or_blank(self):
         self.assertEqual(number('0'),0)
         self.assertEqual(number('(1,000)'),-1000)
