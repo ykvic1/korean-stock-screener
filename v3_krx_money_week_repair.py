@@ -255,8 +255,21 @@ def completion_focus(priority, catalog):
     return focus
 
 
+def near_complete_focus(priority, catalog, focus_codes):
+    """Use the reconciled 90–<100 cohort to rank feasible money-window work."""
+    if priority.get('asof') != catalog.get('date'):
+        return set()
+    recovery = priority.get('completion_recovery_order')
+    if not isinstance(recovery, dict):
+        return set()
+    codes = recovery.get('near_complete_priority_codes')
+    if not isinstance(codes, list):
+        return set()
+    return {code for code in codes if isinstance(code, str) and code in focus_codes}
+
+
 def select(history, catalog, examined, focus_codes=None, *,
-           period_field='week_end', factors_field='issuer_week_factors'):
+           near_complete_codes=None, period_field='week_end', factors_field='issuer_week_factors'):
     members = set()
     for item in catalog['rows']:
         code, market = item.get('code'), item.get('market')
@@ -267,6 +280,9 @@ def select(history, catalog, examined, focus_codes=None, *,
     if len(members) != catalog['listed_total']:
         raise MoneyRepairError('incomplete_money_repair_catalog')
     targets, single, focused_single, focused_share = {}, {}, {}, {}
+    near_complete_single, near_complete_share = {}, {}
+    focus_codes = focus_codes or set()
+    near_complete_codes = near_complete_codes or set()
     internal_issuers = 0
     for item in catalog['rows']:
         key = item['market'] + ':' + item['code']
@@ -284,7 +300,8 @@ def select(history, catalog, examined, focus_codes=None, *,
         # side, ONLY for priority codes and only if that side has <=5 gaps.
         # Large leading/trailing blocks may be genuine pre-listing/halts:
         # do not launch a 240-week blind recovery or infer an IPO date.
-        focus = item['code'] in (focus_codes or set())
+        focus = item['code'] in focus_codes
+        near_complete = item['code'] in near_complete_codes
         edges = []
         if focus:
             newer, older = positions[0], len(present) - positions[-1] - 1
@@ -306,8 +323,14 @@ def select(history, catalog, examined, focus_codes=None, *,
                 focused_share[week] = focused_share.get(week, 0) + 1 / missing_total
                 if missing_total == 1:
                     focused_single[week] = focused_single.get(week, 0) + 1
-    order = sorted(targets, key=lambda w: (-focused_single.get(w, 0),
-        -focused_share.get(w, 0), -single.get(w, 0), -len(targets[w]), w))
+            if near_complete:
+                near_complete_share[week] = near_complete_share.get(week, 0) + 1 / missing_total
+                if missing_total == 1:
+                    near_complete_single[week] = near_complete_single.get(week, 0) + 1
+    order = sorted(targets, key=lambda w: (
+        -near_complete_single.get(w, 0), -near_complete_share.get(w, 0),
+        -focused_single.get(w, 0), -focused_share.get(w, 0),
+        -single.get(w, 0), -len(targets[w]), w))
     return order, targets, single, internal_issuers
 
 
@@ -349,7 +372,7 @@ def save_index(writer, encoded, raw, oldsha, *, checkpoint=CHECKPOINT):
 
 
 def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS,
-           day_loader=week_days, focus_codes=None):
+           day_loader=week_days, focus_codes=None, near_complete_codes=None):
     if type(max_weeks) is not int or not 1 <= max_weeks <= MAX_WEEKS:
         raise MoneyRepairError('invalid_money_repair_week_budget')
     history, raw, oldsha, state = load_history(snapshot, catalog, day_loader=day_loader)
@@ -360,7 +383,8 @@ def repair(snapshot, writer, client, catalog, *, max_weeks=MAX_WEEKS,
     # Snapshot hashes are SHA256 integrity digests. GitHub CAS requires the
     # remote Git blob SHA; never substitute the local snapshot digest.
     oldsha = writer_sha
-    order, targets, single, internal = select(history, catalog, state['weeks'], focus_codes)
+    order, targets, single, internal = select(
+        history, catalog, state['weeks'], focus_codes, near_complete_codes=near_complete_codes)
     lookup = {h[1]['week_end']: h[:2] for h in history}
     budget = {'requests': 0}
     summaries = []
@@ -408,10 +432,12 @@ def main():
     token = os.environ['V3_PRIVATE_ARCHIVE_TOKEN']
     if os.getenv('V3_PRIVATE_ARCHIVE_REPO') != PRIVATE_REPO:
         raise MoneyRepairError('invalid_money_repair_repository')
+    focus = completion_focus(priority, catalog)
     result = repair(LocalPrivateSnapshot(args.private_snapshot, token),
                     PrivateGitStorage(PRIVATE_REPO, token),
                     KRXClient(os.environ['KRX_API_KEY']), catalog, max_weeks=args.max_weeks,
-                    focus_codes=completion_focus(priority, catalog))
+                    focus_codes=focus,
+                    near_complete_codes=near_complete_focus(priority, catalog, focus))
     print(json.dumps(result, sort_keys=True))
     if os.getenv('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a') as handle:
