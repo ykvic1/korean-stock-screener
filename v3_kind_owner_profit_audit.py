@@ -20,6 +20,27 @@ REVIEWED_ANCHORS = {
 }
 
 
+# Reviewed annual filings can be reused across closes while the same DART
+# receipt remains current. These figures come from the linked KIND statements.
+REVIEWED_FILINGS = {
+    CODE: {
+        'receipt': RECEIPT, 'market': 'KOSPI', 'url': URL,
+        'profit': REVIEWED_PROFIT, 'anchors': REVIEWED_ANCHORS,
+    },
+    '065370': {
+        'receipt': '20260320000390', 'market': 'KOSDAQ',
+        'url': 'https://kind.krx.co.kr/external/2026/03/20/000445/20260320001784/11011.htm',
+        # Consolidated P&L, owner/NCI allocation in the statement of changes
+        # in equity, and the consolidated basic EPS note all agree.
+        'profit': 1_454_510_181,
+        'anchors': {
+            'revenue': 38_258_327_979, 'operating_income': 786_004_716,
+            'cfo': 2_201_204_774, 'reported_eps': 211,
+        },
+    },
+}
+
+
 def fetch():
     with urlopen(Request(URL, headers={'User-Agent': 'Mozilla/5.0'}), timeout=25) as response:
         if response.geturl() != URL:
@@ -70,55 +91,66 @@ def audit(body, anchors, expected_eps):
     return note_profits.pop()
 
 
-def saved_anchors(docs):
+def saved_anchors(docs, code=CODE, receipt=RECEIPT):
     checkpoint = loads((docs / 'v3-dart-whole-report-candidates.json').read_text(encoding='utf-8'))
-    record = checkpoint['records'][RECEIPT]
+    record = checkpoint['records'][receipt]
     cash = loads((docs / 'v3-dart-cashflow-reference.json').read_text(encoding='utf-8'))
-    annual_cash = cash['records'][CODE]['years']['2025']
-    eps = loads((docs / 'v3-dart-reported-eps.json').read_text(encoding='utf-8'))['records'][CODE]
+    annual_cash = cash['records'][code]['years']['2025']
+    eps = loads((docs / 'v3-dart-reported-eps.json').read_text(encoding='utf-8'))['records'][code]
     anchors = record['anchors']['2025']
-    expected_eps = anchors['reported_eps']
-    if (record['code'] != CODE or record['receipt'] != RECEIPT or record['scope'] != 'CFS'
-            or annual_cash['annual_receipt_id'] != RECEIPT or annual_cash['scope'] != 'CFS'
+    expected_eps = eps['reported_basic_eps_2023_2025'][-1]
+    if (record['code'] != code or record['receipt'] != receipt or record['scope'] != 'CFS'
+            or annual_cash['annual_receipt_id'] != receipt or annual_cash['scope'] != 'CFS'
             or annual_cash['major_annual_receipt_matched'] is not True
             or annual_cash['operating_cashflow_krw'] != anchors['cfo']
-            or eps['annual_receipt_id'] != RECEIPT or eps['fs_div'] != 'CFS'
-            or eps['reported_basic_eps_2023_2025'][-1] != expected_eps):
+            or eps['annual_receipt_id'] != receipt or eps['fs_div'] != 'CFS'
+            or type(expected_eps) is not int
+            or anchors.get('reported_eps', expected_eps) != expected_eps):
         raise ValueError('Saved DART filing evidence did not reconcile')
-    return anchors
+    return {**anchors, 'reported_eps': expected_eps}
+
+
+def matches_receipt(record, filing):
+    return (
+        record['annual_receipt_id'] == filing['receipt']
+        and record['fs_div'] == 'CFS' and record['market'] == filing['market'])
 
 
 def verify_reviewed(record):
+    filing = REVIEWED_FILINGS.get(record['code'])
     return (
-        record['code'] == CODE and record['annual_receipt_id'] == RECEIPT
-        and record['fs_div'] == 'CFS' and record['market'] == 'KOSPI'
+        filing is not None and matches_receipt(record, filing)
         and type(record['owners_profit_krw']) is int
-        and record['owners_profit_krw'] == REVIEWED_PROFIT
-        and record.get('kind_source_url') == URL)
+        and record['owners_profit_krw'] == filing['profit']
+        and record.get('kind_source_url') == filing['url'])
 
 
 def admit_reviewed(docs, day, expected, retained):
-    """Admit the reviewed public fact only against the unchanged DART filing."""
-    base = expected.get(CODE)
-    old = retained.get(CODE, {})
-    if (not base or base['annual_receipt_id'] != RECEIPT or base['fs_div'] != 'CFS'
-            or base['market'] != 'KOSPI' or old.get('status') != 'missing_standard_account'):
-        return
-    try:
-        anchors = saved_anchors(docs)
-        if any(type(anchors.get(key)) is not int or anchors[key] != value
-               for key, value in REVIEWED_ANCHORS.items()):
-            return
-    except (OSError, ValueError, KeyError, IndexError, TypeError):
-        return
-    recovered = {
-        **base, 'observed_on': day, 'raw_provider_rows_published': False,
-        'status': 'observed_owner_profit', 'owners_profit_krw': REVIEWED_PROFIT,
-        'source_account_id': SOURCE_ACCOUNT, 'kind_source_url': URL,
-    }
-    if 'original_xbrl_review' in old:
-        recovered['original_xbrl_review'] = old['original_xbrl_review']
-    retained[CODE] = recovered
+    """Admit reviewed public facts only against unchanged DART filings."""
+    admitted = 0
+    for code, filing in REVIEWED_FILINGS.items():
+        base = expected.get(code)
+        old = retained.get(code, {})
+        if (not base or not matches_receipt(base, filing)
+                or old.get('status') != 'missing_standard_account'):
+            continue
+        try:
+            anchors = saved_anchors(docs, code, filing['receipt'])
+            if any(type(anchors.get(key)) is not int or anchors[key] != value
+                   for key, value in filing['anchors'].items()):
+                continue
+        except (OSError, ValueError, KeyError, IndexError, TypeError):
+            continue
+        recovered = {
+            **base, 'observed_on': day, 'raw_provider_rows_published': False,
+            'status': 'observed_owner_profit', 'owners_profit_krw': filing['profit'],
+            'source_account_id': SOURCE_ACCOUNT, 'kind_source_url': filing['url'],
+        }
+        if 'original_xbrl_review' in old:
+            recovered['original_xbrl_review'] = old['original_xbrl_review']
+        retained[code] = recovered
+        admitted += 1
+    return admitted
 
 
 def main():

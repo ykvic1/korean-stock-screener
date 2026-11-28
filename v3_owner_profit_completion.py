@@ -60,7 +60,17 @@ def extend(catalog,book,priority,prior,operational,comparison,eps):
     proof.plan(catalog,book,expanded,None)
     rebound=proof.snapshot(day,catalog,book,expanded,retained) if prior is not None else None
     if rebound is not None:proof.verify(rebound,catalog,book,expanded)
+    exhausted = {}
+    for code in sorted(eligible & set(retained)):
+        record = retained[code]
+        review = record.get('original_xbrl_review') or {}
+        if (record['status'] == 'missing_standard_account' and
+                record.get('profit_recheck_contract') and
+                review.get('reason') and review.get('reason') != 'recovered'):
+            reason = review['reason']
+            exhausted[reason] = exhausted.get(reason, 0) + 1
     return expanded,rebound,preferred,{'status':'all_listed_profit_source_queue','added':len(added),
+        'api_and_original_xbrl_closed_by_reason':exhausted,
         'eligible_missing_profit_issuers':len(eligible),'eligible_one_gap_issuers':len(preferred),
         'already_queried_same_receipt':len(eligible&set(retained)),
         'pending_all_listed_issuers':len(eligible-set(retained)),
