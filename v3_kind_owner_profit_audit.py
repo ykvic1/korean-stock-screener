@@ -102,13 +102,16 @@ def saved_anchors(docs, code=CODE, receipt=RECEIPT):
     expected_eps = eps['reported_basic_eps_2023_2025'][-1]
     if (row.get('status') != 'observed' or annual.get('year') != 2025
             or annual.get('receipt_id') != receipt or annual.get('fs_div') != 'CFS'
-            or annual.get('currency') != 'KRW'
-            or annual_cash['annual_receipt_id'] != receipt or annual_cash['scope'] != 'CFS'
-            or annual_cash['major_annual_receipt_matched'] is not True
-            or annual_cash['operating_cashflow_krw'] != values.get('operating_cashflow')
-            or eps['annual_receipt_id'] != receipt or eps['fs_div'] != 'CFS'
+            or annual.get('currency') != 'KRW'):
+        raise ValueError('kind_annual_book_identity_not_verified')
+    if (annual_cash['annual_receipt_id'] != receipt or annual_cash['scope'] != 'CFS'
+            or annual_cash['major_annual_receipt_matched'] is not True):
+        raise ValueError('kind_cashflow_receipt_not_verified')
+    if annual_cash['operating_cashflow_krw'] != values.get('operating_cashflow'):
+        raise ValueError('kind_cashflow_amount_mismatch')
+    if (eps['annual_receipt_id'] != receipt or eps['fs_div'] != 'CFS'
             or eps.get('status') != 'reported_basic_eps' or type(expected_eps) is not int):
-        raise ValueError('Saved DART filing evidence did not reconcile')
+        raise ValueError('kind_eps_receipt_or_value_not_verified')
     return {'revenue': values['revenue'], 'operating_income': values['operating_income'],
             'cfo': values['operating_cashflow'], 'reported_eps': expected_eps}
 
@@ -139,9 +142,14 @@ def admit_reviewed(docs, day, expected, retained, *, review_status=None):
             continue
         try:
             anchors = saved_anchors(docs, code, filing['receipt'])
-        except (OSError, ValueError, KeyError, IndexError, TypeError):
+        except (OSError, ValueError, KeyError, IndexError, TypeError) as exc:
             if review_status is not None:
-                review_status[code] = 'saved_receipt_or_account_not_verified'
+                reason = str(exc)
+                safe_reasons = {
+                    'kind_annual_book_identity_not_verified', 'kind_cashflow_receipt_not_verified',
+                    'kind_cashflow_amount_mismatch', 'kind_eps_receipt_or_value_not_verified',
+                }
+                review_status[code] = reason if reason in safe_reasons else 'saved_receipt_or_account_not_verified'
             continue
         if any(type(anchors.get(key)) is not int or anchors[key] != value
                for key, value in filing['anchors'].items()):
