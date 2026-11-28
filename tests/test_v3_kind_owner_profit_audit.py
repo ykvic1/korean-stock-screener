@@ -58,5 +58,6 @@ class KindOwnerProfitAuditTest(unittest.TestCase):
             admitted = dict(retained[CODE])
             admit_reviewed(Path('docs'), day, expected, retained)
             self.assertEqual(retained[CODE], admitted)
-        with self.assertRaises(ProfitProbeError):
-            _validated_record({**retained[CODE], 'owners_profit_krw': REVIEWED_PROFIT + 1}, day)
+        for invalid_value in (REVIEWED_PROFIT + 1, float(REVIEWED_PROFIT)):
+            with self.subTest(invalid_value=invalid_value), self.assertRaises(ProfitProbeError):
+                _validated_record({**retained[CODE], 'owners_profit_krw': invalid_value}, day)

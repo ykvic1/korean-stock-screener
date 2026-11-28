@@ -92,6 +92,7 @@ def verify_reviewed(record):
     return (
         record['code'] == CODE and record['annual_receipt_id'] == RECEIPT
         and record['fs_div'] == 'CFS' and record['market'] == 'KOSPI'
+        and type(record['owners_profit_krw']) is int
         and record['owners_profit_krw'] == REVIEWED_PROFIT
         and record.get('kind_source_url') == URL)
 
