@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from v3_dart_2025_owner_profit_probe import ProfitProbeError, _validated_record
 from v3_kind_owner_profit_audit import (
-    CODE, RECEIPT, REVIEWED_ANCHORS, REVIEWED_PROFIT, admit_reviewed, audit,
+    CODE, RECEIPT, REVIEWED_ANCHORS, REVIEWED_FILINGS, REVIEWED_PROFIT, admit_reviewed, audit,
 )
 
 
@@ -61,3 +61,22 @@ class KindOwnerProfitAuditTest(unittest.TestCase):
         for invalid_value in (REVIEWED_PROFIT + 1, float(REVIEWED_PROFIT)):
             with self.subTest(invalid_value=invalid_value), self.assertRaises(ProfitProbeError):
                 _validated_record({**retained[CODE], 'owners_profit_krw': invalid_value}, day)
+
+    def test_additional_issuer_uses_its_own_filing_and_skips_existing_observation(self):
+        code = '065370'
+        day = '2026-11-27'
+        filing = REVIEWED_FILINGS[code]
+        base = {'code': code, 'name': '위세아이텍', 'market': 'KOSDAQ',
+                'annual_receipt_id': filing['receipt'], 'fiscal_year': 2025, 'fs_div': 'CFS'}
+        expected = {code: base}
+        retained = {code: {'status': 'missing_standard_account'}}
+        with patch('v3_kind_owner_profit_audit.saved_anchors',
+                   return_value=filing['anchors']) as anchors:
+            self.assertEqual(admit_reviewed(Path('docs'), day, expected, retained), 1)
+            anchors.assert_called_once_with(Path('docs'), code, filing['receipt'])
+            self.assertEqual(admit_reviewed(Path('docs'), day, expected, retained), 0)
+            self.assertEqual(anchors.call_count, 1)
+        _validated_record(retained[code], day)
+        self.assertEqual(retained[code]['owners_profit_krw'], 1_454_510_181)
+        with self.assertRaises(ProfitProbeError):
+            _validated_record({**retained[code], 'kind_source_url': REVIEWED_FILINGS[CODE]['url']}, day)
