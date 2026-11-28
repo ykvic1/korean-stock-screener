@@ -6,14 +6,18 @@ from pathlib import Path
 import re
 from urllib.request import Request, urlopen
 
-from bs4 import BeautifulSoup, UnicodeDammit
-
 from v3_dart_whole_report_pilot import norm, number, owner_profit_from_note
 
 CODE = '210540'
 RECEIPT = '20260316001465'
 URL = 'https://kind.krx.co.kr/external/2026/03/16/002374/20260316006781/11011.htm'
 MAX_BYTES = 8_000_000
+SOURCE_ACCOUNT = 'kind:reviewed_consolidated_eps_note'
+REVIEWED_PROFIT = 25_143_819_961
+REVIEWED_ANCHORS = {
+    'revenue': 382_750_873_929, 'operating_income': 30_429_405_841,
+    'cfo': 23_102_288_824, 'reported_eps': 2_278,
+}
 
 
 def fetch():
@@ -27,6 +31,8 @@ def fetch():
 
 
 def audit(body, anchors, expected_eps):
+    from bs4 import BeautifulSoup, UnicodeDammit
+
     decoded = UnicodeDammit(body, is_html=True).unicode_markup
     if decoded is None:
         raise ValueError('KIND report decoding failed')
@@ -64,8 +70,7 @@ def audit(body, anchors, expected_eps):
     return note_profits.pop()
 
 
-def main():
-    docs = Path('docs')
+def saved_anchors(docs):
     checkpoint = loads((docs / 'v3-dart-whole-report-candidates.json').read_text(encoding='utf-8'))
     record = checkpoint['records'][RECEIPT]
     cash = loads((docs / 'v3-dart-cashflow-reference.json').read_text(encoding='utf-8'))
@@ -80,6 +85,45 @@ def main():
             or eps['annual_receipt_id'] != RECEIPT or eps['fs_div'] != 'CFS'
             or eps['reported_basic_eps_2023_2025'][-1] != expected_eps):
         raise ValueError('Saved DART filing evidence did not reconcile')
+    return anchors
+
+
+def verify_reviewed(record):
+    return (
+        record['code'] == CODE and record['annual_receipt_id'] == RECEIPT
+        and record['fs_div'] == 'CFS' and record['market'] == 'KOSPI'
+        and type(record['owners_profit_krw']) is int
+        and record['owners_profit_krw'] == REVIEWED_PROFIT
+        and record.get('kind_source_url') == URL)
+
+
+def admit_reviewed(docs, day, expected, retained):
+    """Admit the reviewed public fact only against the unchanged DART filing."""
+    base = expected.get(CODE)
+    old = retained.get(CODE, {})
+    if (not base or base['annual_receipt_id'] != RECEIPT or base['fs_div'] != 'CFS'
+            or base['market'] != 'KOSPI' or old.get('status') != 'missing_standard_account'):
+        return
+    try:
+        anchors = saved_anchors(docs)
+        if any(type(anchors.get(key)) is not int or anchors[key] != value
+               for key, value in REVIEWED_ANCHORS.items()):
+            return
+    except (OSError, ValueError, KeyError, IndexError, TypeError):
+        return
+    recovered = {
+        **base, 'observed_on': day, 'raw_provider_rows_published': False,
+        'status': 'observed_owner_profit', 'owners_profit_krw': REVIEWED_PROFIT,
+        'source_account_id': SOURCE_ACCOUNT, 'kind_source_url': URL,
+    }
+    if 'original_xbrl_review' in old:
+        recovered['original_xbrl_review'] = old['original_xbrl_review']
+    retained[CODE] = recovered
+
+
+def main():
+    anchors = saved_anchors(Path('docs'))
+    expected_eps = anchors['reported_eps']
     body = fetch()
     profit = audit(body, anchors, expected_eps)
     print(dumps({'candidate_facts': 1, 'owners_profit_krw': profit,
