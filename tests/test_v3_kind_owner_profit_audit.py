@@ -1,10 +1,11 @@
+import json
 from pathlib import Path
 import unittest
 from unittest.mock import patch
 
 from v3_dart_2025_owner_profit_probe import ProfitProbeError, _validated_record
 from v3_kind_owner_profit_audit import (
-    CODE, RECEIPT, REVIEWED_ANCHORS, REVIEWED_FILINGS, REVIEWED_PROFIT, admit_reviewed, audit,
+    CODE, RECEIPT, REVIEWED_ANCHORS, REVIEWED_FILINGS, REVIEWED_PROFIT, admit_reviewed, audit, saved_anchors,
 )
 
 
@@ -80,3 +81,14 @@ class KindOwnerProfitAuditTest(unittest.TestCase):
         self.assertEqual(retained[code]['owners_profit_krw'], 1_454_510_181)
         with self.assertRaises(ProfitProbeError):
             _validated_record({**retained[code], 'kind_source_url': REVIEWED_FILINGS[CODE]['url']}, day)
+
+    def test_current_saved_annual_receipt_and_accounts_reconcile_without_pilot_checkpoint(self):
+        docs = Path(__file__).resolve().parents[1] / 'docs'
+        filing = REVIEWED_FILINGS['065370']
+        book = json.loads((docs / 'v3-dart-book-reference.json').read_text(encoding='utf-8'))
+        if book['asof'] != '2026-11-27':
+            self.skipTest('only the original review snapshot is pinned to these exact accounts')
+        self.assertEqual(saved_anchors(docs, '065370', filing['receipt']), filing['anchors'])
+        priority = json.loads((docs / 'v3-near-100-evidence-priority.json').read_text(encoding='utf-8'))
+        if priority['asof'] != book['asof']:
+            self.skipTest('saved priority is waiting for the current annual book')

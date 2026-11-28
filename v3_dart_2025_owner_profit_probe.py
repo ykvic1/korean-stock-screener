@@ -460,12 +460,14 @@ def main(argv=None):
     if args.mode=='refresh':
         if old is None:return
         day,_,expected,retained,_=plan(catalog,book,priority,old,args.limit)
-        new_kind_facts=admit_reviewed(root,day,expected,retained)
+        kind_review_status={}
+        new_kind_facts=admit_reviewed(root,day,expected,retained,review_status=kind_review_status)
         current=snapshot(day,catalog,book,priority,retained)
         verify(current,catalog,book,priority)
         write_json(target,current)
         print(json.dumps({'status':'retained_same_receipt_profit_source_refreshed',
-                          'new_reviewed_kind_facts':new_kind_facts,'provider_calls':0}))
+                          'new_reviewed_kind_facts':new_kind_facts,
+                          'reviewed_kind_rejections':kind_review_status,'provider_calls':0}))
         return
     if args.mode=="verify":
         if old is None:

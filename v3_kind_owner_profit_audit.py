@@ -92,22 +92,25 @@ def audit(body, anchors, expected_eps):
 
 
 def saved_anchors(docs, code=CODE, receipt=RECEIPT):
-    checkpoint = loads((docs / 'v3-dart-whole-report-candidates.json').read_text(encoding='utf-8'))
-    record = checkpoint['records'][receipt]
+    book = loads((docs / 'v3-dart-book-reference.json').read_text(encoding='utf-8'))
+    row = next((item for item in book['records'] if item['code'] == code), {})
+    annual = row.get('annual') or {}
     cash = loads((docs / 'v3-dart-cashflow-reference.json').read_text(encoding='utf-8'))
     annual_cash = cash['records'][code]['years']['2025']
     eps = loads((docs / 'v3-dart-reported-eps.json').read_text(encoding='utf-8'))['records'][code]
-    anchors = record['anchors']['2025']
+    values = annual.get('values') or {}
     expected_eps = eps['reported_basic_eps_2023_2025'][-1]
-    if (record['code'] != code or record['receipt'] != receipt or record['scope'] != 'CFS'
+    if (row.get('status') != 'observed' or annual.get('year') != 2025
+            or annual.get('receipt_id') != receipt or annual.get('fs_div') != 'CFS'
+            or annual.get('currency') != 'KRW'
             or annual_cash['annual_receipt_id'] != receipt or annual_cash['scope'] != 'CFS'
             or annual_cash['major_annual_receipt_matched'] is not True
-            or annual_cash['operating_cashflow_krw'] != anchors['cfo']
+            or annual_cash['operating_cashflow_krw'] != values.get('operating_cashflow')
             or eps['annual_receipt_id'] != receipt or eps['fs_div'] != 'CFS'
-            or type(expected_eps) is not int
-            or anchors.get('reported_eps', expected_eps) != expected_eps):
+            or eps.get('status') != 'reported_basic_eps' or type(expected_eps) is not int):
         raise ValueError('Saved DART filing evidence did not reconcile')
-    return {**anchors, 'reported_eps': expected_eps}
+    return {'revenue': values['revenue'], 'operating_income': values['operating_income'],
+            'cfo': values['operating_cashflow'], 'reported_eps': expected_eps}
 
 
 def matches_receipt(record, filing):
@@ -125,7 +128,7 @@ def verify_reviewed(record):
         and record.get('kind_source_url') == filing['url'])
 
 
-def admit_reviewed(docs, day, expected, retained):
+def admit_reviewed(docs, day, expected, retained, *, review_status=None):
     """Admit reviewed public facts only against unchanged DART filings."""
     admitted = 0
     for code, filing in REVIEWED_FILINGS.items():
@@ -136,10 +139,14 @@ def admit_reviewed(docs, day, expected, retained):
             continue
         try:
             anchors = saved_anchors(docs, code, filing['receipt'])
-            if any(type(anchors.get(key)) is not int or anchors[key] != value
-                   for key, value in filing['anchors'].items()):
-                continue
         except (OSError, ValueError, KeyError, IndexError, TypeError):
+            if review_status is not None:
+                review_status[code] = 'saved_receipt_or_account_not_verified'
+            continue
+        if any(type(anchors.get(key)) is not int or anchors[key] != value
+               for key, value in filing['anchors'].items()):
+            if review_status is not None:
+                review_status[code] = 'saved_account_value_differs_from_reviewed_filing'
             continue
         recovered = {
             **base, 'observed_on': day, 'raw_provider_rows_published': False,
