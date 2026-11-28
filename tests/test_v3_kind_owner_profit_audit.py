@@ -88,6 +88,12 @@ class KindOwnerProfitAuditTest(unittest.TestCase):
         book = json.loads((docs / 'v3-dart-book-reference.json').read_text(encoding='utf-8'))
         if book['asof'] != '2026-11-27':
             self.skipTest('only the original review snapshot is pinned to these exact accounts')
+        eps = json.loads((docs / 'v3-dart-reported-eps.json').read_text(encoding='utf-8'))
+        record = eps['records']['065370']
+        self.assertEqual(
+            (record.get('annual_receipt_id'), record.get('fs_div'), record.get('status'),
+             record['reported_basic_eps_2023_2025'][-1]),
+            (filing['receipt'], 'CFS', 'reported_basic_eps', filing['anchors']['reported_eps']))
         self.assertEqual(saved_anchors(docs, '065370', filing['receipt']), filing['anchors'])
         priority = json.loads((docs / 'v3-near-100-evidence-priority.json').read_text(encoding='utf-8'))
         if priority['asof'] != book['asof']:
