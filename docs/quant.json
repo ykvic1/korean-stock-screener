@@ -23447,6 +23447,6 @@
     "holdout": "chronological diagnostics only; no walk-forward predictive validation",
     "prediction_validated": false
   },
-  "report_file": "reports/quant_2026-11-27_101813.xlsx",
-  "combined_report_file": "reports/한국주식_통합퀀트_2026-11-27_101813.xlsx"
+  "report_file": "reports/quant_2026-11-27_124350.xlsx",
+  "combined_report_file": "reports/한국주식_통합퀀트_2026-11-27_124350.xlsx"
 }
