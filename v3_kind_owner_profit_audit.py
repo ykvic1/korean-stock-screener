@@ -109,11 +109,15 @@ def saved_anchors(docs, code=CODE, receipt=RECEIPT):
         raise ValueError('kind_cashflow_receipt_not_verified')
     if annual_cash['operating_cashflow_krw'] != values.get('operating_cashflow'):
         raise ValueError('kind_cashflow_amount_mismatch')
+    # The EPS ledger serializes ordinary EPS as floats. Admit an exact
+    # integer-valued number without rounding a fractional source observation.
+    integer_eps = (type(expected_eps) is int
+                   or (type(expected_eps) is float and expected_eps.is_integer()))
     if (eps['annual_receipt_id'] != receipt or eps['fs_div'] != 'CFS'
-            or eps.get('status') != 'reported_basic_eps' or type(expected_eps) is not int):
+            or eps.get('status') != 'reported_basic_eps' or not integer_eps):
         raise ValueError('kind_eps_receipt_or_value_not_verified')
     return {'revenue': values['revenue'], 'operating_income': values['operating_income'],
-            'cfo': values['operating_cashflow'], 'reported_eps': expected_eps}
+            'cfo': values['operating_cashflow'], 'reported_eps': int(expected_eps)}
 
 
 def matches_receipt(record, filing):
