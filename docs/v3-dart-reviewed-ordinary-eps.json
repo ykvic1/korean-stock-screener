@@ -357,6 +357,22 @@
         "url": "https://dart.fss.or.kr/report/viewer.do?rcpNo=20260319001269&dcmNo=11152806&eleId=23&offset=604667&length=52521&dtd=dart4.xsd",
         "sha256": "746f0b23c60af41c004aa76183c1241b0616e4379a8c580412d5964beecd9789"
       }
+    },
+    "353200": {
+      "basic_eps": [
+        492,
+        461,
+        924
+      ],
+      "kind_annual_statement": {
+        "operating_income": 49061483387,
+        "revenue": 1065294559811,
+        "url": "https://kind.krx.co.kr/external/2026/03/18/002159/20260318010078/11011.htm"
+      },
+      "operating_cashflow_krw": 71551720318,
+      "receipt_id": "20260318001514",
+      "scope": "CFS",
+      "statement_label": "보통주 기본 및 희석주당순손익 (단위 : 원)"
     }
   },
   "schema": "v3-dart-reviewed-ordinary-eps-v1"
