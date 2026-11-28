@@ -1,6 +1,11 @@
+from pathlib import Path
 import unittest
+from unittest.mock import patch
 
-from v3_kind_owner_profit_audit import audit
+from v3_dart_2025_owner_profit_probe import ProfitProbeError, _validated_record
+from v3_kind_owner_profit_audit import (
+    CODE, RECEIPT, REVIEWED_ANCHORS, REVIEWED_PROFIT, admit_reviewed, audit,
+)
 
 
 class KindOwnerProfitAuditTest(unittest.TestCase):
@@ -31,3 +36,27 @@ class KindOwnerProfitAuditTest(unittest.TestCase):
                 audit(body, {**anchors, field: value + 1}, 2278)
         with self.assertRaises(ValueError):
             audit(body, anchors, 1987)
+
+    def test_reviewed_fact_admission_requires_saved_anchors_and_current_receipt(self):
+        day = '2026-11-27'
+        base = {'code': CODE, 'name': '디와이파워', 'market': 'KOSPI',
+                'annual_receipt_id': RECEIPT, 'fiscal_year': 2025, 'fs_div': 'CFS'}
+        missing = {'status': 'missing_standard_account'}
+        retained = {CODE: missing}
+        expected = {CODE: base}
+        with patch('v3_kind_owner_profit_audit.saved_anchors',
+                   return_value={**REVIEWED_ANCHORS, 'reported_eps': 2277}):
+            admit_reviewed(Path('docs'), day, expected, retained)
+        self.assertEqual(retained[CODE], missing)
+        with patch('v3_kind_owner_profit_audit.saved_anchors', return_value=REVIEWED_ANCHORS):
+            admit_reviewed(Path('docs'), day,
+                           {CODE: {**base, 'annual_receipt_id': '20260317001465'}}, retained)
+            self.assertEqual(retained[CODE], missing)
+            admit_reviewed(Path('docs'), day, expected, retained)
+            self.assertEqual(retained[CODE]['owners_profit_krw'], REVIEWED_PROFIT)
+            _validated_record(retained[CODE], day)
+            admitted = dict(retained[CODE])
+            admit_reviewed(Path('docs'), day, expected, retained)
+            self.assertEqual(retained[CODE], admitted)
+        with self.assertRaises(ProfitProbeError):
+            _validated_record({**retained[CODE], 'owners_profit_krw': REVIEWED_PROFIT + 1}, day)

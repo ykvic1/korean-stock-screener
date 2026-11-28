@@ -14,6 +14,7 @@ import re
 import time
 from typing import Callable
 import v3_owner_profit_reconciliation as profit_allocation
+from v3_kind_owner_profit_audit import SOURCE_ACCOUNT as KIND_ACCOUNT, admit_reviewed, verify_reviewed
 
 from v3_dart_bulk_history import (
     _amount, _mapping, _valid_receipt, _stable_digest,
@@ -198,6 +199,9 @@ def _validated_record(record, cutoff):
     if record["status"] == "observed_owner_profit":
         if original_verified:
             pass  # The original filing proof validates value, scope and basis.
+        elif account == KIND_ACCOUNT:
+            if not verify_reviewed(record):
+                raise ProfitProbeError("invalid_reviewed_kind_profit")
         elif account==profit_allocation.DERIVED_ID:
             try:
                 if record['fs_div']!='CFS':raise ValueError()
@@ -455,7 +459,8 @@ def main(argv=None):
         return
     if args.mode=='refresh':
         if old is None:return
-        day,_,_,retained,_=plan(catalog,book,priority,old,args.limit)
+        day,_,expected,retained,_=plan(catalog,book,priority,old,args.limit)
+        admit_reviewed(root,day,expected,retained)
         current=snapshot(day,catalog,book,priority,retained)
         verify(current,catalog,book,priority)
         write_json(target,current)
