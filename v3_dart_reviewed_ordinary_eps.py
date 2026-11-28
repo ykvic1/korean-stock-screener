@@ -44,13 +44,6 @@ def reviewed_eps_parts(retained, history, cash, reviewed, day):
                 or not _valid_receipt(receipt, 2025, cutoff)
                 or not ordinary_basic_label(evidence['statement_label'])):
             continue
-        prefix = f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&'
-        statements = [evidence[key] for key in ('income_statement', 'cashflow_statement')]
-        if (any(not entry['url'].startswith(prefix)
-                or not re.fullmatch('[a-f0-9]{64}', entry['sha256']) for entry in statements)
-                or statements[0]['url'] == statements[1]['url']
-                or statements[0]['sha256'] == statements[1]['sha256']):
-            continue
         annual = history.get('records', {}).get(code, {}).get('years', {}).get('2025', {}).get(scope, {})
         cfo = cash.get('records', {}).get(code, {}).get('years', {}).get('2025', {})
         if (annual.get('receipt_id') != receipt or cfo.get('annual_receipt_id') != receipt
@@ -58,6 +51,29 @@ def reviewed_eps_parts(retained, history, cash, reviewed, day):
                 or type(evidence['operating_cashflow_krw']) is not int
                 or cfo.get('operating_cashflow_krw') != evidence['operating_cashflow_krw']):
             continue
+        kind = evidence.get('kind_annual_statement')
+        if kind is None:
+            prefix = f'https://dart.fss.or.kr/report/viewer.do?rcpNo={receipt}&'
+            statements = [evidence[key] for key in ('income_statement', 'cashflow_statement')]
+            if (any(not entry['url'].startswith(prefix)
+                    or not re.fullmatch('[a-f0-9]{64}', entry['sha256']) for entry in statements)
+                    or statements[0]['url'] == statements[1]['url']
+                    or statements[0]['sha256'] == statements[1]['sha256']):
+                continue
+        else:
+            filing_day = f'{receipt[:4]}/{receipt[4:6]}/{receipt[6:8]}'
+            kind_prefix = f'https://kind.krx.co.kr/external/{filing_day}/'
+            if not isinstance(kind, dict):
+                continue
+            kind_url = kind.get('url', '')
+            values = annual.get('values', {})
+            if (not isinstance(kind_url, str) or not kind_url.startswith(kind_prefix)
+                    or not re.fullmatch(r'\d{6}/' + receipt[:8] + r'\d{6}/11011\.htm',
+                                        kind_url[len(kind_prefix):])
+                    or any(type(kind.get(field)) is not int or values.get(field) != kind[field]
+                           or field in annual.get('ambiguous', ())
+                           for field in ('revenue', 'operating_income'))):
+                continue
         series = evidence['basic_eps']
         try:
             summary = metrics(series)
@@ -68,6 +84,8 @@ def reviewed_eps_parts(retained, history, cash, reviewed, day):
                        zip(baseline['reported_basic_eps_2023_2025'], series))):
             continue
         result[code] = {**baseline, 'status': 'reported_basic_eps',
-                        'comparative_basis': 'reviewed_same_annual_filing_ordinary_share_eps',
+                        'comparative_basis': ('reviewed_kind_annual_filing_ordinary_share_eps'
+                                              if kind is not None else
+                                              'reviewed_same_annual_filing_ordinary_share_eps'),
                         'reported_basic_eps_2023_2025': series, 'metrics': summary}
     return result

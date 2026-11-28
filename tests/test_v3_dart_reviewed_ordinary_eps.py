@@ -63,3 +63,23 @@ class ReviewedOrdinaryEPSTests(unittest.TestCase):
                 self.assertEqual(self.evaluate(), {})
                 object_[key] = old
         self.assertEqual(self.evaluate('2026-03-17'), {})
+
+    def test_kind_source_requires_same_day_full_report_and_dart_anchors(self):
+        del self.entry['income_statement'], self.entry['cashflow_statement']
+        self.entry['kind_annual_statement'] = {
+            'url': 'https://kind.krx.co.kr/external/2026/03/18/001111/20260318009999/11011.htm',
+            'revenue': 50, 'operating_income': 8,
+        }
+        self.annual['values'] = {'revenue': 50, 'operating_income': 8}
+        result = self.evaluate()[self.code]
+        self.assertEqual(result['comparative_basis'], 'reviewed_kind_annual_filing_ordinary_share_eps')
+        self.assertEqual(result['reported_basic_eps_2023_2025'], [100, -200, 300])
+        self.annual['ambiguous'] = ['revenue']
+        self.assertEqual(self.evaluate(), {})
+        self.annual['ambiguous'] = []
+        self.annual['values']['revenue'] = 51
+        self.assertEqual(self.evaluate(), {})
+        self.annual['values']['revenue'] = 50
+        self.entry['kind_annual_statement']['url'] = (
+            'https://kind.krx.co.kr/external/2026/03/17/001111/20260317009999/11011.htm')
+        self.assertEqual(self.evaluate(), {})
