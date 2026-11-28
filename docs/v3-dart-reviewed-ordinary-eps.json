@@ -76,6 +76,22 @@
       "scope": "CFS",
       "statement_label": "보통주 기본 및 희석주당이익 (단위 : 원)"
     },
+    "096530": {
+      "basic_eps": [
+        14,
+        -190,
+        1047
+      ],
+      "kind_annual_statement": {
+        "operating_income": 34549810779,
+        "revenue": 474231586051,
+        "url": "https://kind.krx.co.kr/external/2026/03/19/000509/20260319002422/11011.htm"
+      },
+      "operating_cashflow_krw": 149333824192,
+      "receipt_id": "20260319000422",
+      "scope": "CFS",
+      "statement_label": "기본주당순이익(손실) (단위 : 원)"
+    },
     "105840": {
       "basic_eps": [
         589.0,
