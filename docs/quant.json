@@ -9,19 +9,43 @@
       "code": "117730",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 6,
+        "last_suspect_date": "2020-09-01",
+        "trailing_valid_sessions": 1528,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "294870",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 7,
+        "last_suspect_date": "2019-11-26",
+        "trailing_valid_sessions": 1718,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "012790",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 51,
+        "last_suspect_date": "2022-10-17",
+        "trailing_valid_sessions": 1006,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "394800",
@@ -67,7 +91,15 @@
       "code": "006120",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 25,
+        "last_suspect_date": "2018-01-04",
+        "trailing_valid_sessions": 2182,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "191410",
@@ -101,7 +133,15 @@
       "code": "012170",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 462,
+        "last_suspect_date": "2026-08-28",
+        "trailing_valid_sessions": 61,
+        "trailing_650_session_candidate": false,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "025620",
@@ -135,7 +175,15 @@
       "code": "048410",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 5,
+        "last_suspect_date": "2024-10-29",
+        "trailing_valid_sessions": 507,
+        "trailing_650_session_candidate": false,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "053060",
@@ -197,19 +245,43 @@
       "code": "122990",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 3,
+        "last_suspect_date": "2017-12-01",
+        "trailing_valid_sessions": 2203,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "197140",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 23,
+        "last_suspect_date": "2022-01-14",
+        "trailing_valid_sessions": 1189,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "218410",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 43,
+        "last_suspect_date": "2021-05-14",
+        "trailing_valid_sessions": 1356,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "188040",
@@ -245,13 +317,29 @@
       "code": "052460",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 13,
+        "last_suspect_date": "2018-09-21",
+        "trailing_valid_sessions": 2005,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "900260",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 21,
+        "last_suspect_date": "2022-12-28",
+        "trailing_valid_sessions": 954,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "340450",
@@ -283,19 +371,43 @@
       "code": "005800",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 7,
+        "last_suspect_date": "2022-04-15",
+        "trailing_valid_sessions": 1129,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "011200",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 12,
+        "last_suspect_date": "2018-02-01",
+        "trailing_valid_sessions": 2162,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "012030",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 1,
+        "last_suspect_date": "2023-08-17",
+        "trailing_valid_sessions": 797,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "037070",
@@ -315,7 +427,15 @@
       "code": "045510",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 2,
+        "last_suspect_date": "2022-08-24",
+        "trailing_valid_sessions": 1040,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "050890",
@@ -335,19 +455,43 @@
       "code": "077500",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 14,
+        "last_suspect_date": "2023-10-20",
+        "trailing_valid_sessions": 756,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "121440",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 2,
+        "last_suspect_date": "2019-09-10",
+        "trailing_valid_sessions": 1769,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "192820",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 23,
+        "last_suspect_date": "2021-03-17",
+        "trailing_valid_sessions": 1397,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "226950",
@@ -387,13 +531,29 @@
       "code": "347700",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 1,
+        "last_suspect_date": "2026-01-06",
+        "trailing_valid_sessions": 219,
+        "trailing_650_session_candidate": false,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "457190",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 9,
+        "last_suspect_date": "2024-04-30",
+        "trailing_valid_sessions": 626,
+        "trailing_650_session_candidate": false,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "424870",
@@ -503,25 +663,57 @@
       "code": "092870",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 29,
+        "last_suspect_date": "2021-10-25",
+        "trailing_valid_sessions": 1247,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "293940",
       "error": "종가 범위 오류",
       "reason_code": "ohlc_range_invalid",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 140,
+        "last_suspect_date": "2024-07-24",
+        "trailing_valid_sessions": 569,
+        "trailing_650_session_candidate": false,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "323280",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 154,
+        "last_suspect_date": "2022-03-31",
+        "trailing_valid_sessions": 1140,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     },
     {
       "code": "000210",
       "error": "음수 또는 0인 가격 / 음수 거래량",
       "reason_code": "nonpositive_price_or_negative_volume",
-      "error_provenance": "local_history_check"
+      "error_provenance": "matched_same_day_collector",
+      "tail_diagnostic": {
+        "suspect_bar_count": 33,
+        "last_suspect_date": "2021-01-22",
+        "trailing_valid_sessions": 1432,
+        "trailing_650_session_candidate": true,
+        "research_only": true,
+        "official_adjustment_certified": false
+      }
     }
   ],
   "stocks": [
@@ -23435,8 +23627,8 @@
     "all_exclusions_listed": true,
     "official_adjusted_prices_certified": false,
     "delisted_historical_universe_included": false,
-    "audited_vendor_tail_diagnostics": 19,
-    "unverified_tail_650_candidates": 17
+    "audited_vendor_tail_diagnostics": 43,
+    "unverified_tail_650_candidates": 36
   },
   "bias_audit": {
     "lookahead_features": "trailing-only tested; next session open entry",
@@ -23446,7 +23638,5 @@
     "corporate_actions": "adjusted prices/provider consistency, dividends and trading suspensions NOT verified",
     "holdout": "chronological diagnostics only; no walk-forward predictive validation",
     "prediction_validated": false
-  },
-  "report_file": "reports/quant_2026-11-27_124350.xlsx",
-  "combined_report_file": "reports/한국주식_통합퀀트_2026-11-27_124350.xlsx"
+  }
 }
